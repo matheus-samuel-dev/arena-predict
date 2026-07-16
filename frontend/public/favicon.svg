@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Símbolo ArenaPredict">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#151b31"/>
+      <stop offset="1" stop-color="#080b14"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="106" y1="76" x2="402" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a985ff"/>
+      <stop offset="0.56" stop-color="#6f5cff"/>
+      <stop offset="1" stop-color="#2e9cff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <path d="M256 70 406 114l-25 230-125 98-125-98-25-230L256 70Z" fill="#11182b" stroke="url(#edge)" stroke-width="26" stroke-linejoin="round"/>
+  <path d="m174 342 69-190h31l66 190M206 270h103" fill="none" stroke="#f7f8ff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m189 292 31-30 32 21 38-49 34 25 28-35" fill="none" stroke="#48e8a4" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="352" cy="224" r="13" fill="#48e8a4" filter="url(#glow)"/>
+</svg>

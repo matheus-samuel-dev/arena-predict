@@ -1,0 +1,60 @@
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    min-response-size: 1024
+  max-http-request-header-size: 16KB
+
+spring:
+  datasource:
+    url: ${DB_URL:${DATABASE_URL:jdbc:postgresql://localhost:5433/bolao_copa}}
+    username: ${DB_USERNAME:${DATABASE_USERNAME:bolao}}
+    password: ${DB_PASSWORD:${DATABASE_PASSWORD:bolao123}}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 50
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+  jackson:
+    time-zone: America/Sao_Paulo
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  jwt:
+    secret: ${JWT_SECRET:troque-este-segredo-em-producao-com-pelo-menos-32-caracteres}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  brand:
+    name: ${APP_BRAND_NAME:ArenaPredict}
+  demo:
+    enabled: ${APP_DEMO_ENABLED:true}
+    live-provider-enabled: ${APP_DEMO_LIVE_PROVIDER_ENABLED:true}
+    live-scheduler-enabled: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:true}
+    live-refresh-ms: ${APP_DEMO_LIVE_REFRESH_MS:30000}
+    live-initial-delay-ms: ${APP_DEMO_LIVE_INITIAL_DELAY_MS:30000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  paths-to-match: /api/**,/auth/**
+  swagger-ui:
+    path: /swagger-ui.html
