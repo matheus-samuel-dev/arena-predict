@@ -4,9 +4,20 @@ import static com.bolao.copa.arena.api.ExperienceDtos.*;
 import static com.bolao.copa.arena.api.ArenaDtos.PoolRequest;
 import static org.assertj.core.api.Assertions.*;
 
+import com.bolao.copa.arena.domain.ArenaEnums.ChallengeMetric;
+import com.bolao.copa.arena.domain.ArenaEnums.EventStatus;
+import com.bolao.copa.arena.domain.ChallengeDefinition;
+import com.bolao.copa.entity.User;
+import com.bolao.copa.entity.UserRole;
+import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.arena.service.*;
 import com.bolao.copa.repository.UserRepository;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,11 +34,20 @@ class ArenaExperienceIntegrationTest {
     @Autowired PointWalletService wallets;
     @Autowired CommunityService community;
     @Autowired ArenaPoolRankingService pools;
+    @Autowired ArenaDashboardService dashboard;
+    @Autowired ArenaEventRepository events;
+    @Autowired PointLedgerRepository ledger;
+    @Autowired ArenaNotificationRepository notifications;
+    @Autowired UserAchievementRepository userAchievements;
+    @Autowired UserChallengeRepository userChallenges;
+    @Autowired ChallengeDefinitionRepository challengeDefinitions;
+    @Autowired CommunityPostRepository communityPosts;
+    @Autowired CommunityLikeRepository communityLikes;
 
     @Test
     @Transactional
     void profileAndPreferencesArePersistedWithoutExposingPassword() {
-        var user = users.findByEmail("user@bolao.com").orElseThrow();
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
         var updated = profiles.update(user, new ProfileUpdateRequest("Jogador Arena", user.getEmail(),
                 "https://example.test/avatar.png", "Perfil público de demonstração", List.of("FOOTBALL", "CS2"), true));
         var preferences = profiles.preferences(user, new PreferenceUpdateRequest("light", "en-US", false, false));
@@ -41,27 +61,54 @@ class ArenaExperienceIntegrationTest {
 
     @Test
     @Transactional
-    void achievementAndChallengeRewardsAreGrantedOnlyOnce() {
-        var user = users.findByEmail("user@bolao.com").orElseThrow();
-        long before = wallets.wallet(user).balance();
-        var firstAchievements = progression.achievements(user);
-        var firstChallenges = progression.challenges(user);
-        long afterFirstEvaluation = wallets.wallet(user).balance();
+    void progressionQueriesAndDashboardNeverGrantRewardsOrCreateState() {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        progression.refresh(user);
+        long balanceBeforeQueries = wallets.wallet(user).balance();
+        long ledgerBeforeQueries = ledger.count();
+        long notificationsBeforeQueries = notifications.count();
+        long achievementsBeforeQueries = userAchievements.count();
+        long challengesBeforeQueries = userChallenges.count();
 
-        progression.achievements(user);
-        progression.challenges(user);
+        var achievements = progression.achievements(user);
+        var challenges = progression.challenges(user);
+        dashboard.dashboard(user);
 
-        assertThat(firstAchievements).anyMatch(AchievementResponse::unlocked);
-        assertThat(firstChallenges).isNotEmpty();
-        assertThat(afterFirstEvaluation).isGreaterThanOrEqualTo(before);
-        assertThat(wallets.wallet(user).balance()).isEqualTo(afterFirstEvaluation);
+        assertThat(achievements).anyMatch(AchievementResponse::unlocked);
+        assertThat(challenges).isNotEmpty();
+        assertThat(wallets.wallet(user).balance()).isEqualTo(balanceBeforeQueries);
+        assertThat(ledger.count()).isEqualTo(ledgerBeforeQueries);
+        assertThat(notifications.count()).isEqualTo(notificationsBeforeQueries);
+        assertThat(userAchievements.count()).isEqualTo(achievementsBeforeQueries);
+        assertThat(userChallenges.count()).isEqualTo(challengesBeforeQueries);
+
+        progression.refresh(user);
+        assertThat(wallets.wallet(user).balance()).isEqualTo(balanceBeforeQueries);
+        assertThat(ledger.count()).isEqualTo(ledgerBeforeQueries);
+        assertThat(notifications.count()).isEqualTo(notificationsBeforeQueries);
+    }
+
+    @Test
+    @Transactional
+    void dashboardNeverFeaturesFinishedOrCancelledEvents() {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var cancelled = events.findAll().stream()
+                .filter(event -> event.getStatus() == EventStatus.CANCELLED)
+                .findFirst()
+                .orElseThrow();
+        cancelled.setFeatured(true);
+        events.saveAndFlush(cancelled);
+
+        assertThat(dashboard.dashboard(user).featuredEvents())
+                .extracting(event -> event.id())
+                .doesNotContain(cancelled.getId());
     }
 
     @Test
     @Transactional
     void communityLikeAndReportAreIdempotentAndOwnershipIsEnforced() {
-        var author = users.findByEmail("user@bolao.com").orElseThrow();
-        var other = users.findByEmail("admin@bolao.com").orElseThrow();
+        var author = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var other = users.findByEmail("marina.costa@arenapredict.com").orElseThrow();
         var post = community.create(new PostRequest("Uma análise original para o próximo evento.", "Análise"), author);
 
         assertThat(community.like(post.id(), other).likeCount()).isEqualTo(1);
@@ -75,10 +122,38 @@ class ArenaExperienceIntegrationTest {
     }
 
     @Test
+    void concurrentLikesCreateOneReaction() throws Exception {
+        var author = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var liker = users.findByEmail("marina.costa@arenapredict.com").orElseThrow();
+        var post = community.create(new PostRequest(
+                "Publicação criada para validar reações concorrentes.", "Concorrência"), author);
+        CountDownLatch start = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> {
+                start.await();
+                return community.like(post.id(), users.findById(liker.getId()).orElseThrow());
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                return community.like(post.id(), users.findById(liker.getId()).orElseThrow());
+            });
+            start.countDown();
+
+            assertThat(first.get(10, TimeUnit.SECONDS).likeCount()).isEqualTo(1);
+            assertThat(second.get(10, TimeUnit.SECONDS).likeCount()).isEqualTo(1);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(communityLikes.countByPost(communityPosts.findById(post.id()).orElseThrow())).isEqualTo(1);
+    }
+
+    @Test
     @Transactional
     void privatePoolsAreVisibleOnlyToMembersAndInviteCodeIsNeverPublic() {
-        var owner = users.findByEmail("user@bolao.com").orElseThrow();
-        var outsider = users.findByEmail("admin@bolao.com").orElseThrow();
+        var owner = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var outsider = users.findByEmail("marina.costa@arenapredict.com").orElseThrow();
         var privatePool = pools.create(new PoolRequest("Liga privada", "Somente convidados", null, null,
                 false, 20, 300, "Ranking por pontos virtuais.", null, null), owner);
         var publicPool = pools.create(new PoolRequest("Liga pública", "Visível na arena", null, null,
@@ -89,5 +164,137 @@ class ArenaExperienceIntegrationTest {
         assertThatThrownBy(() -> pools.get(privatePool.id(), outsider)).isInstanceOf(ArenaProblem.NotFound.class);
         assertThat(pools.get(publicPool.id(), outsider).inviteCode()).isNull();
         assertThat(pools.get(publicPool.id(), outsider).joined()).isFalse();
+    }
+
+    @Test
+    void concurrentPoolJoinsCannotExceedCapacity() throws Exception {
+        var owner = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var firstCandidate = users.findByEmail("marina.costa@arenapredict.com").orElseThrow();
+        var secondCandidate = users.findByEmail("rafael.lima@arenapredict.com").orElseThrow();
+        var pool = pools.create(new PoolRequest("Bolão limitado " + UUID.randomUUID(),
+                "Validação de capacidade concorrente", null, null, true, 2, 0,
+                "Até duas pessoas, incluindo a pessoa criadora.", null, null), owner);
+        CountDownLatch start = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> attemptPoolJoin(pool.id(), firstCandidate.getId(), start));
+            var second = executor.submit(() -> attemptPoolJoin(pool.id(), secondCandidate.getId(), start));
+            start.countDown();
+
+            assertThat(List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(true, false);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(pools.get(pool.id(), owner).participantCount()).isEqualTo(2);
+    }
+
+    @Test
+    @Transactional
+    void welcomeBalanceDoesNotCountAsActivityXp() {
+        User newcomer = new User();
+        newcomer.setName("Participante sem atividade");
+        newcomer.setEmail("xp-zero-" + UUID.randomUUID() + "@arenapredict.test");
+        newcomer.setPasswordHash("não-utilizada-neste-teste");
+        newcomer.setRole(UserRole.PARTICIPANTE);
+        newcomer = users.saveAndFlush(newcomer);
+
+        var wallet = wallets.wallet(newcomer);
+        var playerDashboard = dashboard.dashboard(newcomer);
+
+        assertThat(wallet.balance()).isEqualTo(PointWalletService.INITIAL_DEMO_POINTS);
+        assertThat(wallet.lifetimeEarned()).isZero();
+        assertThat(playerDashboard.xp()).isZero();
+        assertThat(playerDashboard.level()).isEqualTo(1);
+        assertThat(playerDashboard.nextLevelXp()).isEqualTo(5_000);
+    }
+
+    @Test
+    @Transactional
+    void challengeCanRewardTheSameDefinitionInANewWindowOnlyOnce() {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        Instant now = Instant.now();
+        String code = "RECURRING_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        ChallengeDefinition definition = new ChallengeDefinition();
+        definition.setCode(code);
+        definition.setName("Desafio recorrente de teste");
+        definition.setDescription("Valida recompensas independentes por janela.");
+        definition.setMetric(ChallengeMetric.POOL_MEMBER_COUNT);
+        definition.setTarget(1);
+        definition.setRewardPoints(37);
+        definition.setStartsAt(now.minusSeconds(7_200));
+        definition.setExpiresAt(now.plusSeconds(7_200));
+        definition = challengeDefinitions.saveAndFlush(definition);
+
+        long before = wallets.wallet(user).balance();
+        progression.refresh(user);
+        progression.refresh(user);
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before + 37);
+
+        definition.setStartsAt(now.minusSeconds(3_600));
+        definition.setExpiresAt(now.plusSeconds(10_800));
+        challengeDefinitions.saveAndFlush(definition);
+        progression.refresh(user);
+        progression.refresh(user);
+
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before + 74);
+        var state = userChallenges.findByUserAndChallenge(user, definition).orElseThrow();
+        assertThat(state.getWindowStart()).isEqualTo(definition.getStartsAt());
+        assertThat(state.getCompletedAt()).isNotNull();
+    }
+
+    @Test
+    void concurrentProgressionRefreshGrantsOneReward() throws Exception {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        progression.refresh(user);
+        Instant now = Instant.now();
+        String code = "CONCURRENT_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        ChallengeDefinition definition = new ChallengeDefinition();
+        definition.setCode(code);
+        definition.setName("Desafio concorrente de teste");
+        definition.setDescription("Concede uma única recompensa sob chamadas paralelas.");
+        definition.setMetric(ChallengeMetric.POOL_MEMBER_COUNT);
+        definition.setTarget(1);
+        definition.setRewardPoints(41);
+        definition.setStartsAt(now.minusSeconds(60));
+        definition.setExpiresAt(now.plusSeconds(3_600));
+        definition = challengeDefinitions.saveAndFlush(definition);
+        long before = wallets.wallet(user).balance();
+        CountDownLatch start = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> {
+                start.await();
+                progression.refresh(users.findById(user.getId()).orElseThrow());
+                return true;
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                progression.refresh(users.findById(user.getId()).orElseThrow());
+                return true;
+            });
+            start.countDown();
+            assertThat(first.get(10, TimeUnit.SECONDS)).isTrue();
+            assertThat(second.get(10, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+
+        var reloaded = users.findById(user.getId()).orElseThrow();
+        assertThat(wallets.wallet(reloaded).balance()).isEqualTo(before + 41);
+        assertThat(ledger.findByIdempotencyKey("challenge:user:" + user.getId() + ":" + code + ":"
+                + definition.getStartsAt().toEpochMilli())).isPresent();
+        assertThat(userChallenges.findByUserAndChallenge(reloaded, definition).orElseThrow().isRewardGranted()).isTrue();
+    }
+
+    private boolean attemptPoolJoin(Long poolId, Long userId, CountDownLatch start) throws InterruptedException {
+        start.await();
+        try {
+            pools.joinPublic(poolId, users.findById(userId).orElseThrow());
+            return true;
+        } catch (ArenaProblem.Conflict full) {
+            return false;
+        }
     }
 }

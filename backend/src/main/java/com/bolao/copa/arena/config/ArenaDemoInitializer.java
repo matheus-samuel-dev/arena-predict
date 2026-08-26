@@ -14,12 +14,20 @@ import java.util.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaDemoInitializer {
+    private static final Duration MAX_DEMO_LIVE_AGE = Duration.ofHours(6);
+    private static final Set<String> DEMO_PARTICIPANT_EMAILS = Set.of(
+            "jogador@arenapredict.com",
+            "marina.costa@arenapredict.com",
+            "rafael.lima@arenapredict.com",
+            "beatriz.nunes@arenapredict.com"
+    );
     private final SportRepository sports;
     private final ChampionshipRepository championships;
     private final CompetitorRepository competitors;
@@ -30,6 +38,7 @@ public class ArenaDemoInitializer {
     private final ArenaPoolMemberRepository members;
     private final ArenaNotificationRepository notificationRepository;
     private final EventParticipantRepository eventParticipants;
+    private final ArenaPredictionRepository predictionRepository;
     private final UserRepository users;
     private final PointWalletService wallets;
     private final ArenaPredictionService predictions;
@@ -40,6 +49,7 @@ public class ArenaDemoInitializer {
                                 PredictionMarketRepository markets, MarketOptionRepository options,
                                 ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                 ArenaNotificationRepository notificationRepository, EventParticipantRepository eventParticipants,
+                                ArenaPredictionRepository predictionRepository,
                                 UserRepository users,
                                 PointWalletService wallets, ArenaPredictionService predictions,
                                 DemoLiveEventService liveEvents) {
@@ -47,10 +57,12 @@ public class ArenaDemoInitializer {
         this.markets = markets; this.options = options; this.pools = pools; this.members = members;
         this.notificationRepository = notificationRepository; this.users = users; this.wallets = wallets;
         this.eventParticipants = eventParticipants;
+        this.predictionRepository = predictionRepository;
         this.predictions = predictions; this.liveEvents = liveEvents;
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Order(100)
     @Transactional
     public void seed() {
         Map<String, Sport> sport = new LinkedHashMap<>();
@@ -105,9 +117,22 @@ public class ArenaDemoInitializer {
                 now.plusSeconds(172_800), now.plusSeconds(171_000), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.BO3, 3, false);
         ArenaEvent raceOpen = event("demo-f1-open", formula1, null, null, "Grande Prêmio da Arena",
                 now.plusSeconds(259_200), now.plusSeconds(255_600), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.RACE, 1, true);
+        seedEventParticipants(footballLive, palmeiras, flamengo);
+        seedEventParticipants(csLive, furia, navi);
+        seedEventParticipants(basketballOpen, celtics, mavericks);
+        seedEventParticipants(valorantOpen, leviatan, loud);
+        seedEventParticipants(tennisOpen, alcaraz, sinner);
+        seedEventParticipants(lolOpen, t1, geng);
         seedEventParticipants(raceOpen, verstappen, norris, leclerc, piastri);
+        boolean newHistoricalEvent = events.findByExternalKey("demo-football-settled").isEmpty();
         ArenaEvent settled = event("demo-football-settled", brasileirao, flamengo, palmeiras, "Flamengo x Palmeiras · histórico",
                 now.plusSeconds(7_200), now.plusSeconds(6_300), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.STANDARD, 1, false);
+        boolean newCancelledEvent = events.findByExternalKey("demo-football-cancelled").isEmpty();
+        ArenaEvent cancelled = event("demo-football-cancelled", brasileirao, palmeiras, flamengo,
+                "Palmeiras x Flamengo", now.plusSeconds(43_200), now.plusSeconds(41_400),
+                EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.STANDARD, 1, false);
+        seedEventParticipants(settled, flamengo, palmeiras);
+        seedEventParticipants(cancelled, palmeiras, flamengo);
 
         market(footballLive, "WINNER", "Vencedor da partida", MarketStatus.SUSPENDED, 25,
                 choice("HOME", "Palmeiras", "1.65"), choice("DRAW", "Empate", "3.30"), choice("AWAY", "Flamengo", "2.10"));
@@ -126,25 +151,35 @@ public class ArenaDemoInitializer {
                 choice("LEC", "Charles Leclerc", "3.10"), choice("PIA", "Oscar Piastri", "3.40"));
         PredictionMarket historicalMarket = market(settled, "WINNER", "Vencedor da partida", MarketStatus.OPEN, 20,
                 choice("HOME", "Flamengo", "2.05"), choice("DRAW", "Empate", "3.10"), choice("AWAY", "Palmeiras", "1.75"));
+        PredictionMarket cancelledMarket = market(cancelled, "WINNER", "Vencedor da partida", MarketStatus.OPEN, 20,
+                choice("HOME", "Palmeiras", "1.75"), choice("DRAW", "Empate", "3.20"), choice("AWAY", "Flamengo", "2.00"));
 
         liveEvents.refresh();
-        List<User> demoUsers = users.findAll().stream().filter(user -> user.getEmail().endsWith("@arenapredict.com") || user.getEmail().endsWith("@bolao.com")).toList();
-        demoUsers.forEach(wallets::ensureWallet);
-        ArenaPool pool = seedPool(brasileirao, sport.get("FOOTBALL"), demoUsers);
-        for (User user : demoUsers) {
+        List<User> demoParticipants = users.findAll().stream()
+                .filter(user -> user.getRole().canonical() == com.bolao.copa.entity.UserRole.PARTICIPANTE)
+                .filter(user -> DEMO_PARTICIPANT_EMAILS.contains(user.getEmail().toLowerCase(Locale.ROOT)))
+                .toList();
+        demoParticipants.forEach(wallets::ensureWallet);
+        ArenaPool pool = seedPool(brasileirao, sport.get("FOOTBALL"), demoParticipants);
+        for (User user : demoParticipants) {
             placeIfAbsent(user, basketballOpen, nbaWinner, "HOME", 120, null, "seed-active-nba");
-            placeIfAbsent(user, valorantOpen, valorantWinner, user.getRole().name().equals("ADMIN") ? "HOME" : "AWAY", 80, null, "seed-active-vct");
-            placeIfAbsent(user, settled, historicalMarket, user.getRole().name().equals("ADMIN") ? "HOME" : "AWAY", 100, pool, "seed-historical");
+            placeIfAbsent(user, valorantOpen, valorantWinner,
+                    user.getId() % 2 == 0 ? "HOME" : "AWAY", 80, null, "seed-active-vct");
+            placeIfAbsent(user, settled, historicalMarket,
+                    user.getId() % 2 == 0 ? "HOME" : "AWAY", 100, pool, "seed-historical");
+            if (newCancelledEvent)
+                placeIfAbsent(user, cancelled, cancelledMarket, "HOME", 60, null, "seed-cancelled-refund");
         }
-        settled.setStartsAt(now.minusSeconds(86_400)); settled.setPredictionClosesAt(now.minusSeconds(90_000));
-        settled.setHomeScore(1); settled.setAwayScore(2); settled.setStatus(EventStatus.FINISHED);
-        events.save(settled);
-        if (historicalMarket.getStatus() != MarketStatus.SETTLED) {
+        if (newHistoricalEvent) {
+            settled.setStartsAt(now.minusSeconds(86_400)); settled.setPredictionClosesAt(now.minusSeconds(90_000));
+            settled.setHomeScore(1); settled.setAwayScore(2); settled.setStatus(EventStatus.FINISHED);
+            events.save(settled);
             historicalMarket.setStatus(MarketStatus.CLOSED);
             markets.save(historicalMarket);
             predictions.settleMarket(historicalMarket.getId(), "AWAY");
         }
-        demoUsers.forEach(this::seedNotifications);
+        if (newCancelledEvent) predictions.cancelEvent(cancelled.getId());
+        demoParticipants.forEach(this::seedNotifications);
     }
 
     private Sport sport(String code, String name, SportCategory category, String icon, int order) {
@@ -158,14 +193,43 @@ public class ArenaDemoInitializer {
     }
     private ArenaEvent event(String key, Championship championship, Competitor home, Competitor away, String title,
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {
-        ArenaEvent value = events.findByExternalKey(key).orElseGet(ArenaEvent::new); value.setExternalKey(key); value.setChampionship(championship);
-        value.setHomeCompetitor(home); value.setAwayCompetitor(away); value.setTitle(title); value.setStage("Demonstração"); value.setVenue("Arena digital");
-        value.setBroadcast("Provider interno demo"); value.setStartsAt(starts); value.setPredictionClosesAt(closes); value.setStatus(status);
-        value.setFormat(format); value.setBestOf(bestOf); value.setFeatured(featured); value.setDemo(true); return events.save(value);
+        ArenaEvent value = events.findByExternalKey(key).orElse(null);
+        if (value != null) {
+            if (refreshRollingDemoSchedule(value, status, starts, closes, Instant.now())) {
+                events.save(value);
+            }
+            return value;
+        }
+        return events.save(newEvent(key, championship, home, away, title, starts, closes, status, format, bestOf,
+                featured));
+    }
+
+    private ArenaEvent newEvent(String key, Championship championship, Competitor home, Competitor away, String title,
+                                Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf,
+                                boolean featured) {
+            ArenaEvent value = new ArenaEvent(); value.setExternalKey(key); value.setChampionship(championship);
+            value.setHomeCompetitor(home); value.setAwayCompetitor(away); value.setTitle(title); value.setStage("Demonstração"); value.setVenue("Arena digital");
+            value.setBroadcast("Provider interno demo"); value.setStartsAt(starts); value.setPredictionClosesAt(closes); value.setStatus(status);
+            value.setFormat(format); value.setBestOf(bestOf); value.setFeatured(featured); value.setDemo(true); return value;
+    }
+
+    static boolean refreshRollingDemoSchedule(ArenaEvent event, EventStatus expectedStatus, Instant starts,
+                                              Instant closes, Instant now) {
+        if (!event.isDemo() || event.getStatus() != expectedStatus) return false;
+        boolean expiredPredictionWindow = expectedStatus == EventStatus.OPEN_FOR_PREDICTIONS
+                && !now.isBefore(event.getPredictionClosesAt());
+        boolean staleLiveWindow = expectedStatus == EventStatus.LIVE
+                && event.getStartsAt().isBefore(now.minus(MAX_DEMO_LIVE_AGE));
+        if (!expiredPredictionWindow && !staleLiveWindow) return false;
+        event.setStartsAt(starts);
+        event.setPredictionClosesAt(closes);
+        return true;
     }
     private PredictionMarket market(ArenaEvent event, String code, String name, MarketStatus status, int minimum, Option... choices) {
-        PredictionMarket value = markets.findByEventAndCode(event, code).orElseGet(() -> { PredictionMarket created = new PredictionMarket(); created.setEvent(event); created.setCode(code); return created; });
-        value.setName(name); if (value.getStatus() != MarketStatus.SETTLED) value.setStatus(status); value.setMinimumPoints(minimum); value = markets.save(value);
+        PredictionMarket value = markets.findByEventAndCode(event, code).orElseGet(() -> {
+            PredictionMarket created = new PredictionMarket(); created.setEvent(event); created.setCode(code);
+            created.setName(name); created.setStatus(status); created.setMinimumPoints(minimum); return markets.save(created);
+        });
         for (Option choice : choices) { if (options.findByMarketAndKey(value, choice.key()).isEmpty()) { MarketOption option = new MarketOption(); option.setMarket(value); option.setKey(choice.key()); option.setLabel(choice.label()); option.setMultiplier(new BigDecimal(choice.multiplier())); options.save(option); } }
         return value;
     }
@@ -174,24 +238,35 @@ public class ArenaDemoInitializer {
                 .collect(java.util.stream.Collectors.toMap(value -> value.getCompetitor().getId(), value -> value));
         for (int index = 0; index < values.length; index++) {
             Competitor competitor = values[index];
-            EventParticipant participant = existing.getOrDefault(competitor.getId(), new EventParticipant());
-            participant.setEvent(event); participant.setCompetitor(competitor); participant.setDisplayOrder(index);
-            eventParticipants.save(participant);
+            if (!existing.containsKey(competitor.getId())) {
+                EventParticipant participant = new EventParticipant();
+                participant.setEvent(event); participant.setCompetitor(competitor); participant.setDisplayOrder(index);
+                eventParticipants.save(participant);
+            }
         }
     }
     private ArenaPool seedPool(Championship championship, Sport sport, List<User> demoUsers) {
-        ArenaPool pool = pools.findByInviteCodeIgnoreCase("ARENA26").orElseGet(() -> { ArenaPool value = new ArenaPool(); value.setName("Liga Arena 2026"); value.setDescription("Bolão demo entre amigos com recompensas exclusivamente virtuais."); value.setChampionship(championship); value.setSport(sport); value.setOwner(demoUsers.stream().filter(user -> user.getRole().name().equals("ADMIN")).findFirst().orElseGet(() -> users.findAll().getFirst())); value.setInviteCode("ARENA26"); value.setPublicPool(true); value.setMaxParticipants(100); value.setVirtualPrizePoints(2500); value.setRules("Pontuação por acertos; sem entrada financeira e sem conversão dos pontos em dinheiro."); return pools.save(value); });
-        pool.setPoolType(PoolType.LEAGUE);
-        pool.setRecurring(true);
-        pool = pools.save(pool);
+        if (demoUsers.isEmpty()) throw new IllegalStateException("Participantes demo não encontrados.");
+        ArenaPool pool = pools.findByInviteCodeIgnoreCase("ARENA26").orElseGet(() -> { ArenaPool value = new ArenaPool(); value.setName("Liga Arena 2026"); value.setDescription("Bolão demo entre amigos com recompensas exclusivamente virtuais."); value.setChampionship(championship); value.setSport(sport); value.setOwner(demoUsers.getFirst()); value.setInviteCode("ARENA26"); value.setPublicPool(true); value.setMaxParticipants(100); value.setVirtualPrizePoints(2500); value.setRules("Pontuação por acertos; sem entrada financeira e sem conversão dos pontos em dinheiro."); value.setPoolType(PoolType.LEAGUE); value.setRecurring(true); return pools.save(value); });
         for (User user : demoUsers) if (members.findByPoolAndUser(pool, user).isEmpty()) { ArenaPoolMember member = new ArenaPoolMember(); member.setPool(pool); member.setUser(user); member.setModerator(user.getId().equals(pool.getOwner().getId())); members.save(member); }
         return pool;
     }
     private void placeIfAbsent(User user, ArenaEvent event, PredictionMarket market, String optionKey, int points, ArenaPool pool, String key) {
+        String persistedKey = "prediction:user:" + user.getId() + ":" + key;
+        // Demo defaults evolve over time. Existing installations must preserve the
+        // original prediction instead of replaying the seed with a changed stake,
+        // option or pool and tripping the production idempotency guard.
+        if (predictionRepository.findByIdempotencyKey(persistedKey).isPresent()) return;
+        // A persisted demo database may already have advanced or closed this
+        // sample. Avoid invoking the transactional command in that expected
+        // state: catching its exception here would still mark the outer seed
+        // transaction rollback-only and prevent the application from starting.
+        if (event.getStatus() != EventStatus.OPEN_FOR_PREDICTIONS
+                || market.getStatus() != MarketStatus.OPEN
+                || !Instant.now().isBefore(event.getPredictionClosesAt())) return;
         MarketOption option = options.findByMarketAndKey(market, optionKey).orElseThrow();
-        try { predictions.place(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
-                pool == null ? null : pool.getId(), key), key, user); }
-        catch (ArenaProblem.RuleViolation ignored) { /* Existing demo databases can have already-closed sample events. */ }
+        predictions.place(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
+                pool == null ? null : pool.getId(), key), key, user);
     }
     private void seedNotifications(User user) {
         if (!notificationRepository.findTop100ByUserOrderByCreatedAtDesc(user).isEmpty()) return;

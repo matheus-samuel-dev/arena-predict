@@ -16,8 +16,8 @@ public final class ExperienceDtos {
                                        @Size(max = 300) String avatarUrl, @Size(max = 500) String bio,
                                        @Size(max = 12) List<@Size(max = 40) String> favoriteSports,
                                        Boolean publicProfile) { }
-    public record PasswordUpdateRequest(@NotBlank String currentPassword,
-                                        @NotBlank @Size(min = 8, max = 100) String newPassword) { }
+    public record PasswordUpdateRequest(@NotBlank @Size(max = 72) String currentPassword,
+                                        @NotBlank @Size(min = 8, max = 72) String newPassword) { }
     public record PreferenceUpdateRequest(@Pattern(regexp = "dark|light") String theme,
                                           @Pattern(regexp = "pt-BR|en-US") String language,
                                           Boolean notifications, Boolean publicProfile) { }

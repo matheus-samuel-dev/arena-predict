@@ -10,11 +10,13 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaExperienceDemoInitializer {
     private final UserRepository users;
     private final PlayerProfileRepository profiles;
@@ -34,9 +36,13 @@ public class ArenaExperienceDemoInitializer {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Order(0)
     @Transactional
     public void seed() {
-        List<User> demoUsers = users.findAll().stream().filter(user -> user.getEmail().endsWith("@arenapredict.com") || user.getEmail().endsWith("@bolao.com")).toList();
+        List<User> demoUsers = users.findAll().stream()
+                .filter(user -> user.getRole().canonical() == com.bolao.copa.entity.UserRole.PARTICIPANTE)
+                .filter(user -> user.getEmail().endsWith("@arenapredict.com"))
+                .toList();
         demoUsers.forEach(user -> profiles.findByUser(user).orElseGet(() -> { PlayerProfile profile = new PlayerProfile(); profile.setUser(user); profile.setBio("Analista multiesportivo na ArenaPredict."); profile.setFavoriteSports("FOOTBALL,CS2,BASKETBALL"); return profiles.save(profile); }));
 
         achievement("FIRST_PREDICTION", "Primeiro palpite", "Registre seu primeiro palpite válido.", "COMMON", AchievementRule.FIRST_PREDICTION, 1, 100);
@@ -45,10 +51,7 @@ public class ArenaExperienceDemoInitializer {
         achievement("FIVE_WINS", "Sequência de precisão", "Conquiste cinco palpites vencedores.", "EPIC", AchievementRule.WON_COUNT, 5, 500);
         achievement("POOL_MEMBER", "Em boa companhia", "Participe de um bolão ou liga.", "COMMON", AchievementRule.POOL_MEMBER, 1, 150);
 
-        Instant dayStart = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
-        challenge("DAILY_THREE", "Trinca do dia", "Registre três palpites válidos hoje.", ChallengeMetric.PREDICTION_COUNT, 3, 180, dayStart, dayStart.plus(Duration.ofDays(1)));
-        challenge("WEEKLY_EXPLORER", "Explorador da arena", "Participe de previsões em duas modalidades nesta semana.", ChallengeMetric.SPORT_VARIETY, 2, 250, dayStart.minus(Duration.ofDays(6)), dayStart.plus(Duration.ofDays(1)));
-        challenge("WEEKLY_WINNER", "Semana certeira", "Acerte dois palpites durante o desafio.", ChallengeMetric.WON_COUNT, 2, 300, dayStart.minus(Duration.ofDays(6)), dayStart.plus(Duration.ofDays(1)));
+        seedChallengeWindows();
 
         if (demoUsers.isEmpty()) return;
         User first = demoUsers.stream().filter(user -> !user.getRole().name().equals("ADMIN")).findFirst().orElse(demoUsers.getFirst());
@@ -61,11 +64,36 @@ public class ArenaExperienceDemoInitializer {
         if (likes.findByPostAndUser(esports, first).isEmpty()) { CommunityLike like = new CommunityLike(); like.setPost(esports); like.setUser(first); likes.save(like); }
     }
 
+    @Scheduled(cron = "0 5 0 * * *", zone = "UTC")
+    @Transactional
+    public void refreshChallengeWindows() {
+        seedChallengeWindows();
+    }
+
+    private void seedChallengeWindows() {
+        Instant dayStart = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
+        challenge("DAILY_THREE", "Trinca do dia", "Registre três palpites válidos hoje.", ChallengeMetric.PREDICTION_COUNT, 3, 180, dayStart, dayStart.plus(Duration.ofDays(1)));
+        challenge("WEEKLY_EXPLORER", "Explorador da arena", "Participe de previsões em duas modalidades nesta semana.", ChallengeMetric.SPORT_VARIETY, 2, 250, dayStart.minus(Duration.ofDays(6)), dayStart.plus(Duration.ofDays(1)));
+        challenge("WEEKLY_WINNER", "Semana certeira", "Acerte dois palpites durante o desafio.", ChallengeMetric.WON_COUNT, 2, 300, dayStart.minus(Duration.ofDays(6)), dayStart.plus(Duration.ofDays(1)));
+    }
+
     private void achievement(String code, String name, String description, String rarity, AchievementRule rule, int target, int reward) {
         achievements.findByCode(code).orElseGet(() -> { AchievementDefinition value = new AchievementDefinition(); value.setCode(code); value.setName(name); value.setDescription(description); value.setRarity(rarity); value.setRule(rule); value.setTarget(target); value.setPointsReward(reward); return achievements.save(value); });
     }
     private void challenge(String code, String name, String description, ChallengeMetric metric, int target, int reward, Instant starts, Instant expires) {
-        ChallengeDefinition value = challenges.findByCode(code).orElseGet(ChallengeDefinition::new); value.setCode(code); value.setName(name); value.setDescription(description); value.setMetric(metric); value.setTarget(target); value.setRewardPoints(reward); value.setStartsAt(starts); value.setExpiresAt(expires); challenges.save(value);
+        ChallengeDefinition value = challenges.findByCode(code).orElse(null);
+        if (value == null) {
+            value = new ChallengeDefinition();
+            value.setCode(code);
+            value.setName(name);
+            value.setDescription(description);
+            value.setMetric(metric);
+            value.setTarget(target);
+            value.setRewardPoints(reward);
+        }
+        value.setStartsAt(starts);
+        value.setExpiresAt(expires);
+        challenges.save(value);
     }
     private CommunityPost post(String sourceKey, User author, String content, String topic) {
         return posts.findBySourceKey(sourceKey).orElseGet(() -> { CommunityPost value = new CommunityPost(); value.setSourceKey(sourceKey); value.setAuthor(author); value.setContent(content); value.setTopic(topic); return posts.save(value); });

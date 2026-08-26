@@ -34,7 +34,7 @@ public class ArenaDashboardService {
                                  ArenaNotificationService notifications, ArenaEventRepository eventRepository,
                                  PredictionMarketRepository marketRepository, ArenaPoolRepository poolRepository,
                                  PointLedgerRepository ledger, UserRepository users, ProgressionService progression,
-                                 @Value("${app.demo.enabled:true}") boolean demoMode) {
+                                 @Value("${app.demo.enabled:false}") boolean demoMode) {
         this.walletService = walletService; this.predictions = predictions; this.catalog = catalog; this.pools = pools;
         this.notifications = notifications; this.eventRepository = eventRepository; this.marketRepository = marketRepository;
         this.poolRepository = poolRepository; this.ledger = ledger; this.users = users; this.progression = progression; this.demoMode = demoMode;
@@ -57,7 +57,13 @@ public class ArenaDashboardService {
         List<RankingRow> ranking = pools.ranking(user, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null);
         Integer position = ranking.stream().filter(RankingRow::currentUser).map(RankingRow::position).findFirst().orElse(null);
         List<EventResponse> allEvents = catalog.listEvents(null, null, null);
-        List<EventResponse> featured = allEvents.stream().filter(EventResponse::featured).limit(6).toList();
+        List<EventResponse> featured = allEvents.stream()
+                .filter(EventResponse::featured)
+                .filter(event -> event.status() == EventStatus.OPEN_FOR_PREDICTIONS
+                        || event.status() == EventStatus.SCHEDULED
+                        || event.status() == EventStatus.LIVE)
+                .limit(6)
+                .toList();
         List<EventResponse> live = allEvents.stream().filter(e -> e.status() == EventStatus.LIVE).toList();
         List<EventResponse> upcoming = allEvents.stream().filter(e -> e.status() == EventStatus.OPEN_FOR_PREDICTIONS || e.status() == EventStatus.SCHEDULED).limit(8).toList();
         return new DashboardResponse(user.getName(), playerProgress.level(), playerProgress.title(),

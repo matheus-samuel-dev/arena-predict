@@ -13,9 +13,21 @@ const predictionFilters = [
   { value: "", label: "Todos" },
   { value: "ACTIVE", label: "Ativos" },
   { value: "WON", label: "Vencedores" },
-  { value: "LOST", label: "Encerrados" },
+  { value: "LOST", label: "Perdedores / reembolsados" },
   { value: "CANCELLED", label: "Cancelados" },
 ];
+
+const predictionStatusGroups: Record<string, string[]> = {
+  ACTIVE: ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"],
+  WON: ["WON", "VENCEDOR"],
+  LOST: ["LOST", "PERDEDOR", "REFUNDED", "REEMBOLSADO"],
+  CANCELLED: ["CANCELLED", "CANCELADO"],
+};
+
+export function predictionMatchesFilter(status: string | undefined, filter: string) {
+  if (!filter) return true;
+  return predictionStatusGroups[filter]?.includes(String(status || "").toUpperCase()) ?? false;
+}
 
 function isCancellable(prediction: Prediction) {
   return prediction.canCancel !== false && ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"].includes(String(prediction.status).toUpperCase());
@@ -26,28 +38,21 @@ export function PredictionsPage() {
   const [cancelTarget, setCancelTarget] = useState<Prediction | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const { notify } = useToast();
-  const { refreshWallet } = useAppData();
+  const { refreshWallet, refreshNotifications } = useAppData();
   const { data, loading, error, reload } = useApiResource(async () => asList(await predictionsApi.list({ size: 50 })), []);
 
   const predictions = useMemo(() => {
-    if (!filter) return data || [];
-    const groups: Record<string, string[]> = {
-      ACTIVE: ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"],
-      WON: ["WON", "VENCEDOR"],
-      LOST: ["LOST", "PERDEDOR", "REFUNDED", "REEMBOLSADO"],
-      CANCELLED: ["CANCELLED", "CANCELADO"],
-    };
-    return (data || []).filter((item) => groups[filter]?.includes(String(item.status).toUpperCase()));
+    return (data || []).filter((item) => predictionMatchesFilter(item.status, filter));
   }, [data, filter]);
 
   async function cancelPrediction() {
-    if (!cancelTarget) return;
+    if (!cancelTarget || cancelling) return;
     setCancelling(true);
     try {
       await predictionsApi.cancel(cancelTarget.id);
       notify("Palpite cancelado. Os pontos elegíveis foram reembolsados.", "success");
       setCancelTarget(null);
-      await Promise.allSettled([reload(), refreshWallet()]);
+      await Promise.allSettled([reload(), refreshWallet(), refreshNotifications()]);
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : "Não foi possível cancelar o palpite.", "error");
     } finally {
@@ -77,19 +82,20 @@ export function PredictionsPage() {
         ].map(({ label, value, icon: Icon, tone }) => <article className={`surface metric-card metric-card--${tone}`} key={label}><span className="metric-card__icon"><Icon size={21} /></span><div><small>{label}</small><strong>{value}</strong></div></article>)}
       </section>
 
-      <div className="filter-tabs" role="tablist" aria-label="Filtrar palpites">
-        {predictionFilters.map((item) => <button type="button" role="tab" aria-selected={filter === item.value} className={filter === item.value ? "active" : ""} onClick={() => setFilter(item.value)} key={item.value}>{item.label}<span>{item.value ? all.filter((prediction) => String(prediction.status).toUpperCase().includes(item.value)).length : all.length}</span></button>)}
+      <div className="filter-tabs" role="group" aria-label="Filtrar palpites por status">
+        {predictionFilters.map((item) => <button type="button" aria-pressed={filter === item.value} className={filter === item.value ? "active" : ""} onClick={() => setFilter(item.value)} key={item.value}>{item.label}<span>{all.filter((prediction) => predictionMatchesFilter(prediction.status, item.value)).length}</span></button>)}
       </div>
 
       {predictions.length ? (
         <div className="prediction-history">
           {predictions.map((prediction) => (
             <article className="surface prediction-history__row" key={prediction.id}>
-              <span className={`prediction-state-icon prediction-state-icon--${String(prediction.status).toLowerCase()}`}>{["WON", "VENCEDOR"].includes(String(prediction.status).toUpperCase()) ? <CheckCircle2 size={21} /> : ["LOST", "PERDEDOR"].includes(String(prediction.status).toUpperCase()) ? <XCircle size={21} /> : ["CANCELLED", "CANCELADO"].includes(String(prediction.status).toUpperCase()) ? <Ban size={21} /> : <Target size={21} />}</span>
+              <span className={`prediction-state-icon prediction-state-icon--${String(prediction.status).toLowerCase()}`}>{["WON", "VENCEDOR"].includes(String(prediction.status).toUpperCase()) ? <CheckCircle2 size={21} /> : ["LOST", "PERDEDOR"].includes(String(prediction.status).toUpperCase()) ? <XCircle size={21} /> : ["REFUNDED", "REEMBOLSADO"].includes(String(prediction.status).toUpperCase()) ? <RotateCcw size={21} /> : ["CANCELLED", "CANCELADO"].includes(String(prediction.status).toUpperCase()) ? <Ban size={21} /> : <Target size={21} />}</span>
               <div className="prediction-history__event"><small>{prediction.marketName || "Mercado de previsão"}</small><strong>{prediction.eventTitle || `Evento #${prediction.eventId}`}</strong><span>{prediction.optionLabel || prediction.optionName || "Opção selecionada"}</span></div>
               <div className="prediction-history__numbers"><small>Pontos</small><strong>{points(prediction.stakePoints ?? prediction.points)} pts</strong></div>
               <div className="prediction-history__numbers"><small>Coeficiente</small><strong>{multiplier(prediction.multiplier)}</strong></div>
               <div className="prediction-history__numbers"><small>Potencial</small><strong>{points(prediction.potentialPoints || 0)} pts</strong></div>
+              <div className="prediction-history__numbers prediction-history__reward"><small>Recompensa</small><strong>{Number(prediction.rewardedPoints ?? prediction.rewardPoints ?? 0) > 0 ? `${points(prediction.rewardedPoints ?? prediction.rewardPoints)} pts` : "—"}</strong></div>
               <div className="prediction-history__status"><StatusBadge status={prediction.status} label={predictionStatusLabel(prediction.status)} /><small>{dateTime(prediction.placedAt || prediction.createdAt)}</small></div>
               {isCancellable(prediction) && <Button variant="quiet" size="sm" onClick={() => setCancelTarget(prediction)}><RotateCcw size={15} /> Cancelar</Button>}
             </article>

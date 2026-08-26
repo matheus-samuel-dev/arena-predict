@@ -51,6 +51,6 @@ public final class AuthDtos {
     ) {
     }
 
-    public record UserResponse(Long userId, String name, String email, UserRole role) {
+    public record UserResponse(Long userId, String name, String email, UserRole role, String avatarUrl) {
     }
 }

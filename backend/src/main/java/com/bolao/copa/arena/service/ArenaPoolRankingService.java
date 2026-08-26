@@ -76,32 +76,33 @@ public class ArenaPoolRankingService {
         pool.setEndsAt(request.endsAt());
         pool = pools.save(pool);
         addMember(pool, owner, true);
-        progression.achievements(owner);
-        progression.challenges(owner);
+        progression.refresh(owner);
         return response(pool, owner);
     }
 
     @Transactional
     public PoolResponse join(String code, User user) {
-        ArenaPool pool = pools.findByInviteCodeIgnoreCase(code.trim())
+        ArenaPool pool = pools.findByInviteCodeIgnoreCaseForUpdate(code.trim())
                 .orElseThrow(() -> new ArenaProblem.NotFound("Código de convite inválido."));
         return join(pool, user);
     }
 
     @Transactional
     public PoolResponse joinPublic(Long id, User user) {
-        ArenaPool pool = pools.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Bolão não encontrado."));
+        ArenaPool pool = pools.findByIdForUpdate(id).orElseThrow(() -> new ArenaProblem.NotFound("Bolão não encontrado."));
         if (!pool.isPublicPool()) throw new ArenaProblem.RuleViolation("Bolões privados exigem um código de convite.");
         return join(pool, user);
     }
 
     private PoolResponse join(ArenaPool pool, User user) {
+        // The pool row is locked by both public and invite-code entry points.
+        // Capacity checks and the unique membership insert therefore form one
+        // atomic decision even when multiple participants join simultaneously.
         if (members.findByPoolAndUser(pool, user).isPresent()) return response(pool, user);
         if (members.countByPool(pool) >= pool.getMaxParticipants()) throw new ArenaProblem.Conflict("Este bolão atingiu o limite de participantes.");
         if (pool.getStatus() != ArenaEnums.PoolStatus.OPEN) throw new ArenaProblem.RuleViolation("Este bolão não está aberto para novos participantes.");
         addMember(pool, user, false);
-        progression.achievements(user);
-        progression.challenges(user);
+        progression.refresh(user);
         return response(pool, user);
     }
 

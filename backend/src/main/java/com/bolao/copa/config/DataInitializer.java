@@ -8,18 +8,26 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class DataInitializer {
     @Bean
-    CommandLineRunner seed(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        return args -> {
+    CommandLineRunner seed(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           TransactionTemplate transactionTemplate) {
+        return args -> transactionTemplate.executeWithoutResult(status -> {
             var legacyRoleUsers = userRepository.findAllByRole(UserRole.USER);
             legacyRoleUsers.forEach(user -> user.setRole(UserRole.PARTICIPANTE));
             if (!legacyRoleUsers.isEmpty()) {
                 userRepository.saveAll(legacyRoleUsers);
             }
+
+            // Preserve ownership and history from the previous portfolio schema,
+            // but remove confusing weak-credential aliases from the demo surface.
+            migrateLegacyUser(userRepository, "admin@bolao.com", "marina.costa@arenapredict.com", "Marina Costa");
+            migrateLegacyUser(userRepository, "user@bolao.com", "rafael.lima@arenapredict.com", "Rafael Lima");
 
             ensureUser(
                     userRepository,
@@ -39,28 +47,52 @@ public class DataInitializer {
                     UserRole.PARTICIPANTE,
                     true
             );
-
-            // Compatibility accounts keep existing passwords and data ownership.
             ensureUser(
                     userRepository,
                     passwordEncoder,
-                    "admin@bolao.com",
-                    "Administrador",
-                    "123456",
-                    UserRole.ADMIN,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "user@bolao.com",
-                    "Participante Teste",
-                    "123456",
+                    "marina.costa@arenapredict.com",
+                    "Marina Costa",
+                    "Jogador@123",
                     UserRole.PARTICIPANTE,
-                    false
+                    true
+            );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "rafael.lima@arenapredict.com",
+                    "Rafael Lima",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
+            );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "beatriz.nunes@arenapredict.com",
+                    "Beatriz Nunes",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
             );
 
-        };
+        });
+    }
+
+    private void migrateLegacyUser(UserRepository userRepository,
+                                   String legacyEmail,
+                                   String preferredEmail,
+                                   String professionalName) {
+        var legacy = userRepository.findByEmailIgnoreCase(legacyEmail).orElse(null);
+        if (legacy == null) return;
+
+        var preferredOwner = userRepository.findByEmailIgnoreCase(preferredEmail).orElse(null);
+        String migratedEmail = preferredOwner == null || preferredOwner.getId().equals(legacy.getId())
+                ? preferredEmail
+                : "conta.migrada." + legacy.getId() + "@arenapredict.com";
+        legacy.setEmail(migratedEmail);
+        legacy.setName(preferredOwner == null ? professionalName : "Participante Demo Migrado");
+        legacy.setRole(UserRole.PARTICIPANTE);
+        userRepository.save(legacy);
     }
 
     private User ensureUser(UserRepository userRepository,
@@ -69,7 +101,7 @@ public class DataInitializer {
                             String name,
                             String password,
                             UserRole role,
-                            boolean enforceDemoCredentials) {
+                            boolean enforceDemoIdentity) {
         var existing = userRepository.findByEmailIgnoreCase(email);
         if (existing.isEmpty()) {
             var created = new User();
@@ -86,15 +118,13 @@ public class DataInitializer {
             user.setRole(role.canonical());
             changed = true;
         }
-        if (enforceDemoCredentials && !name.equals(user.getName())) {
+        if (enforceDemoIdentity && !name.equals(user.getName())) {
             user.setName(name);
             changed = true;
         }
-        if (enforceDemoCredentials
-                && (user.getPasswordHash() == null || !passwordEncoder.matches(password, user.getPasswordHash()))) {
-            user.setPasswordHash(passwordEncoder.encode(password));
-            changed = true;
-        }
+        // Existing credentials belong to the persisted account. Demo startup
+        // may repair its presentation identity, but must never silently reset a
+        // password that the user or operator has already changed.
         return changed ? userRepository.save(user) : user;
     }
 }

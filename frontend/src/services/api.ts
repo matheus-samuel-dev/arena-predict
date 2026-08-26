@@ -5,6 +5,7 @@ import type {
   ArenaEvent,
   AuthSession,
   Championship,
+  Challenge,
   DashboardData,
   Notification,
   PageResponse,
@@ -51,7 +52,7 @@ function normalizeSession(payload: Partial<AuthSession> & { id?: number }): Auth
   return {
     token: String(payload.token || ""),
     userId: Number(payload.userId ?? payload.id ?? 0),
-    name: String(payload.name || "Jogador"),
+    name: String(payload.name || "Participante"),
     email: String(payload.email || ""),
     role: normalizeRole(payload.role),
     avatarUrl: payload.avatarUrl,
@@ -60,12 +61,20 @@ function normalizeSession(payload: Partial<AuthSession> & { id?: number }): Auth
 
 function readStoredSession(): AuthSession | null {
   try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    // Keep the access token scoped to this browser tab. Migrate an older
+    // localStorage session once so existing demo sessions are not abruptly lost.
+    const legacy = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(AUTH_STORAGE_KEY) || legacy;
     if (!raw) return null;
+    if (legacy && !window.sessionStorage.getItem(AUTH_STORAGE_KEY)) {
+      window.sessionStorage.setItem(AUTH_STORAGE_KEY, legacy);
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
     const parsed = normalizeSession(JSON.parse(raw));
     return parsed.token ? parsed : null;
   } catch {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
 }
@@ -73,14 +82,38 @@ function readStoredSession(): AuthSession | null {
 export const sessionStorage = {
   read: readStoredSession,
   save(session: AuthSession) {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizeSession(session)));
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizeSession(session)));
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
   },
   clear() {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
   },
 };
 
+function safeServerMessage(message?: string) {
+  if (!message) return undefined;
+  const value = message.trim();
+  if (!value || value.length > 240 || /[\r\n]/.test(value)) return undefined;
+  if (/[<>]/.test(value)) return undefined;
+  // Internal enum values are useful in contracts and logs, but should never
+  // become user-facing copy (for example, OPEN_FOR_PREDICTIONS).
+  if (/\b[A-Z][A-Z\d]*(?:_[A-Z\d]+)+\b/.test(value)) return undefined;
+  if (/exception|stack\s*trace|hibernate|postgres|sqlstate|jdbc|at\s+[\w.$]+\(|select\s+.+\s+from/i.test(value)) return undefined;
+  if (/\b(?:must|should|required|invalid|validation|failed|failure|cannot|unable|expected|constraint|property|request|field|value|between|greater|less|blank|empty|null|bad|unauthorized|forbidden|not\s+found|already\s+exists)\b/i.test(value)) return undefined;
+  return value;
+}
+
+function safeFieldErrors(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([field]) => /^[a-zA-Z][\w.\[\]-]{0,79}$/.test(field))
+    .map(([field, message]) => [field, safeServerMessage(typeof message === "string" ? message : undefined) || "Valor inválido."]);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function friendlyMessage(status: number, path: string, serverMessage?: string) {
+  const publicMessage = safeServerMessage(serverMessage);
   if (status === 401) {
     return path.includes("/auth/login")
       ? "E-mail ou senha inválidos. Confira os dados e tente novamente."
@@ -88,10 +121,10 @@ function friendlyMessage(status: number, path: string, serverMessage?: string) {
   }
   if (status === 403) return "Você não possui permissão para realizar esta ação.";
   if (status === 404) return "O conteúdo solicitado não foi encontrado.";
-  if (status === 409) return serverMessage || "Esta ação já foi processada.";
-  if (status === 422 || status === 400) return serverMessage || "Revise os dados informados.";
+  if (status === 409) return publicMessage || "Esta ação já foi processada.";
+  if (status === 422 || status === 400) return publicMessage || "Revise os dados informados.";
   if (status >= 500) return "O serviço está temporariamente indisponível. Tente novamente em instantes.";
-  return serverMessage || "Não foi possível concluir a solicitação.";
+  return publicMessage || "Não foi possível concluir a solicitação.";
 }
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -103,7 +136,13 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
+  let timedOut = false;
+  const abortFromCaller = () => controller.abort();
+  options.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, options.timeoutMs ?? REQUEST_TIMEOUT_MS);
   const session = readStoredSession();
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
@@ -140,7 +179,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         message,
         response.status,
         typeof body.code === "string" ? body.code : undefined,
-        typeof body.fieldErrors === "object" ? (body.fieldErrors as Record<string, string>) : undefined,
+        safeFieldErrors(body.fieldErrors),
       );
     }
 
@@ -150,11 +189,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   } catch (error) {
     if (error instanceof ApiError) throw error;
     if (error instanceof DOMException && error.name === "AbortError") {
+      if (!timedOut) throw new ApiError("Solicitação cancelada.", 0, "REQUEST_CANCELLED");
       throw new ApiError("A solicitação demorou mais que o esperado. Tente novamente.", 408, "REQUEST_TIMEOUT");
     }
     throw new ApiError("Não foi possível conectar ao servidor. Verifique se a plataforma está disponível.", 0, "NETWORK_ERROR");
   } finally {
     window.clearTimeout(timeout);
+    options.signal?.removeEventListener("abort", abortFromCaller);
   }
 }
 
@@ -204,7 +245,7 @@ function parseLiveStatistics(raw?: string): Record<string, number | string> | un
   try {
     const value = JSON.parse(raw) as Record<string, unknown>;
     const stats: Record<string, number | string> = {};
-    const labels: Record<string, string> = { shots: "Finalizações", possession: "Posse de bola", rounds: "Rounds" };
+    const labels: Record<string, string> = { shots: "Finalizações", possession: "Posse de bola", rounds: "Rodadas" };
     Object.entries(value).forEach(([key, item]) => {
       if (key === "demo") return;
       if (key === "maps" && Array.isArray(item)) {
@@ -362,6 +403,10 @@ export const achievementsApi = {
   list: () => request<Achievement[] | PageResponse<Achievement>>("/achievements"),
 };
 
+export const challengesApi = {
+  list: () => request<Challenge[] | PageResponse<Challenge>>("/challenges"),
+};
+
 export const communityApi = {
   feed: (page = 0) => request<PageResponse<Record<string, unknown>> | Record<string, unknown>[]>(`/community/posts${query({ page })}`),
   createPost: (content: string) => request<Record<string, unknown>>("/community/posts", { method: "POST", body: { content } }),
@@ -413,12 +458,29 @@ export const adminApi = {
     request<T>(`/admin/${resource}`, { method: "POST", body: adminPayload(resource, payload) }),
   update: <T>(resource: string, id: number | string, payload: Record<string, unknown>) =>
     request<T>(`/admin/${resource}/${id}`, { method: "PUT", body: adminPayload(resource, payload) }),
-  recordEventResult: (eventId: number | string, payload: { homeScore: number; awayScore: number; finishEvent: boolean }) =>
+  recordEventResult: (
+    eventId: number | string,
+    payload: { homeScore: number; awayScore: number; finishEvent: boolean },
+    idempotencyKey = createIdempotencyKey(),
+  ) =>
     request<Record<string, unknown>>(`/admin/events/${eventId}/result`, {
       method: "PUT",
       body: payload,
-      idempotencyKey: createIdempotencyKey(),
+      idempotencyKey,
     }),
+  recordEventClassification: (eventId: number | string, payload: {
+    participants: Array<{
+      competitorId: number;
+      displayOrder?: number;
+      position?: number | null;
+      scoreLabel?: string | null;
+    }>;
+    finishEvent: boolean;
+  }, idempotencyKey = createIdempotencyKey()) => request<Record<string, unknown>>(`/admin/events/${eventId}/classification`, {
+    method: "PUT",
+    body: payload,
+    idempotencyKey,
+  }),
   settleMarket: (marketId: number | string, correctOptionKey: string) =>
     request<MarketSettlement>(`/admin/markets/${marketId}/settle`, {
       method: "POST",

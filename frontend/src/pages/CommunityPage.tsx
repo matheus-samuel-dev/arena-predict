@@ -33,6 +33,7 @@ interface CommunityComment {
 export function CommunityPage() {
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [reportTarget, setReportTarget] = useState<CommunityPost | null>(null);
   const [commentTarget, setCommentTarget] = useState<CommunityPost | null>(null);
   const [reportReason, setReportReason] = useState("Conteúdo impróprio");
@@ -42,6 +43,7 @@ export function CommunityPage() {
 
   async function publish(event: FormEvent) {
     event.preventDefault();
+    if (posting) return;
     if (content.trim().length < 3) { notify("Escreva uma mensagem antes de publicar.", "error"); return; }
     setPosting(true);
     try { await communityApi.createPost(content.trim()); setContent(""); notify("Publicação compartilhada com a comunidade.", "success"); await reload(); }
@@ -50,13 +52,20 @@ export function CommunityPage() {
   }
 
   async function like(post: CommunityPost) {
-    try { await communityApi.like(post.id); await reload(); } catch (reason) { notify(reason instanceof Error ? reason.message : "Não foi possível curtir.", "error"); }
+    try {
+      const updated = await communityApi.like(post.id) as unknown as CommunityPost;
+      setData((current) => current?.map((item) => item.id === post.id ? { ...item, ...updated } : item) ?? current);
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Não foi possível curtir.", "error");
+    }
   }
 
   async function report() {
-    if (!reportTarget) return;
+    if (!reportTarget || reporting) return;
+    setReporting(true);
     try { await communityApi.report(reportTarget.id, reportReason); notify("Denúncia enviada para moderação.", "success"); setReportTarget(null); }
     catch (reason) { notify(reason instanceof Error ? reason.message : "Não foi possível enviar a denúncia.", "error"); }
+    finally { setReporting(false); }
   }
 
   function commentAdded(postId: number | string) {
@@ -84,14 +93,14 @@ export function CommunityPage() {
           {!error && data?.length ? (
             <div className="feed">
               {data.map((post) => {
-                const author = post.author?.name || post.authorName || "Jogador da Arena";
+                const author = post.author?.name || post.authorName || "Participante da Arena";
                 const commentCount = Number(post.commentCount ?? post.comments ?? 0);
                 return (
                   <article className="surface post" key={post.id}>
                     <header>
                       <Avatar name={author} image={post.author?.avatarUrl || post.avatarUrl} />
                       <div><strong>{author}</strong><span>{post.topic || "Discussão geral"} · {relativeTime(post.createdAt)}</span></div>
-                      <button className="icon-button" type="button" onClick={() => setReportTarget(post)} aria-label="Opções da publicação"><MoreHorizontal size={18} /></button>
+                      <button className="icon-button" type="button" onClick={() => setReportTarget(post)} aria-label="Denunciar publicação"><MoreHorizontal size={18} /></button>
                     </header>
                     <p>{post.content}</p>
                     <footer>
@@ -103,7 +112,7 @@ export function CommunityPage() {
                 );
               })}
             </div>
-          ) : !error && <EmptyState icon={Users} title="A conversa começa com você" description="Compartilhe uma análise e inaugure este feed." />}
+          ) : !error && <EmptyState icon={Users} title="A conversa começa com você" description="Compartilhe uma análise e inaugure este mural." />}
         </div>
         <aside className="community-sidebar">
           <section className="surface conduct-card"><span><ShieldCheck size={22} /></span><h2>Jogo limpo</h2><p>Debata ideias, não pessoas. Não exponha dados privados e sinalize conteúdo inadequado.</p><ul><li>Respeite todas as torcidas.</li><li>Não publique informações sensíveis.</li><li>Sem incentivo a apostas financeiras.</li></ul></section>
@@ -111,7 +120,7 @@ export function CommunityPage() {
         </aside>
       </div>
       <CommentsModal post={commentTarget} onClose={() => setCommentTarget(null)} onCommentAdded={commentAdded} />
-      <Modal open={Boolean(reportTarget)} onClose={() => setReportTarget(null)} title="Denunciar publicação" size="sm"><div className="report-form"><span><AlertTriangle size={25} /></span><p>A equipe de moderação analisará a publicação sem revelar sua identidade ao autor.</p><label><span>Motivo</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option>Conteúdo impróprio</option><option>Assédio ou discriminação</option><option>Spam</option><option>Exposição de dados pessoais</option><option>Incentivo a jogo financeiro</option></select></label><div className="modal-actions"><Button variant="secondary" onClick={() => setReportTarget(null)}>Cancelar</Button><Button variant="danger" onClick={report}>Enviar denúncia</Button></div></div></Modal>
+      <Modal open={Boolean(reportTarget)} onClose={() => !reporting && setReportTarget(null)} title="Denunciar publicação" size="sm"><div className="report-form"><span><AlertTriangle size={25} /></span><p>A equipe de moderação analisará a publicação sem revelar sua identidade ao autor.</p><label><span>Motivo</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)} disabled={reporting}><option>Conteúdo impróprio</option><option>Assédio ou discriminação</option><option>Spam</option><option>Exposição de dados pessoais</option><option>Incentivo a jogo financeiro</option></select></label><div className="modal-actions"><Button variant="secondary" onClick={() => setReportTarget(null)} disabled={reporting}>Cancelar</Button><Button variant="danger" onClick={report} loading={reporting}>Enviar denúncia</Button></div></div></Modal>
     </>
   );
 }
@@ -161,7 +170,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (postId == null) return;
+    if (postId == null || submitting) return;
     const message = content.trim();
     if (message.length < 2) {
       notify("Escreva ao menos dois caracteres para comentar.", "error");
@@ -182,7 +191,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
     }
   }
 
-  const author = post?.author?.name || post?.authorName || "Jogador da Arena";
+  const author = post?.author?.name || post?.authorName || "Participante da Arena";
   return (
     <Modal open={Boolean(post)} onClose={onClose} title="Comentários" size="md">
       {post && (
@@ -201,7 +210,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
               <article className="comment-row" key={comment.id}>
                 <Avatar name={comment.author?.name} image={comment.author?.avatarUrl} size="sm" />
                 <div>
-                  <header><strong>{comment.author?.name || "Jogador da Arena"}</strong><span>{relativeTime(comment.createdAt)}</span></header>
+                  <header><strong>{comment.author?.name || "Participante da Arena"}</strong><span>{relativeTime(comment.createdAt)}</span></header>
                   <p>{comment.content}</p>
                 </div>
               </article>

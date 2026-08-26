@@ -16,6 +16,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AdminOperationsService {
+    private static final Pattern LEGACY_EVENT_CANCELLATION = Pattern.compile(
+            "^Evento (.+?)(?: · cancelado)? cancelado com (\\d+) reembolsos\\.?$",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern LEGACY_MARKET_CANCELLATION = Pattern.compile(
+            "^Mercado (.+?) cancelado com (\\d+) reembolsos\\.?$",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final int MAX_PAGE_SIZE = 100;
 
     private final UserRepository users;
@@ -33,7 +41,7 @@ public class AdminOperationsService {
     private final ArenaEventRepository events;
     private final PredictionMarketRepository markets;
     private final MarketOptionRepository marketOptions;
-    private final PointLedgerRepository ledger;
+    private final AdminAuditRepository audits;
     private final ArenaDashboardService dashboards;
     private final CommunityService community;
     private final EventParticipantRepository eventParticipants;
@@ -45,11 +53,11 @@ public class AdminOperationsService {
                                   ArenaPoolRepository pools, ArenaPoolMemberRepository poolMembers,
                                   ChampionshipRepository championships, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository marketOptions,
-                                  PointLedgerRepository ledger, ArenaDashboardService dashboards,
+                                  AdminAuditRepository audits, ArenaDashboardService dashboards,
                                   CommunityService community, EventParticipantRepository eventParticipants,
                                   @Value("${app.brand.name:ArenaPredict}") String brandName,
-                                  @Value("${app.demo.enabled:true}") boolean demoMode,
-                                  @Value("${app.demo.live-provider-enabled:true}") boolean demoLiveProvider) {
+                                  @Value("${app.demo.enabled:false}") boolean demoMode,
+                                  @Value("${app.demo.live-provider-enabled:false}") boolean demoLiveProvider) {
         this.users = users;
         this.wallets = wallets;
         this.pools = pools;
@@ -58,7 +66,7 @@ public class AdminOperationsService {
         this.events = events;
         this.markets = markets;
         this.marketOptions = marketOptions;
-        this.ledger = ledger;
+        this.audits = audits;
         this.dashboards = dashboards;
         this.community = community;
         this.eventParticipants = eventParticipants;
@@ -166,9 +174,9 @@ public class AdminOperationsService {
     @Transactional(readOnly = true)
     public Page<AuditEntryResponse> audit(int page, int size, String search) {
         Pageable pageable = page(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<PointLedgerEntry> entries = hasText(search)
-                ? ledger.search(search.trim(), pageable)
-                : ledger.findAll(pageable);
+        Page<AdminAuditEvent> entries = hasText(search)
+                ? audits.search(search.trim(), pageable)
+                : audits.findAll(pageable);
         return entries.map(this::auditResponse);
     }
 
@@ -242,11 +250,26 @@ public class AdminOperationsService {
                 competitor.getCode(), competitor.getImageUrl());
     }
 
-    private AuditEntryResponse auditResponse(PointLedgerEntry entry) {
-        User actor = entry.getWallet().getUser();
-        return new AuditEntryResponse(entry.getId(), entry.getDescription(), entry.getType().name(),
-                actor.getName(), actor.getId(), entry.getType(), "RECORDED", entry.getAmount(),
-                entry.getBalanceAfter(), entry.getReferenceType(), entry.getReferenceId(), entry.getCreatedAt());
+    private AuditEntryResponse auditResponse(AdminAuditEvent entry) {
+        String summary = polishedAuditSummary(entry.getAction(), entry.getSummary());
+        String title = summary == null ? entry.getAction() : summary;
+        return new AuditEntryResponse(entry.getId(), title, entry.getAction(), entry.getActorName(),
+                entry.getActorId(), entry.getActorRole(), entry.getStatus(), entry.getResourceType(),
+                entry.getResourceId(), summary, entry.getCorrelationId(), entry.getCreatedAt());
+    }
+
+    private String polishedAuditSummary(String action, String summary) {
+        if (summary == null) return null;
+        Pattern pattern = "EVENT_CANCELLED".equals(action) ? LEGACY_EVENT_CANCELLATION
+                : "MARKET_CANCELLED".equals(action) ? LEGACY_MARKET_CANCELLATION : null;
+        if (pattern == null) return summary;
+        Matcher legacy = pattern.matcher(summary);
+        if (!legacy.matches()) return summary;
+        int refunds = Integer.parseInt(legacy.group(2));
+        String resource = "EVENT_CANCELLED".equals(action) ? "evento" : "mercado";
+        String predictionLabel = refunds == 1 ? "palpite reembolsado" : "palpites reembolsados";
+        return "Cancelamento do " + resource + " “" + legacy.group(1) + "”: " + refunds + " "
+                + predictionLabel + ".";
     }
 
     private ModerationQueueResponse moderationResponse(ReportResponse report) {

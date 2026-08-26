@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 
 import com.bolao.copa.dto.AuthDtos.LoginRequest;
 import com.bolao.copa.dto.AuthDtos.RegisterRequest;
+import com.bolao.copa.arena.domain.PlayerProfile;
+import com.bolao.copa.arena.repository.PlayerProfileRepository;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
@@ -35,6 +37,7 @@ class AuthServiceTest {
     @Mock AuthenticationManager authenticationManager;
     @Mock JwtService jwtService;
     @Mock CurrentUserService currentUserService;
+    @Mock PlayerProfileRepository playerProfileRepository;
 
     private AuthService authService;
 
@@ -45,7 +48,8 @@ class AuthServiceTest {
                 passwordEncoder,
                 authenticationManager,
                 jwtService,
-                currentUserService
+                currentUserService,
+                playerProfileRepository
         );
     }
 
@@ -90,6 +94,20 @@ class AuthServiceTest {
 
         assertThat(response.email()).isEqualTo("novo@arenapredict.com");
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);
+    }
+
+    @Test
+    void currentSessionIncludesPersistedAvatar() {
+        var user = user("jogador@arenapredict.com", UserRole.PARTICIPANTE);
+        var details = org.springframework.security.core.userdetails.User
+                .withUsername(user.getEmail()).password("ignored").authorities("ROLE_PARTICIPANTE").build();
+        var profile = new PlayerProfile();
+        profile.setUser(user);
+        profile.setAvatarUrl("https://example.test/avatar.png");
+        when(currentUserService.from(details)).thenReturn(user);
+        when(playerProfileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+
+        assertThat(authService.me(details).avatarUrl()).isEqualTo("https://example.test/avatar.png");
     }
 
     private User user(String email, UserRole role) {

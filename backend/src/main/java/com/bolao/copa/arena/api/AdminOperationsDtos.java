@@ -1,6 +1,5 @@
 package com.bolao.copa.arena.api;
 
-import com.bolao.copa.arena.domain.ArenaEnums.PointTransactionType;
 import com.bolao.copa.arena.domain.ArenaEnums.PoolStatus;
 import com.bolao.copa.arena.domain.ArenaEnums.PoolType;
 import com.bolao.copa.arena.domain.ArenaEnums.ReportStatus;
@@ -54,8 +53,8 @@ public final class AdminOperationsDtos {
                                              long value, String unit, Instant updatedAt) { }
 
     public record AuditEntryResponse(Long id, String title, String action, String actor, Long actorId,
-                                     PointTransactionType type, String status, long amount, long balanceAfter,
-                                     String referenceType, String referenceId, Instant createdAt) { }
+                                     String actorRole, String status, String resourceType, String resourceId,
+                                     String summary, String correlationId, Instant createdAt) { }
 
     public record PublicSettingResponse(String id, String name, String description, String status,
                                         String value, String category, Instant updatedAt) { }

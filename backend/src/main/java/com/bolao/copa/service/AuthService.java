@@ -4,6 +4,7 @@ import com.bolao.copa.dto.AuthDtos.AuthResponse;
 import com.bolao.copa.dto.AuthDtos.LoginRequest;
 import com.bolao.copa.dto.AuthDtos.RegisterRequest;
 import com.bolao.copa.dto.AuthDtos.UserResponse;
+import com.bolao.copa.arena.repository.PlayerProfileRepository;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
@@ -24,17 +25,20 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final CurrentUserService currentUserService;
+    private final PlayerProfileRepository playerProfiles;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
-                       CurrentUserService currentUserService) {
+                       CurrentUserService currentUserService,
+                       PlayerProfileRepository playerProfiles) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.currentUserService = currentUserService;
+        this.playerProfiles = playerProfiles;
     }
 
     @Transactional
@@ -87,7 +91,8 @@ public class AuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getRole().canonical()
+                user.getRole().canonical(),
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
         );
     }
 

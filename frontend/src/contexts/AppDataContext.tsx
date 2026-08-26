@@ -7,6 +7,8 @@ interface AppDataContextValue {
   wallet: Wallet | null;
   notifications: Notification[];
   loading: boolean;
+  walletError: string | null;
+  notificationsError: string | null;
   unreadCount: number;
   refreshWallet: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
@@ -21,15 +23,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
 
   const refreshWallet = useCallback(async () => {
     if (!session) return;
-    setWallet(await walletApi.get());
+    try {
+      setWallet(await walletApi.get());
+      setWalletError(null);
+    } catch (reason) {
+      setWalletError(reason instanceof Error ? reason.message : "Não foi possível carregar o saldo.");
+      throw reason;
+    }
   }, [session]);
 
   const refreshNotifications = useCallback(async () => {
     if (!session) return;
-    setNotifications(asList(await notificationsApi.list()));
+    try {
+      setNotifications(asList(await notificationsApi.list()));
+      setNotificationsError(null);
+    } catch (reason) {
+      setNotificationsError(reason instanceof Error ? reason.message : "Não foi possível carregar as notificações.");
+      throw reason;
+    }
   }, [session]);
 
   useEffect(() => {
@@ -37,14 +53,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setWallet(null);
       setNotifications([]);
+      setWalletError(null);
+      setNotificationsError(null);
       return undefined;
     }
     setLoading(true);
+    setWalletError(null);
+    setNotificationsError(null);
     Promise.allSettled([walletApi.get(), notificationsApi.list()])
       .then(([walletResult, notificationResult]) => {
         if (!active) return;
         if (walletResult.status === "fulfilled") setWallet(walletResult.value);
+        else setWalletError(walletResult.reason instanceof Error ? walletResult.reason.message : "Não foi possível carregar o saldo.");
         if (notificationResult.status === "fulfilled") setNotifications(asList(notificationResult.value));
+        else setNotificationsError(notificationResult.reason instanceof Error ? notificationResult.reason.message : "Não foi possível carregar as notificações.");
       })
       .finally(() => active && setLoading(false));
     return () => {
@@ -67,13 +89,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       wallet,
       notifications,
       loading,
+      walletError,
+      notificationsError,
       unreadCount: notifications.filter((item) => !item.read && !item.readAt).length,
       refreshWallet,
       refreshNotifications,
       markNotificationRead,
       markAllNotificationsRead,
     }),
-    [wallet, notifications, loading, refreshWallet, refreshNotifications, markNotificationRead, markAllNotificationsRead],
+    [wallet, notifications, loading, walletError, notificationsError, refreshWallet, refreshNotifications, markNotificationRead, markAllNotificationsRead],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -11,6 +11,8 @@ public final class ArenaDtos {
     private ArenaDtos() { }
 
     public static final String VIRTUAL_POINTS_NOTICE = "Pontos virtuais de entretenimento, sem valor financeiro e sem possibilidade de saque.";
+    public static final int MAX_PREDICTION_STAKE_POINTS = 20_000;
+    public static final int MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH = 80;
 
     public record SportResponse(Long id, String code, String name, SportCategory category, String icon,
                                 boolean active, int displayOrder) { }
@@ -48,7 +50,7 @@ public final class ArenaDtos {
                                @Size(max = 100) String stage, @Size(max = 160) String venue,
                                @Size(max = 160) String broadcast, @Size(max = 300) String imageUrl,
                                @NotNull Instant startsAt, @NotNull Instant predictionClosesAt,
-                               EventStatus status, EventFormat format, Integer bestOf,
+                               EventStatus status, EventFormat format, @Min(1) @Max(5) Integer bestOf,
                                Boolean featured, Boolean demo,
                                List<@Valid EventParticipantRequest> participants) { }
     public record EventParticipantRequest(@NotNull Long competitorId, @PositiveOrZero Integer displayOrder,
@@ -61,15 +63,16 @@ public final class ArenaDtos {
                                 @NotBlank @Size(max = 140) String name, MarketStatus status,
                                 @Min(1) Integer minimumPoints, @NotEmpty List<@NotNull MarketOptionRequest> options) { }
     public record MarketStatusRequest(@NotNull MarketStatus status) { }
-    public record SettleMarketRequest(@NotBlank String correctOptionKey) { }
+    public record SettleMarketRequest(@NotBlank @Size(max = 80) String correctOptionKey) { }
     public record EventResultRequest(@NotNull @PositiveOrZero Integer homeScore,
                                      @NotNull @PositiveOrZero Integer awayScore, Boolean finishEvent) { }
     public record EventClassificationRequest(@NotEmpty List<@Valid EventParticipantRequest> participants,
                                              Boolean finishEvent) { }
 
     public record PlacePredictionRequest(@NotNull Long eventId, @NotNull Long marketId, @NotNull Long optionId,
-                                         @NotNull @Min(1) Integer stakePoints, Long poolId,
-                                         @Size(max = 120) String idempotencyKey) { }
+                                         @NotNull @Min(1) @Max(MAX_PREDICTION_STAKE_POINTS) Integer stakePoints,
+                                         Long poolId,
+                                         @Size(max = MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH) String idempotencyKey) { }
     public record PredictionResponse(Long id, Long eventId, String eventTitle, Long marketId, String marketName,
                                      Long optionId, String optionLabel, int stakePoints, BigDecimal multiplier,
                                      int potentialPoints, int rewardedPoints, PredictionStatus status, Long poolId,

@@ -1,6 +1,8 @@
 package com.bolao.copa.controller;
 
+import com.bolao.copa.config.CorrelationIdContext;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +25,15 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException exception) {
-        var message = exception.getBindingResult().getFieldErrors().stream()
+        var fieldErrors = new LinkedHashMap<String, String>();
+        exception.getBindingResult().getFieldErrors().forEach(field ->
+                fieldErrors.putIfAbsent(field.getField(), friendly(field.getDefaultMessage())));
+        var message = fieldErrors.values().stream()
                 .findFirst()
-                .map(field -> friendly(field.getDefaultMessage()))
                 .orElse("Verifique os campos informados.");
-        return ResponseEntity.badRequest().body(error(message));
+        var body = error(message);
+        body.put("fieldErrors", fieldErrors);
+        return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -48,7 +54,11 @@ public class ApiExceptionHandler {
     }
 
     private Map<String, Object> error(String message) {
-        return Map.of("timestamp", Instant.now(), "error", message);
+        var body = new LinkedHashMap<String, Object>();
+        body.put("timestamp", Instant.now());
+        body.put("error", message);
+        if (CorrelationIdContext.get() != null) body.put("correlationId", CorrelationIdContext.get());
+        return body;
     }
 
     private String friendly(String message) {
@@ -61,7 +71,30 @@ public class ApiExceptionHandler {
             return "Não foi possível carregar os dados do bolão. Tente novamente.";
         }
         if ("não deve estar em branco".equals(normalized) || normalized.contains("must not be blank")) {
-            return "Preencha os campos obrigatórios.";
+            return "Preencha este campo obrigatório.";
+        }
+        if (normalized.contains("must not be null") || normalized.contains("não deve ser nulo")) {
+            return "Este campo é obrigatório.";
+        }
+        if (normalized.contains("must be a well-formed email") || normalized.contains("deve ser um endereço de e-mail")) {
+            return "Informe um e-mail válido.";
+        }
+        if (normalized.contains("size must be between") || normalized.contains("tamanho deve estar entre")) {
+            return "Revise o tamanho informado para este campo.";
+        }
+        if (normalized.contains("must be greater than or equal") || normalized.contains("deve ser maior ou igual")
+                || normalized.contains("must be greater than") || normalized.contains("deve ser maior que")) {
+            return "Informe um valor acima do limite mínimo permitido.";
+        }
+        if (normalized.contains("must be less than or equal") || normalized.contains("deve ser menor ou igual")
+                || normalized.contains("must be less than") || normalized.contains("deve ser menor que")) {
+            return "Informe um valor abaixo do limite máximo permitido.";
+        }
+        if (normalized.contains("must be positive") || normalized.contains("deve ser positivo")) {
+            return "Informe um valor positivo.";
+        }
+        if (normalized.contains("must match") || normalized.contains("deve corresponder")) {
+            return "Informe um valor no formato esperado.";
         }
         return message;
     }

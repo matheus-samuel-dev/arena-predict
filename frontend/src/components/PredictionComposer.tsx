@@ -1,13 +1,15 @@
 import { CheckCircle2, Coins, ShieldCheck, Sparkles, Target, Trophy } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { championshipName, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
 import { createIdempotencyKey, poolsApi, predictionsApi } from "../services/api";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
+import { eventParticipantViews, isMultiParticipantEvent } from "./EventCard";
 import { Button, Modal } from "./UI";
 
 const MINIMUM_POINTS = 10;
+export const MAXIMUM_STAKE_POINTS = 20_000;
 
 export function resolveMarketMinimumPoints(value: unknown) {
   const parsed = Number(value);
@@ -20,6 +22,15 @@ export function quickStakeOptions(minimumPoints: number) {
     Math.max(50, minimumPoints * 2),
     Math.max(100, minimumPoints * 5),
   ])).map(Math.ceil);
+}
+
+export function validatePredictionStake(stake: number, minimumPoints: number, balance: number) {
+  if (!Number.isFinite(stake) || !Number.isInteger(stake)) return "Use uma quantidade inteira de pontos.";
+  if (minimumPoints > MAXIMUM_STAKE_POINTS) return "Este mercado possui um limite mínimo inválido e está indisponível para palpites.";
+  if (stake < minimumPoints) return `O mínimo deste mercado é ${minimumPoints} pontos.`;
+  if (stake > MAXIMUM_STAKE_POINTS) return `O máximo por palpite é ${points(MAXIMUM_STAKE_POINTS)} pontos.`;
+  if (stake > balance) return "Seu saldo de pontos é insuficiente.";
+  return null;
 }
 
 export function PredictionComposer({
@@ -38,19 +49,25 @@ export function PredictionComposer({
   const [poolId, setPoolId] = useState("");
   const [poolsLoading, setPoolsLoading] = useState(false);
   const [poolsError, setPoolsError] = useState("");
-  const { wallet, refreshWallet } = useAppData();
+  const idempotencyKey = useRef(createIdempotencyKey());
+  const { wallet, refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
   const balance = getWalletBalance(wallet);
   const minimumPoints = resolveMarketMinimumPoints(draft?.market.minimumPoints);
+  const maximumSelectable = Math.min(Math.max(0, balance), MAXIMUM_STAKE_POINTS);
   const rawCoefficient = Number(draft?.option.multiplier || 0);
   const coefficient = Number.isFinite(rawCoefficient) ? rawCoefficient : 0;
   const potential = Math.floor(stake * coefficient);
   const [home, away] = draft ? eventTeams(draft.event) : [{ name: "" }, { name: "" }];
+  const matchupLabel = draft && isMultiParticipantEvent(draft.event)
+    ? draft.event.title || `${eventParticipantViews(draft.event).length} participantes`
+    : `${home.name || home.shortName} × ${away.name || away.shortName}`;
 
   useEffect(() => {
     if (draft) {
       setConfirmed(null);
       setPoolId("");
+      idempotencyKey.current = createIdempotencyKey();
     }
   }, [draft]);
 
@@ -79,20 +96,28 @@ export function PredictionComposer({
 
   useEffect(() => {
     if (draft && !confirmed) {
-      setStake(Math.min(Math.max(minimumPoints, Math.floor(balance * 0.05)), Math.max(balance, minimumPoints)));
+      setStake(Math.min(Math.max(minimumPoints, Math.floor(balance * 0.05)), Math.max(maximumSelectable, minimumPoints)));
     }
-  }, [draft, balance, minimumPoints, confirmed]);
+  }, [draft, balance, minimumPoints, maximumSelectable, confirmed]);
 
-  const validation = useMemo(() => {
-    if (stake < minimumPoints) return `O mínimo deste mercado é ${minimumPoints} pontos.`;
-    if (stake > balance) return "Seu saldo de pontos é insuficiente.";
-    if (!Number.isInteger(stake)) return "Use uma quantidade inteira de pontos.";
-    return null;
-  }, [stake, balance, minimumPoints]);
+  const validation = useMemo(
+    () => validatePredictionStake(stake, minimumPoints, balance),
+    [stake, balance, minimumPoints],
+  );
+
+  function closeComposer() {
+    if (submitting) return;
+    const created = confirmed;
+    onClose();
+    // Refresh the parent only after the success receipt has been acknowledged.
+    // Reloading immediately would unmount this dialog, hide the confirmation
+    // and create a fresh idempotency key while the same action remained visible.
+    if (created) onCreated?.(created);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!draft || validation) return;
+    if (!draft || validation || submitting) return;
     setSubmitting(true);
     try {
       const created = await predictionsApi.create({
@@ -101,11 +126,12 @@ export function PredictionComposer({
         optionId: draft.option.id,
         stakePoints: stake,
         poolId: poolId ? Number(poolId) : undefined,
-        idempotencyKey: createIdempotencyKey(),
+        // A retry after a network failure is the same intent and must reuse
+        // the key so it can never debit the virtual wallet twice.
+        idempotencyKey: idempotencyKey.current,
       });
       setConfirmed(created);
-      await refreshWallet().catch(() => undefined);
-      onCreated?.(created);
+      await Promise.allSettled([refreshWallet(), refreshNotifications()]);
       notify("Palpite confirmado e pontos debitados com segurança.", "success");
     } catch (error) {
       notify(error instanceof Error ? error.message : "Não foi possível confirmar o palpite.", "error");
@@ -115,12 +141,12 @@ export function PredictionComposer({
   }
 
   return (
-    <Modal open={Boolean(draft)} onClose={onClose} title={confirmed ? "Palpite confirmado" : "Confirmar palpite"} size="sm">
+    <Modal open={Boolean(draft)} onClose={closeComposer} title={confirmed ? "Palpite confirmado" : "Confirmar palpite"} size="sm">
       {draft && !confirmed && (
         <form className="prediction-composer" onSubmit={submit}>
           <div className="prediction-composer__event">
             <span>{championshipName(draft.event.championship || draft.event.championshipName)}</span>
-            <strong>{home.name || home.shortName} <i>vs</i> {away.name || away.shortName}</strong>
+            <strong>{matchupLabel}</strong>
           </div>
           <div className="selection-summary">
             <span><Target size={18} /></span>
@@ -129,8 +155,9 @@ export function PredictionComposer({
           </div>
           <label className="stake-field">
             <span>Pontos virtuais</span>
-            <div><Coins size={18} /><input type="number" min={minimumPoints} step="1" max={Math.max(balance, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
+            <div><Coins size={18} /><input type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
             <small>Mínimo do mercado: <strong>{points(minimumPoints)} pts</strong></small>
+            <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
             <small>Saldo disponível: <strong>{points(balance)} pts</strong></small>
           </label>
           <label className="prediction-pool-field">
@@ -141,8 +168,8 @@ export function PredictionComposer({
             {!poolsLoading && !poolsError && availablePools.length === 0 && <small>Entre em um bolão compatível para pontuar no ranking do grupo.</small>}
           </label>
           <div className="quick-stakes" aria-label="Valores rápidos">
-            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance))} disabled={balance < value}>+{value}</button>)}
-            <button type="button" onClick={() => setStake(Math.min(balance, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={balance < minimumPoints}>25%</button>
+            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={balance < value || value > MAXIMUM_STAKE_POINTS}>+{points(value)}</button>)}
+            <button type="button" onClick={() => setStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={balance < minimumPoints}>25%</button>
           </div>
           {validation && <p className="field-error" role="alert">{validation}</p>}
           <div className="potential-card">
@@ -152,7 +179,7 @@ export function PredictionComposer({
           </div>
           <div className="virtual-disclaimer"><ShieldCheck size={16} /> Pontos sem valor financeiro. Nenhum dinheiro real é utilizado.</div>
           <div className="modal-actions">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancelar</Button>
             <Button type="submit" loading={submitting} disabled={Boolean(validation)}>Confirmar palpite</Button>
           </div>
         </form>
@@ -163,7 +190,7 @@ export function PredictionComposer({
           <h3>Sua leitura está registrada</h3>
           <p>Acompanhe o evento e o processamento da recompensa em “Meus palpites”.</p>
           <div><small>Potencial</small><strong>{points(confirmed.potentialPoints ?? potential)} pts</strong></div>
-          <Button onClick={onClose}>Continuar na Arena</Button>
+          <Button onClick={closeComposer}>Continuar na Arena</Button>
         </div>
       )}
     </Modal>

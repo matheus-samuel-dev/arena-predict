@@ -18,14 +18,16 @@ public class AdminEngagementService {
     private final ArenaNotificationRepository notifications;
     private final ArenaNotificationService notificationService;
     private final UserRepository users;
+    private final AdminAuditService audit;
 
     public AdminEngagementService(AchievementDefinitionRepository achievements,
                                   ChallengeDefinitionRepository challenges,
                                   ArenaNotificationRepository notifications,
                                   ArenaNotificationService notificationService,
-                                  UserRepository users) {
+                                  UserRepository users, AdminAuditService audit) {
         this.achievements = achievements; this.challenges = challenges; this.notifications = notifications;
         this.notificationService = notificationService; this.users = users;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -45,13 +47,18 @@ public class AdminEngagementService {
         value.setRarity(request.rarity().trim().toUpperCase(Locale.ROOT)); value.setRule(request.rule());
         value.setTarget(request.target()); value.setPointsReward(request.pointsReward());
         value.setActive(request.active() == null || request.active());
-        return achievement(achievements.save(value));
+        value = achievements.save(value);
+        audit.record(id == null ? "ACHIEVEMENT_CREATED" : "ACHIEVEMENT_UPDATED", "ACHIEVEMENT",
+                value.getId(), "Conquista " + value.getName() + " salva");
+        return achievement(value);
     }
 
     @Transactional
     public void deactivateAchievement(Long id) {
         AchievementDefinition value = achievements.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Conquista não encontrada."));
         value.setActive(false);
+        audit.record("ACHIEVEMENT_DEACTIVATED", "ACHIEVEMENT", value.getId(),
+                "Conquista " + value.getName() + " desativada");
     }
 
     @Transactional(readOnly = true)
@@ -73,13 +80,18 @@ public class AdminEngagementService {
         value.setMetric(request.metric()); value.setTarget(request.target()); value.setRewardPoints(request.rewardPoints());
         value.setStartsAt(request.startsAt()); value.setExpiresAt(request.expiresAt());
         value.setActive(request.active() == null || request.active());
-        return challenge(challenges.save(value));
+        value = challenges.save(value);
+        audit.record(id == null ? "CHALLENGE_CREATED" : "CHALLENGE_UPDATED", "CHALLENGE",
+                value.getId(), "Desafio " + value.getName() + " salvo");
+        return challenge(value);
     }
 
     @Transactional
     public void deactivateChallenge(Long id) {
         ChallengeDefinition value = challenges.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Desafio não encontrado."));
         value.setActive(false);
+        audit.record("CHALLENGE_DEACTIVATED", "CHALLENGE", value.getId(),
+                "Desafio " + value.getName() + " desativado");
     }
 
     @Transactional(readOnly = true)
@@ -94,6 +106,8 @@ public class AdminEngagementService {
                 .orElseThrow(() -> new ArenaProblem.NotFound("Usuário não encontrado.")));
         recipients.forEach(user -> notificationService.create(user, request.type(), request.title().trim(),
                 request.message().trim(), request.targetUrl()));
+        audit.record("NOTIFICATION_DISPATCHED", "NOTIFICATION", request.userId(),
+                "Notificação administrativa enviada para " + recipients.size() + " destinatário(s)");
         return new NotificationDispatchResponse(recipients.size(), request.userId() == null ? "ALL_USERS" : "USER");
     }
 
@@ -101,6 +115,7 @@ public class AdminEngagementService {
     public void deleteNotification(Long id) {
         if (!notifications.existsById(id)) throw new ArenaProblem.NotFound("Notificação não encontrada.");
         notifications.deleteById(id);
+        audit.record("NOTIFICATION_DELETED", "NOTIFICATION", id, "Notificação administrativa removida");
     }
 
     private AchievementDefinitionResponse achievement(AchievementDefinition value) {

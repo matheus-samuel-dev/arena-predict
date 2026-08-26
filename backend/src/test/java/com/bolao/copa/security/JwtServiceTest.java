@@ -17,6 +17,16 @@ class JwtServiceTest {
     private final JwtService jwtService = new JwtService(SECRET, 60);
 
     @Test
+    void refusesMissingOrWeakSigningSecret() {
+        assertThatThrownBy(() -> new JwtService("", 60))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("32 bytes");
+        assertThatThrownBy(() -> new JwtService("shared-default", 60))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("32 bytes");
+    }
+
+    @Test
     void generatesAndValidatesParticipantTokenWithCanonicalRole() {
         var user = user("jogador@arenapredict.com", UserRole.USER);
         var token = jwtService.parse(jwtService.generate(user));

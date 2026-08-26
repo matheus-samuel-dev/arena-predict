@@ -9,6 +9,7 @@ import com.bolao.copa.entity.User;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +24,13 @@ public class ArenaPredictionService {
     private final PointWalletService wallets;
     private final ArenaNotificationService notifications;
     private final ProgressionService progression;
+    private final AdminAuditService audit;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository options,
                                   ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                   PointWalletService wallets, ArenaNotificationService notifications,
-                                  ProgressionService progression) {
+                                  ProgressionService progression, AdminAuditService audit) {
         this.predictions = predictions;
         this.events = events;
         this.markets = markets;
@@ -38,20 +40,24 @@ public class ArenaPredictionService {
         this.wallets = wallets;
         this.notifications = notifications;
         this.progression = progression;
+        this.audit = audit;
     }
 
     @Transactional
     public PredictionResponse place(PlacePredictionRequest request, String headerKey, User user) {
-        String clientKey = firstNonBlank(headerKey, request.idempotencyKey(), UUID.randomUUID().toString());
-        String key = "prediction:user:" + user.getId() + ":" + clientKey.trim();
+        String clientKey = clientIdempotencyKey(headerKey, request.idempotencyKey());
+        String key = "prediction:user:" + user.getId() + ":" + clientKey;
         ArenaPrediction existing = predictions.findByIdempotencyKey(key).orElse(null);
         if (existing != null) {
-            if (!existing.getUser().getId().equals(user.getId())) throw new ArenaProblem.Conflict("Chave de idempotência já utilizada.");
-            return response(existing);
+            return idempotentResponse(existing, request, user);
         }
 
         ArenaEvent event = events.findById(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         PredictionMarket market = markets.findByIdForUpdate(request.marketId()).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
+        // A concurrent request for the same market releases this lock only after
+        // committing its prediction, so re-read the idempotency record here.
+        existing = predictions.findByIdempotencyKey(key).orElse(null);
+        if (existing != null) return idempotentResponse(existing, request, user);
         if (!market.getEvent().getId().equals(event.getId())) throw new ArenaProblem.RuleViolation("O mercado não pertence ao evento informado.");
         MarketOption option = options.findByIdAndMarket(request.optionId(), market)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção de palpite não encontrada."));
@@ -76,13 +82,16 @@ public class ArenaPredictionService {
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);
         prediction.setIdempotencyKey(key);
-        prediction = predictions.saveAndFlush(prediction);
+        try {
+            prediction = predictions.saveAndFlush(prediction);
+        } catch (DataIntegrityViolationException duplicateKey) {
+            throw new ArenaProblem.Conflict("A chave de idempotência já foi utilizada por outra requisição.");
+        }
 
         wallets.apply(user, -request.stakePoints(), PointTransactionType.PREDICTION_PLACED,
                 "ledger:" + key, "PREDICTION", prediction.getId().toString(),
                 "Pontos utilizados no palpite: " + event.getTitle());
-        progression.achievements(user);
-        progression.challenges(user);
+        progression.refresh(user);
         return response(prediction);
     }
 
@@ -93,11 +102,14 @@ public class ArenaPredictionService {
 
     @Transactional
     public PredictionResponse cancel(Long id, User user) {
-        ArenaPrediction prediction = predictions.findByIdAndUser(id, user)
+        // Serializing cancellation on the prediction row makes retries truly
+        // idempotent: exactly one request changes the state and credits the
+        // refund, while followers observe the committed terminal state.
+        ArenaPrediction prediction = predictions.findByIdAndUserForUpdate(id, user)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Palpite não encontrado."));
         if (prediction.getStatus() == PredictionStatus.CANCELLED || prediction.getStatus() == PredictionStatus.REFUNDED) return response(prediction);
         if (prediction.getStatus() != PredictionStatus.ACTIVE) throw new ArenaProblem.Conflict("Somente palpites ativos podem ser cancelados.");
-        if (!Instant.now().isBefore(prediction.getEvent().getPredictionClosesAt()))
+        if (!canCancel(prediction))
             throw new ArenaProblem.RuleViolation("O prazo para cancelamento deste palpite foi encerrado.");
         prediction.setStatus(PredictionStatus.CANCELLED);
         prediction.setResolvedAt(Instant.now());
@@ -119,11 +131,11 @@ public class ArenaPredictionService {
             throw new ArenaProblem.RuleViolation("Feche o mercado antes de registrar o resultado correto.");
         MarketOption correct = options.findByMarketAndKey(market, correctOptionKey.trim().toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção correta não encontrada neste mercado."));
-        List<ArenaPrediction> active = predictions.findByMarketAndStatus(market, PredictionStatus.ACTIVE);
+        List<ArenaPrediction> active = orderedByUser(predictions.findByMarketAndStatus(market, PredictionStatus.ACTIVE));
         int winners = 0;
         int losers = 0;
         long rewards = 0;
-        Set<User> affectedUsers = new HashSet<>();
+        Set<User> affectedUsers = new LinkedHashSet<>();
         for (ArenaPrediction prediction : active) {
             affectedUsers.add(prediction.getUser());
             prediction.setResolvedAt(Instant.now());
@@ -145,19 +157,26 @@ public class ArenaPredictionService {
         market.setResultOptionKey(correct.getKey());
         market.setStatus(MarketStatus.SETTLED);
         market.setSettledAt(Instant.now());
-        affectedUsers.forEach(user -> {
-            progression.achievements(user);
-            progression.challenges(user);
-        });
+        affectedUsers.forEach(progression::refresh);
+        audit.record("MARKET_SETTLED", "MARKET", market.getId(),
+                "Mercado " + market.getName() + " liquidado: " + winners + " vencedores e " + rewards
+                        + " pontos virtuais creditados");
         return new SettlementResponse(marketId, correct.getKey(), winners, losers, rewards, false);
     }
 
     @Transactional
     public int cancelEvent(Long eventId) {
-        ArenaEvent event = events.findById(eventId).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        ArenaEvent event = events.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         if (event.getStatus() == EventStatus.CANCELLED) return 0;
+        if (event.getStatus() == EventStatus.FINISHED)
+            throw new ArenaProblem.Conflict("Eventos finalizados não podem ser cancelados.");
+        List<PredictionMarket> eventMarkets = markets.findByEventForUpdate(event);
+        if (eventMarkets.stream().anyMatch(market -> market.getStatus() == MarketStatus.SETTLED))
+            throw new ArenaProblem.Conflict("O evento possui mercado liquidado e não pode mais ser cancelado.");
         int refunds = 0;
-        for (ArenaPrediction prediction : predictions.findByEventAndStatus(event, PredictionStatus.ACTIVE)) {
+        for (ArenaPrediction prediction : orderedByUser(
+                predictions.findByEventAndStatus(event, PredictionStatus.ACTIVE))) {
             prediction.setStatus(PredictionStatus.REFUNDED);
             prediction.setResolvedAt(Instant.now());
             wallets.apply(prediction.getUser(), prediction.getStakePoints(), PointTransactionType.REFUND,
@@ -168,8 +187,37 @@ public class ArenaPredictionService {
                     "/events/" + event.getId());
             refunds++;
         }
-        markets.findByEventOrderByIdAsc(event).stream().filter(m -> m.getStatus() != MarketStatus.SETTLED).forEach(m -> m.setStatus(MarketStatus.CANCELLED));
+        eventMarkets.forEach(market -> market.setStatus(MarketStatus.CANCELLED));
         event.setStatus(EventStatus.CANCELLED);
+        audit.record("EVENT_CANCELLED", "EVENT", event.getId(),
+                refundAuditSummary("evento", event.getTitle(), refunds));
+        return refunds;
+    }
+
+    @Transactional
+    public int cancelMarket(Long marketId) {
+        PredictionMarket market = markets.findByIdForUpdate(marketId)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
+        if (market.getStatus() == MarketStatus.CANCELLED) return 0;
+        if (market.getStatus() == MarketStatus.SETTLED)
+            throw new ArenaProblem.Conflict("Mercados liquidados não podem ser cancelados.");
+
+        int refunds = 0;
+        for (ArenaPrediction prediction : orderedByUser(
+                predictions.findByMarketAndStatus(market, PredictionStatus.ACTIVE))) {
+            prediction.setStatus(PredictionStatus.REFUNDED);
+            prediction.setResolvedAt(Instant.now());
+            wallets.apply(prediction.getUser(), prediction.getStakePoints(), PointTransactionType.REFUND,
+                    "market-refund:prediction:" + prediction.getId(), "MARKET", market.getId().toString(),
+                    "Reembolso por mercado cancelado: " + market.getName());
+            notifications.create(prediction.getUser(), NotificationType.REFUND, "Palpite reembolsado",
+                    "O mercado foi cancelado e " + prediction.getStakePoints() + " pontos retornaram à sua carteira.",
+                    "/events/" + market.getEvent().getId());
+            refunds++;
+        }
+        market.setStatus(MarketStatus.CANCELLED);
+        audit.record("MARKET_CANCELLED", "MARKET", market.getId(),
+                refundAuditSummary("mercado", market.getName(), refunds));
         return refunds;
     }
 
@@ -178,7 +226,14 @@ public class ArenaPredictionService {
                 value.getMarket().getId(), value.getMarket().getName(), value.getOption().getId(), value.getOption().getLabel(),
                 value.getStakePoints(), value.getMultiplier(), value.getPotentialPoints(), value.getRewardedPoints(),
                 value.getStatus(), value.getPool() == null ? null : value.getPool().getId(), value.getPlacedAt(), value.getResolvedAt(),
-                value.getStatus() == PredictionStatus.ACTIVE && Instant.now().isBefore(value.getEvent().getPredictionClosesAt()));
+                canCancel(value));
+    }
+
+    private boolean canCancel(ArenaPrediction prediction) {
+        return prediction.getStatus() == PredictionStatus.ACTIVE
+                && prediction.getEvent().getStatus() == EventStatus.OPEN_FOR_PREDICTIONS
+                && prediction.getMarket().getStatus() == MarketStatus.OPEN
+                && Instant.now().isBefore(prediction.getEvent().getPredictionClosesAt());
     }
 
     private void validateOpen(ArenaEvent event, PredictionMarket market, MarketOption option, int stake) {
@@ -190,6 +245,17 @@ public class ArenaPredictionService {
         if (!option.isActive()) throw new ArenaProblem.RuleViolation("Esta opção está suspensa.");
         if (stake < market.getMinimumPoints())
             throw new ArenaProblem.RuleViolation("O mínimo para este mercado é " + market.getMinimumPoints() + " pontos.");
+        if (stake > MAX_PREDICTION_STAKE_POINTS)
+            throw new ArenaProblem.RuleViolation("O máximo por palpite é " + MAX_PREDICTION_STAKE_POINTS + " pontos.");
+    }
+    private List<ArenaPrediction> orderedByUser(List<ArenaPrediction> values) {
+        return values.stream().sorted(Comparator
+                .comparing((ArenaPrediction value) -> value.getUser().getId())
+                .thenComparing(ArenaPrediction::getId)).toList();
+    }
+    private String refundAuditSummary(String resource, String name, int refunds) {
+        String predictionLabel = refunds == 1 ? "palpite reembolsado" : "palpites reembolsados";
+        return "Cancelamento do " + resource + " “" + name + "”: " + refunds + " " + predictionLabel + ".";
     }
     private void validatePool(ArenaPool pool, ArenaEvent event) {
         if (pool.getStatus() != PoolStatus.OPEN && pool.getStatus() != PoolStatus.IN_PROGRESS)
@@ -204,7 +270,31 @@ public class ArenaPredictionService {
         if (pool.getEndsAt() != null && event.getStartsAt().isAfter(pool.getEndsAt()))
             throw new ArenaProblem.RuleViolation("O evento acontece após o encerramento do bolão.");
     }
+    private PredictionResponse idempotentResponse(ArenaPrediction existing, PlacePredictionRequest request, User user) {
+        if (!existing.getUser().getId().equals(user.getId()) || !samePayload(existing, request))
+            throw new ArenaProblem.Conflict("A chave de idempotência já foi utilizada com dados diferentes.");
+        return response(existing);
+    }
+
+    private boolean samePayload(ArenaPrediction existing, PlacePredictionRequest request) {
+        Long existingPoolId = existing.getPool() == null ? null : existing.getPool().getId();
+        return existing.getEvent().getId().equals(request.eventId())
+                && existing.getMarket().getId().equals(request.marketId())
+                && existing.getOption().getId().equals(request.optionId())
+                && existing.getStakePoints() == request.stakePoints()
+                && Objects.equals(existingPoolId, request.poolId());
+    }
+
+    private String clientIdempotencyKey(String headerKey, String bodyKey) {
+        String value = firstNonBlank(headerKey, bodyKey, UUID.randomUUID().toString()).trim();
+        if (value.length() > MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH)
+            throw new ArenaProblem.RuleViolation("A chave de idempotência deve ter no máximo "
+                    + MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH + " caracteres.");
+        return value;
+    }
+
     private String firstNonBlank(String... values) {
-        return Arrays.stream(values).filter(Objects::nonNull).filter(value -> !value.isBlank()).findFirst().orElseThrow();
+        return Arrays.stream(values).filter(Objects::nonNull).filter(value -> !value.isBlank())
+                .findFirst().orElseThrow();
     }
 }

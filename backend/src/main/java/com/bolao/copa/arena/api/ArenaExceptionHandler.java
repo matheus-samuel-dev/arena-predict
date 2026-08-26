@@ -1,7 +1,9 @@
 package com.bolao.copa.arena.api;
 
 import com.bolao.copa.arena.service.ArenaProblem;
+import com.bolao.copa.config.CorrelationIdContext;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -21,6 +23,9 @@ public class ArenaExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     ResponseEntity<Map<String, Object>> concurrent() { return error(HttpStatus.CONFLICT, "Os dados foram atualizados por outra operação. Recarregue e tente novamente."); }
     private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
-        return ResponseEntity.status(status).body(Map.of("timestamp", Instant.now(), "status", status.value(), "error", message));
+        var body = new LinkedHashMap<String, Object>();
+        body.put("timestamp", Instant.now()); body.put("status", status.value()); body.put("error", message);
+        if (CorrelationIdContext.get() != null) body.put("correlationId", CorrelationIdContext.get());
+        return ResponseEntity.status(status).body(body);
     }
 }

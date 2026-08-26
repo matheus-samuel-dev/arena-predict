@@ -14,12 +14,15 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class ArenaAdminController {
     private final ArenaCatalogService catalog;
+    private final AdminEventResultService eventResults;
     private final ArenaPredictionService predictions;
     private final ArenaDashboardService dashboards;
     private final DemoLiveEventService live;
-    public ArenaAdminController(ArenaCatalogService catalog, ArenaPredictionService predictions,
+    public ArenaAdminController(ArenaCatalogService catalog, AdminEventResultService eventResults,
+                                ArenaPredictionService predictions,
                                 ArenaDashboardService dashboards, DemoLiveEventService live) {
-        this.catalog = catalog; this.predictions = predictions; this.dashboards = dashboards; this.live = live;
+        this.catalog = catalog; this.eventResults = eventResults; this.predictions = predictions;
+        this.dashboards = dashboards; this.live = live;
     }
     @GetMapping("/dashboard") public AdminDashboardResponse dashboard() { return dashboards.adminDashboard(); }
     @GetMapping("/sports") public List<SportResponse> sports() { return catalog.listSports(true); }
@@ -32,12 +35,22 @@ public class ArenaAdminController {
     @PutMapping("/competitors/{id}") public CompetitorResponse updateCompetitor(@PathVariable Long id, @Valid @RequestBody CompetitorRequest request) { return catalog.saveCompetitor(id, request); }
     @PostMapping("/events") @ResponseStatus(HttpStatus.CREATED) public EventResponse createEvent(@Valid @RequestBody EventRequest request) { return catalog.saveEvent(null, request); }
     @PutMapping("/events/{id}") public EventResponse updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) { return catalog.saveEvent(id, request); }
-    @PutMapping("/events/{id}/result") public EventResponse result(@PathVariable Long id, @Valid @RequestBody EventResultRequest request) { return catalog.recordResult(id, request); }
-    @PutMapping("/events/{id}/classification") public EventResponse classification(@PathVariable Long id, @Valid @RequestBody EventClassificationRequest request) { return catalog.recordClassification(id, request); }
+    @PutMapping("/events/{id}/result")
+    public EventResponse result(@PathVariable Long id, @Valid @RequestBody EventResultRequest request,
+                                @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return eventResults.record(id, request, idempotencyKey);
+    }
+    @PutMapping("/events/{id}/classification")
+    public EventResponse classification(@PathVariable Long id,
+                                        @Valid @RequestBody EventClassificationRequest request,
+                                        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return eventResults.recordClassification(id, request, idempotencyKey);
+    }
     @PostMapping("/events/{id}/cancel") public Map<String, Integer> cancelEvent(@PathVariable Long id) { return Map.of("refundedPredictions", predictions.cancelEvent(id)); }
     @PostMapping("/markets") @ResponseStatus(HttpStatus.CREATED) public MarketResponse createMarket(@Valid @RequestBody MarketRequest request) { return catalog.saveMarket(null, request); }
     @PutMapping("/markets/{id}") public MarketResponse updateMarket(@PathVariable Long id, @Valid @RequestBody MarketRequest request) { return catalog.saveMarket(id, request); }
     @PatchMapping("/markets/{id}/status") public MarketResponse marketStatus(@PathVariable Long id, @Valid @RequestBody MarketStatusRequest request) { return catalog.changeMarketStatus(id, request.status()); }
     @PostMapping("/markets/{id}/settle") public SettlementResponse settle(@PathVariable Long id, @Valid @RequestBody SettleMarketRequest request) { return predictions.settleMarket(id, request.correctOptionKey()); }
+    @PostMapping("/markets/{id}/cancel") public Map<String, Integer> cancelMarket(@PathVariable Long id) { return Map.of("refundedPredictions", predictions.cancelMarket(id)); }
     @PostMapping("/demo/live/refresh") public Map<String, Object> refreshDemoLive() { return live.refresh(); }
 }

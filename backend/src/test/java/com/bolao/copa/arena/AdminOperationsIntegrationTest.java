@@ -4,10 +4,15 @@ import static com.bolao.copa.arena.api.ExperienceDtos.PostRequest;
 import static com.bolao.copa.arena.api.ExperienceDtos.ReportRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bolao.copa.arena.service.CommunityService;
+import com.bolao.copa.arena.repository.AdminAuditRepository;
+import com.bolao.copa.arena.repository.ArenaEventRepository;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
 import com.bolao.copa.security.JwtService;
@@ -17,6 +22,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
+import java.time.Instant;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -26,6 +34,8 @@ class AdminOperationsIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired UserRepository users;
     @Autowired CommunityService community;
+    @Autowired ArenaEventRepository events;
+    @Autowired AdminAuditRepository audits;
 
     @Test
     void administratorReadsEveryOperationalResourceWithSafeShapes() throws Exception {
@@ -64,7 +74,7 @@ class AdminOperationsIntegrationTest {
         assertSafe(championshipBody);
 
         String eventBody = mockMvc.perform(get("/api/admin/events")
-                        .param("search", "Palmeiras x Flamengo")
+                        .param("search", "demo-football-live")
                         .header("Authorization", authorization))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].externalKey").value("demo-football-live"))
@@ -129,6 +139,116 @@ class AdminOperationsIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/admin/users"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void participantCannotExecuteMutatingAdministrativeOperations() throws Exception {
+        User player = users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        String authorization = bearer(player);
+
+        mockMvc.perform(post("/api/admin/sports")
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"FORBIDDEN\",\"name\":\"Não permitido\",\"category\":\"TRADITIONAL\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/admin/markets/1/status")
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"CLOSED\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/admin/events/1/result")
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"homeScore\":1,\"awayScore\":0,\"finishEvent\":true}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void successfulAdminMutationCreatesAppendOnlyAuditWithCorrelationId() throws Exception {
+        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        String suffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String sportName = "Modalidade auditada " + suffix;
+        String correlationId = "audit-" + suffix.toLowerCase();
+
+        mockMvc.perform(post("/api/admin/sports")
+                        .header("Authorization", bearer(admin))
+                        .header("X-Correlation-Id", correlationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"AUDIT_" + suffix + "\",\"name\":\"" + sportName
+                                + "\",\"category\":\"TRADITIONAL\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Correlation-Id", correlationId));
+
+        mockMvc.perform(get("/api/admin/audit")
+                        .param("search", sportName)
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].action").value("SPORT_CREATED"))
+                .andExpect(jsonPath("$.content[0].actor").value("Administrador Demo"))
+                .andExpect(jsonPath("$.content[0].correlationId").value(correlationId));
+    }
+
+    @Test
+    void resultRegistrationIsReplaySafeAndRejectsKeyReuseWithDifferentPayload() throws Exception {
+        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        var event = events.findByExternalKey("demo-nba-open").orElseThrow();
+        event.setStartsAt(Instant.now().minusSeconds(60));
+        events.saveAndFlush(event);
+        String key = "result-" + UUID.randomUUID();
+        int homeScore = 10_000 + Math.abs(key.hashCode() % 10_000);
+        String payload = "{\"homeScore\":" + homeScore + ",\"awayScore\":1,\"finishEvent\":false}";
+        long auditsBefore = resultAuditCount(event.getId());
+
+        mockMvc.perform(put("/api/admin/events/{id}/result", event.getId())
+                        .header("Authorization", bearer(admin))
+                        .header("Idempotency-Key", key)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homeScore").value(homeScore))
+                .andExpect(jsonPath("$.awayScore").value(1));
+
+        mockMvc.perform(put("/api/admin/events/{id}/result", event.getId())
+                        .header("Authorization", bearer(admin))
+                        .header("Idempotency-Key", key)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homeScore").value(homeScore));
+
+        assertThat(resultAuditCount(event.getId()) - auditsBefore).isEqualTo(1);
+
+        mockMvc.perform(put("/api/admin/events/{id}/result", event.getId())
+                        .header("Authorization", bearer(admin))
+                        .header("Idempotency-Key", key)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"homeScore\":" + homeScore + ",\"awayScore\":2,\"finishEvent\":false}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("dados diferentes")));
+    }
+
+    @Test
+    void validationResponseIncludesEveryFieldErrorForInlineForms() throws Exception {
+        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+
+        mockMvc.perform(post("/api/admin/sports")
+                        .header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"\",\"name\":\"\",\"category\":null}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").isString())
+                .andExpect(jsonPath("$.fieldErrors.code").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("must"))))
+                .andExpect(jsonPath("$.fieldErrors.name").isString())
+                .andExpect(jsonPath("$.fieldErrors.category").isString());
+    }
+
+    private long resultAuditCount(Long eventId) {
+        return audits.findAll().stream()
+                .filter(entry -> "EVENT_RESULT_RECORDED".equals(entry.getAction()))
+                .filter(entry -> eventId.toString().equals(entry.getResourceId()))
+                .count();
     }
 
     private String bearer(User user) {

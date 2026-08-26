@@ -49,6 +49,19 @@ export function normalizeDashboardProgression(data: Pick<DashboardData, "level" 
   };
 }
 
+export function localDashboardLevelProgress(data: ReturnType<typeof normalizeDashboardProgression>) {
+  if (data.nextLevelXp <= 0) return { currentXp: 0, neededXp: 1, remainingXp: 0 };
+  const levelSpan = data.nextLevelXp / Math.max(1, data.level);
+  const levelStartXp = Math.max(0, data.nextLevelXp - levelSpan);
+  const neededXp = Math.max(1, data.nextLevelXp - levelStartXp);
+  const currentXp = Math.min(neededXp, Math.max(0, data.xp - levelStartXp));
+  return {
+    currentXp,
+    neededXp,
+    remainingXp: Math.max(0, data.nextLevelXp - data.xp),
+  };
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useApiResource<LooseDashboard>(() => dashboardApi.get(), []);
@@ -76,13 +89,16 @@ export function DashboardPage() {
   const challenges = data.challenges || [];
   const achievements = data.recentAchievements || [];
   const performance = data.performance || [];
-  const name = user?.name.split(" ")[0] || "Jogador";
+  const name = user?.name.split(" ")[0] || "Participante";
   const progression = normalizeDashboardProgression(data);
+  const levelProgress = localDashboardLevelProgress(progression);
+  const finishedCount = Number(data.finishedPredictions ?? data.settledPredictions ?? 0);
+  const streak = Number(data.streak || 0);
 
   return (
     <>
       <PageHeader
-        eyebrow="CENTRAL DO JOGADOR"
+        eyebrow="CENTRAL DO PARTICIPANTE"
         title={`Boa leitura, ${name}.`}
         description="Seu momento na arena, eventos importantes e próximos desafios em um só lugar."
         actions={<Link className="button button--secondary button--md" to="/events"><Target size={17} /> Explorar eventos</Link>}
@@ -95,9 +111,9 @@ export function DashboardPage() {
         </div>
         <div className="player-strip__xp">
           <Progress
-            value={progression.xp}
-            max={Math.max(1, progression.nextLevelXp)}
-            label={progression.nextLevelXp > 0 ? `Próximo nível · ${points(progression.nextLevelXp)} XP` : "Meta do próximo nível ainda não publicada"}
+            value={levelProgress.currentXp}
+            max={levelProgress.neededXp}
+            label={progression.nextLevelXp > 0 ? `${points(levelProgress.currentXp)} de ${points(levelProgress.neededXp)} XP no nível · faltam ${points(levelProgress.remainingXp)} XP` : "Meta do próximo nível ainda não publicada"}
           />
         </div>
         <div className="player-strip__rank"><Medal size={20} /><span><small>Ranking geral</small><strong>{content.rankingPosition ? `#${content.rankingPosition}` : "—"}</strong></span></div>
@@ -106,8 +122,8 @@ export function DashboardPage() {
       <section className="metric-grid metric-grid--dashboard" aria-label="Seus indicadores">
         {[
           { label: "Pontos disponíveis", value: `${points(content.available)} pts`, detail: "saldo exclusivamente virtual", icon: WalletCards, tone: "violet" },
-          { label: "Precisão", value: percentage(content.accuracy), detail: `${Number(data.finishedPredictions ?? data.settledPredictions ?? 0)} palpites encerrados`, icon: Gauge, tone: "blue" },
-          { label: "Sequência", value: `${Number(data.streak || 0)} acertos`, detail: "melhor momento recente", icon: Flame, tone: "orange" },
+          { label: "Precisão", value: percentage(content.accuracy), detail: `${finishedCount} ${finishedCount === 1 ? "palpite encerrado" : "palpites encerrados"}`, icon: Gauge, tone: "blue" },
+          { label: "Sequência", value: `${streak} ${streak === 1 ? "acerto" : "acertos"}`, detail: "melhor momento recente", icon: Flame, tone: "orange" },
           { label: "Palpites ativos", value: points(data.activePredictions || predictions.filter((item) => ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"].includes(String(item.status).toUpperCase())).length), detail: "aguardando resultado", icon: Target, tone: "green" },
         ].map(({ label, value, detail, icon: Icon, tone }) => (
           <article className={`surface metric-card metric-card--${tone}`} key={label}>
@@ -120,7 +136,7 @@ export function DashboardPage() {
       {featuredEvents.length > 0 && (
         <section className="dashboard-section">
           <SectionHeader title="Na mira da Arena" description="Eventos em destaque escolhidos pela curadoria." link="/events" />
-          <div className="featured-grid">{featuredEvents.slice(0, 2).map((event) => <FeaturedEventCard key={event.id} event={event} onPredict={setDraft} />)}</div>
+          <div className="featured-grid">{featuredEvents.slice(0, 2).map((event) => <FeaturedEventCard key={event.id} event={event} />)}</div>
         </section>
       )}
 
@@ -189,6 +205,7 @@ export function DashboardPage() {
               <p>{challenges[0].description}</p>
               <Progress value={Number(challenges[0].progress || 0)} max={Number(challenges[0].target || 1)} />
               <footer><span>{points(challenges[0].progress || 0)}/{points(challenges[0].target || 0)}</span><strong><Sparkles size={14} /> {points(challenges[0].rewardPoints || 0)} pts</strong></footer>
+              <Link className="text-link" to="/challenges">Ver todos os desafios <ArrowRight size={15} /></Link>
             </section>
           )}
 

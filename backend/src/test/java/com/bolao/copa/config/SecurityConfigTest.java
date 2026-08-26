@@ -103,12 +103,14 @@ class SecurityConfigTest {
         var token = tokenFor(email, UserRole.PARTICIPANTE);
         mockUser(email, "ROLE_PARTICIPANTE", "ROLE_USER");
         when(authService.me(any())).thenReturn(
-                new UserResponse(null, "Jogador Demo", email, UserRole.PARTICIPANTE)
+                new UserResponse(null, "Jogador Demo", email, UserRole.PARTICIPANTE,
+                        "https://example.test/avatar.png")
         );
 
         mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("PARTICIPANTE"));
+                .andExpect(jsonPath("$.role").value("PARTICIPANTE"))
+                .andExpect(jsonPath("$.avatarUrl").value("https://example.test/avatar.png"));
         mockMvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
     }

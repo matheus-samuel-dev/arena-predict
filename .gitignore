@@ -21,6 +21,9 @@ coverage/
 *.local
 *.log
 
+# Recovery artifacts may contain credentials, personal data or database dumps.
+recovery/
+
 # IDE and operating-system noise
 *.iml
 Thumbs.db

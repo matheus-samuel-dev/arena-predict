@@ -5,6 +5,7 @@ import { brand } from "../app/branding";
 import { championshipName, dateTime, points, sportName } from "../app/format";
 import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, Progress, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
+import { useAppData } from "../contexts/AppDataContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { asList, catalogApi, poolsApi } from "../services/api";
 import type { Championship, Pool, RankingRow, Sport } from "../types";
@@ -15,9 +16,15 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
   const [rankingPool, setRankingPool] = useState<Pool | null>(null);
   const [ranking, setRanking] = useState<RankingRow[]>([]);
   const [rankingLoading, setRankingLoading] = useState(false);
+  const [rankingError, setRankingError] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
   const openedSelected = useRef("");
+  const { refreshWallet, refreshNotifications } = useAppData();
   const { data, loading, error, reload } = useApiResource(async () => asList(await poolsApi.list()), []);
+
+  function refreshPoolData() {
+    void Promise.allSettled([reload(), refreshWallet(), refreshNotifications()]);
+  }
 
   const pools = useMemo(() => {
     if (!leaguesOnly) return data || [];
@@ -27,10 +34,12 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
   async function openRanking(pool: Pool) {
     setRankingPool(pool);
     setRankingLoading(true);
+    setRankingError("");
     try {
       setRanking(asList(await poolsApi.ranking(pool.id)));
-    } catch {
+    } catch (reason) {
       setRanking([]);
+      setRankingError(reason instanceof Error ? reason.message : "Não foi possível carregar o ranking.");
     } finally {
       setRankingLoading(false);
     }
@@ -60,27 +69,30 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
         actions={<div className="button-row"><Button variant="secondary" onClick={() => setJoinOpen(true)}><KeyRound size={17} /> Entrar por código</Button><Button onClick={() => setCreateOpen(true)}><Plus size={17} /> {leaguesOnly ? "Criar liga" : "Criar bolão"}</Button></div>}
       />
 
-      {pools.length ? <div className="pool-grid">{pools.map((pool) => <PoolCard pool={pool} key={pool.id} onRanking={() => openRanking(pool)} onChange={() => reload().catch(() => undefined)} />)}</div> : <EmptyState icon={leaguesOnly ? Swords : Trophy} title={leaguesOnly ? "Nenhuma liga recorrente ainda" : "Nenhum bolão encontrado"} description={leaguesOnly ? "Crie uma temporada entre amigos e mantenha um ranking contínuo." : "Crie o primeiro bolão ou entre com um código de convite."} action={<Button onClick={() => setCreateOpen(true)}><Plus size={17} /> Começar agora</Button>} />}
+      {pools.length ? <div className="pool-grid">{pools.map((pool) => <PoolCard pool={pool} key={pool.id} onRanking={() => openRanking(pool)} onChange={refreshPoolData} />)}</div> : <EmptyState icon={leaguesOnly ? Swords : Trophy} title={leaguesOnly ? "Nenhuma liga recorrente ainda" : "Nenhum bolão encontrado"} description={leaguesOnly ? "Crie uma temporada entre amigos e mantenha um ranking contínuo." : "Crie o primeiro bolão ou entre com um código de convite."} action={<Button onClick={() => setCreateOpen(true)}><Plus size={17} /> Começar agora</Button>} />}
 
       <div className="virtual-footer-note"><ShieldCheck size={15} /> Rankings e premiações são exclusivamente virtuais.</div>
-      <CreatePoolModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => reload().catch(() => undefined)} league={leaguesOnly} />
-      <JoinPoolModal open={joinOpen} onClose={() => setJoinOpen(false)} onJoined={() => reload().catch(() => undefined)} />
-      <PoolRankingModal pool={rankingPool} rows={ranking} loading={rankingLoading} onClose={() => setRankingPool(null)} />
+      <CreatePoolModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={refreshPoolData} league={leaguesOnly} />
+      <JoinPoolModal open={joinOpen} onClose={() => setJoinOpen(false)} onJoined={refreshPoolData} />
+      <PoolRankingModal pool={rankingPool} rows={ranking} loading={rankingLoading} error={rankingError} onRetry={() => rankingPool && openRanking(rankingPool)} onClose={() => setRankingPool(null)} />
     </>
   );
 }
 
 function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => void; onChange: () => void }) {
   const [working, setWorking] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const { notify } = useToast();
   const count = Number(pool.participantCount ?? pool.participants ?? 0);
   const limit = Number(pool.maxParticipants || Math.max(count, 1));
 
   async function leave() {
+    if (working) return;
     setWorking(true);
     try {
       await poolsApi.leave(pool.id);
       notify(`Você saiu de “${pool.name}”.`, "success");
+      setConfirmLeave(false);
       onChange();
     } catch (error) {
       notify(error instanceof Error ? error.message : "Não foi possível sair do bolão.", "error");
@@ -90,6 +102,7 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
   }
 
   async function joinPublic() {
+    if (working) return;
     setWorking(true);
     try {
       await poolsApi.joinPublic(pool.id);
@@ -104,21 +117,30 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
 
   async function copyInvite() {
     if (!pool.inviteCode) return;
-    await navigator.clipboard.writeText(pool.inviteCode);
-    notify("Código de convite copiado.", "success");
+    try {
+      await navigator.clipboard.writeText(pool.inviteCode);
+      notify("Código de convite copiado.", "success");
+    } catch {
+      notify("Não foi possível copiar o código. Selecione-o manualmente.", "error");
+    }
   }
 
   return (
-    <article className="surface pool-card">
-      <div className="pool-card__accent" />
-      <header><span className="pool-card__icon">{pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "active"} label={pool.status || "Ativo"} /><h2>{pool.name}</h2></div>{pool.owner && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
-      <p>{pool.description || `Competição entre participantes da ${brand.name}.`}</p>
-      <div className="pool-card__meta"><span><Trophy size={15} /> {sportName(pool.sport)}</span><span><CalendarRange size={15} /> {championshipName(pool.championship)}</span></div>
-      <Progress value={count} max={limit} label={`${count} de ${limit} participantes`} />
-      <div className="pool-card__dates"><span><small>Início</small><strong>{dateTime(pool.startsAt)}</strong></span><span><small>Encerramento</small><strong>{dateTime(pool.endsAt)}</strong></span></div>
-      {pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
-      <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={leave}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
-    </article>
+    <>
+      <article className="surface pool-card">
+        <div className="pool-card__accent" />
+        <header><span className="pool-card__icon">{pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "ACTIVE"} /><h2>{pool.name}</h2></div>{pool.owner && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
+        <p>{pool.description || `Competição entre participantes da ${brand.name}.`}</p>
+        <div className="pool-card__meta"><span><Trophy size={15} /> {sportName(pool.sport)}</span><span><CalendarRange size={15} /> {championshipName(pool.championship)}</span></div>
+        <Progress value={count} max={limit} label={`${count} de ${limit} participantes`} />
+        <div className="pool-card__dates"><span><small>Início</small><strong>{dateTime(pool.startsAt)}</strong></span><span><small>Encerramento</small><strong>{dateTime(pool.endsAt)}</strong></span></div>
+        {pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
+        <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
+      </article>
+      <Modal open={confirmLeave} onClose={() => !working && setConfirmLeave(false)} title="Sair do grupo" size="sm">
+        <div className="confirm-content"><span><UserMinus size={25} /></span><p>Você deixará “{pool.name}” e não aparecerá mais no ranking deste grupo. Deseja continuar?</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmLeave(false)} disabled={working}>Continuar no grupo</Button><Button variant="danger" onClick={leave} loading={working}>Confirmar saída</Button></div></div>
+      </Modal>
+    </>
   );
 }
 
@@ -142,6 +164,7 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
   const championships = (catalog?.championships || []).filter((item: Championship) => !sportId || String(item.sportId || "") === sportId);
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     if (name.trim().length < 3) { notify("Informe um nome com pelo menos 3 caracteres.", "error"); return; }
     if (!rules.trim()) { notify("Defina as regras do grupo.", "error"); return; }
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) { notify("O encerramento deve ocorrer depois do início.", "error"); return; }
@@ -164,10 +187,10 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
 
 function JoinPoolModal({ open, onClose, onJoined }: { open: boolean; onClose: () => void; onJoined: () => void }) {
   const [code, setCode] = useState(""); const [submitting, setSubmitting] = useState(false); const { notify } = useToast();
-  async function submit(event: FormEvent) { event.preventDefault(); if (!code.trim()) return; setSubmitting(true); try { const pool = await poolsApi.join(code.trim().toUpperCase()); notify(`Você entrou em “${pool.name}”.`, "success"); setCode(""); onClose(); onJoined(); } catch (error) { notify(error instanceof Error ? error.message : "Código inválido.", "error"); } finally { setSubmitting(false); } }
-  return <Modal open={open} onClose={onClose} title="Entrar com convite" size="sm"><form className="join-form" onSubmit={submit}><span><KeyRound size={26} /></span><p>Digite o código compartilhado pelo criador do bolão ou da liga.</p><input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="ARENA-2026" maxLength={24} autoFocus /><div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" loading={submitting} disabled={!code.trim()}>Entrar no grupo</Button></div></form></Modal>;
+  async function submit(event: FormEvent) { event.preventDefault(); if (!code.trim() || submitting) return; setSubmitting(true); try { const pool = await poolsApi.join(code.trim().toUpperCase()); notify(`Você entrou em “${pool.name}”.`, "success"); setCode(""); onClose(); onJoined(); } catch (error) { notify(error instanceof Error ? error.message : "Código inválido.", "error"); } finally { setSubmitting(false); } }
+  return <Modal open={open} onClose={() => !submitting && onClose()} title="Entrar com convite" size="sm"><form className="join-form" onSubmit={submit}><span><KeyRound size={26} /></span><p>Digite o código compartilhado pelo criador do bolão ou da liga.</p><input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="ARENA-2026" maxLength={16} autoFocus aria-label="Código de convite" /><div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancelar</Button><Button type="submit" loading={submitting} disabled={!code.trim()}>Entrar no grupo</Button></div></form></Modal>;
 }
 
-function PoolRankingModal({ pool, rows, loading, onClose }: { pool: Pool | null; rows: RankingRow[]; loading: boolean; onClose: () => void }) {
-  return <Modal open={Boolean(pool)} onClose={onClose} title={`Ranking · ${pool?.name || "Bolão"}`}><div className="pool-ranking">{loading ? <p>Carregando ranking...</p> : rows.length ? rows.map((row) => <div className={row.currentUser ? "current" : ""} key={row.userId || row.position}><b>#{row.position}</b><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)} pts</em></div>) : <EmptyState icon={Users} title="Ranking ainda sem posições" description="Os resultados dos primeiros eventos formarão esta classificação." />}</div></Modal>;
+function PoolRankingModal({ pool, rows, loading, error, onRetry, onClose }: { pool: Pool | null; rows: RankingRow[]; loading: boolean; error: string; onRetry: () => void; onClose: () => void }) {
+  return <Modal open={Boolean(pool)} onClose={onClose} title={`Ranking · ${pool?.name || "Bolão"}`}><div className="pool-ranking">{loading ? <p role="status">Carregando ranking...</p> : error ? <ErrorState message={error} onRetry={onRetry} /> : rows.length ? rows.map((row) => <div className={row.currentUser ? "current" : ""} key={row.userId || row.position}><b>#{row.position}</b><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)} pts</em></div>) : <EmptyState icon={Users} title="Ranking ainda sem posições" description="Os resultados dos primeiros eventos formarão esta classificação." />}</div></Modal>;
 }

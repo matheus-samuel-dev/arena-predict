@@ -11,7 +11,6 @@ spring:
     username: ${DB_USERNAME:${DATABASE_USERNAME:bolao}}
     password: ${DB_PASSWORD:${DATABASE_PASSWORD:bolao123}}
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
     open-in-view: false
@@ -33,14 +32,16 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   jwt:
-    secret: ${JWT_SECRET:troque-este-segredo-em-producao-com-pelo-menos-32-caracteres}
+    # No shared fallback: direct executions must provide a secret explicitly.
+    # Docker and the test profile already do so.
+    secret: ${JWT_SECRET:}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
   brand:
     name: ${APP_BRAND_NAME:ArenaPredict}
   demo:
-    enabled: ${APP_DEMO_ENABLED:true}
-    live-provider-enabled: ${APP_DEMO_LIVE_PROVIDER_ENABLED:true}
-    live-scheduler-enabled: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:true}
+    enabled: ${APP_DEMO_ENABLED:false}
+    live-provider-enabled: ${APP_DEMO_LIVE_PROVIDER_ENABLED:false}
+    live-scheduler-enabled: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:false}
     live-refresh-ms: ${APP_DEMO_LIVE_REFRESH_MS:30000}
     live-initial-delay-ms: ${APP_DEMO_LIVE_INITIAL_DELAY_MS:30000}
 

@@ -1,17 +1,26 @@
 import {
+  Archive,
   ArrowRight,
+  CheckCircle2,
+  Circle,
+  Clock3,
   Inbox,
   LoaderCircle,
+  PauseCircle,
+  Radio,
   RefreshCcw,
+  RotateCcw,
   SearchX,
   ShieldAlert,
   Sparkles,
   X,
+  XCircle,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { brand } from "../app/branding";
+import { statusPresentation, type PresentationIcon } from "../app/presentation";
 
 export function Button({
   variant = "primary",
@@ -27,7 +36,12 @@ export function Button({
   loading?: boolean;
 }) {
   return (
-    <button className={`button button--${variant} button--${size} ${className}`} disabled={disabled || loading} {...props}>
+    <button
+      className={`button button--${variant} button--${size} ${className}`}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
       {loading && <LoaderCircle className="spin" size={17} aria-hidden="true" />}
       {children}
     </button>
@@ -169,25 +183,71 @@ export function Modal({
   children: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const focusableElements = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) || []).filter((element) => element.getClientRects().length > 0 && element.getAttribute("aria-hidden") !== "true");
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      const preferred = dialogRef.current?.querySelector<HTMLElement>(
+        '[autofocus], .modal__body input:not([disabled]), .modal__body select:not([disabled]), .modal__body textarea:not([disabled])',
+      );
+      (preferred || focusableElements()[0] || dialogRef.current)?.focus();
+    });
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = focusableElements();
+      if (!focusable.length) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", onKey);
     document.body.classList.add("modal-open");
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKey);
       document.body.classList.remove("modal-open");
+      if (restoreFocusRef.current?.isConnected) restoreFocusRef.current.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
-    <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className={`modal modal--${size}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onCloseRef.current()}>
+      <section ref={dialogRef} className={`modal modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <header className="modal__header">
           <div>
             <span className="eyebrow"><Sparkles size={13} /> {brand.name}</span>
-            <h2 id="modal-title">{title}</h2>
+            <h2 id={titleId}>{title}</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar">
             <X size={20} />
@@ -200,7 +260,7 @@ export function Modal({
 }
 
 export function Avatar({ name, image, size = "md" }: { name?: string; image?: string | null; size?: "sm" | "md" | "lg" }) {
-  const initials = (name || "Arena Player")
+  const initials = (name || "Participante Arena")
     .split(" ")
     .slice(0, 2)
     .map((part) => part[0])
@@ -213,17 +273,50 @@ export function Avatar({ name, image, size = "md" }: { name?: string; image?: st
   );
 }
 
-export function StatusBadge({ status, label }: { status?: string; label?: string }) {
-  const normalized = String(status || "neutral").toLowerCase().replace(/_/g, "-");
-  return <span className={`status status--${normalized}`}><i />{label || status}</span>;
+const statusIcons: Record<PresentationIcon, LucideIcon> = {
+  neutral: Circle,
+  clock: Clock3,
+  live: Radio,
+  check: CheckCircle2,
+  close: XCircle,
+  pause: PauseCircle,
+  refund: RotateCcw,
+  archive: Archive,
+  shield: ShieldAlert,
+};
+
+export function StatusBadge({ status, label, tooltip }: { status?: string; label?: string; tooltip?: string }) {
+  const presentation = statusPresentation(status);
+  const explicitLabel = label?.trim();
+  const displayLabel = explicitLabel && !/^[A-Z\d_ -]+$/.test(explicitLabel)
+    ? explicitLabel
+    : statusPresentation(explicitLabel || status).label;
+  const help = tooltip || presentation.tooltip;
+  const Icon = statusIcons[presentation.icon];
+  return (
+    <span className={`status status--${presentation.tone}`} title={help} aria-label={help ? `${displayLabel}. ${help}` : undefined}>
+      <Icon size={14} strokeWidth={2.1} aria-hidden="true" />
+      <span>{displayLabel}</span>
+    </span>
+  );
 }
 
 export function Progress({ value, max = 100, label }: { value: number; max?: number; label?: string }) {
-  const percentage = Math.min(100, Math.max(0, max ? (value / max) * 100 : 0));
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 100;
+  const safeValue = Math.min(safeMax, Math.max(0, Number.isFinite(value) ? value : 0));
+  const percentage = (safeValue / safeMax) * 100;
   return (
     <div className="progress-wrap">
       {label && <div className="progress-label"><span>{label}</span><b>{Math.round(percentage)}%</b></div>}
-      <div className="progress-track" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}>
+      <div
+        className="progress-track"
+        role="progressbar"
+        aria-label={label || "Progresso"}
+        aria-valuenow={safeValue}
+        aria-valuemin={0}
+        aria-valuemax={safeMax}
+        aria-valuetext={`${Math.round(percentage)}%`}
+      >
         <span style={{ width: `${percentage}%` }} />
       </div>
     </div>

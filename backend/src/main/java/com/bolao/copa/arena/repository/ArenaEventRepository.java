@@ -24,6 +24,9 @@ public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select event from ArenaEvent event where event.externalKey = :externalKey")
     Optional<ArenaEvent> findByExternalKeyForUpdate(@Param("externalKey") String externalKey);
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select event from ArenaEvent event where event.id = :id")
+    Optional<ArenaEvent> findByIdForUpdate(@Param("id") Long id);
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     List<ArenaEvent> findByStatusOrderByStartsAtAsc(EventStatus status);
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})

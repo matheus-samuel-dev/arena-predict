@@ -4,17 +4,24 @@ import com.bolao.copa.arena.domain.ArenaEnums.PredictionStatus;
 import com.bolao.copa.entity.User;
 import java.time.Instant;
 import java.util.*;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
 public interface ArenaPredictionRepository extends JpaRepository<ArenaPrediction, Long> {
     @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport", "market", "option", "pool"})
     List<ArenaPrediction> findByUserOrderByPlacedAtDesc(User user);
     @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport", "market", "option", "pool"})
     Optional<ArenaPrediction> findByIdAndUser(Long id, User user);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport", "market", "option", "pool"})
+    @Query("select prediction from ArenaPrediction prediction where prediction.id = :id and prediction.user = :user")
+    Optional<ArenaPrediction> findByIdAndUserForUpdate(@Param("id") Long id, @Param("user") User user);
     @EntityGraph(attributePaths = {"event", "market", "option", "user"})
     List<ArenaPrediction> findByMarketAndStatus(PredictionMarket market, PredictionStatus status);
     @EntityGraph(attributePaths = {"event", "market", "option", "user"})
     List<ArenaPrediction> findByEventAndStatus(ArenaEvent event, PredictionStatus status);
     Optional<ArenaPrediction> findByIdempotencyKey(String idempotencyKey);
+    boolean existsByMarket(PredictionMarket market);
     long countByUserAndStatus(User user, PredictionStatus status);
     long countByStatus(PredictionStatus status);
     List<ArenaPrediction> findByPool(ArenaPool pool);

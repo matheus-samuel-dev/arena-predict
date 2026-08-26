@@ -21,7 +21,9 @@ public class DemoLiveEventService {
         for (SportsDataProvider provider : providers) {
             for (var update : provider.liveUpdates()) {
                 var event = events.findByExternalKeyForUpdate(update.externalKey()).orElse(null);
-                if (event == null || !event.isDemo()) continue;
+                // A provider update must never resurrect a cancelled or finished
+                // demo event. Lifecycle transitions remain explicit admin actions.
+                if (event == null || !event.isDemo() || event.getStatus() != EventStatus.LIVE) continue;
                 event.setHomeScore(update.homeScore()); event.setAwayScore(update.awayScore());
                 event.setClock(update.clock()); event.setPeriod(update.period()); event.setLiveData(update.structuredData());
                 event.setStatus(EventStatus.LIVE); updated++;

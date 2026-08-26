@@ -1,3 +1,5 @@
+import { statusPresentation } from "./presentation";
+
 export function points(value: unknown) {
   const number = Number(value || 0);
   return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number.isFinite(number) ? number : 0);
@@ -35,7 +37,7 @@ export function relativeTime(value?: string | null) {
 }
 
 export function initials(name?: string) {
-  return (name || "Arena Player")
+  return (name || "Participante Arena")
     .trim()
     .split(/\s+/)
     .slice(0, 2)
@@ -49,39 +51,11 @@ export function multiplier(value: unknown) {
 }
 
 export function eventStatusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    SCHEDULED: "Agendado",
-    AGENDADO: "Agendado",
-    OPEN: "Palpites abertos",
-    ABERTO: "Palpites abertos",
-    LIVE: "Ao vivo",
-    AO_VIVO: "Ao vivo",
-    FINISHED: "Encerrado",
-    ENCERRADO: "Encerrado",
-    CANCELLED: "Cancelado",
-    CANCELADO: "Cancelado",
-    POSTPONED: "Adiado",
-    ADIADO: "Adiado",
-  };
-  return labels[String(status || "").toUpperCase()] || status || "Agendado";
+  return status ? statusPresentation(status).label : "Agendado";
 }
 
 export function predictionStatusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    PENDING: "Pendente",
-    PENDENTE: "Pendente",
-    ACTIVE: "Ativo",
-    ATIVO: "Ativo",
-    WON: "Vencedor",
-    VENCEDOR: "Vencedor",
-    LOST: "Perdedor",
-    PERDEDOR: "Perdedor",
-    CANCELLED: "Cancelado",
-    CANCELADO: "Cancelado",
-    REFUNDED: "Reembolsado",
-    REEMBOLSADO: "Reembolsado",
-  };
-  return labels[String(status || "").toUpperCase()] || status || "Pendente";
+  return status ? statusPresentation(status).label : "Pendente";
 }
 
 export function getWalletBalance(wallet: { balance?: number; balancePoints?: number; availablePoints?: number } | null) {
@@ -117,11 +91,11 @@ export function eventTeams(event: {
 export function sportName(value: unknown) {
   if (typeof value === "string") return value;
   if (value && typeof value === "object" && "name" in value) return String((value as { name: unknown }).name);
-  return "Esporte";
+  return "Modalidade";
 }
 
 export function championshipName(value: unknown) {
   if (typeof value === "string") return value;
   if (value && typeof value === "object" && "name" in value) return String((value as { name: unknown }).name);
-  return "Competição";
+  return "Campeonato";
 }

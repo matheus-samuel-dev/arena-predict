@@ -20,12 +20,15 @@ public class CommunityService {
     private final CommunityReportRepository reports;
     private final PlayerProfileRepository profiles;
     private final ArenaNotificationService notifications;
+    private final AdminAuditService audit;
 
     public CommunityService(CommunityPostRepository posts, CommunityCommentRepository comments,
                             CommunityLikeRepository likes, CommunityReportRepository reports,
-                            PlayerProfileRepository profiles, ArenaNotificationService notifications) {
+                            PlayerProfileRepository profiles, ArenaNotificationService notifications,
+                            AdminAuditService audit) {
         this.posts = posts; this.comments = comments; this.likes = likes; this.reports = reports;
         this.profiles = profiles; this.notifications = notifications;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +62,7 @@ public class CommunityService {
 
     @Transactional
     public PostResponse like(Long postId, User user) {
-        CommunityPost post = published(postId);
+        CommunityPost post = publishedForUpdate(postId);
         likes.findByPostAndUser(post, user).orElseGet(() -> { CommunityLike like = new CommunityLike(); like.setPost(post); like.setUser(user); return likes.save(like); });
         return response(post, user);
     }
@@ -83,7 +86,7 @@ public class CommunityService {
 
     @Transactional
     public void report(Long postId, ReportRequest request, User reporter) {
-        CommunityPost post = published(postId);
+        CommunityPost post = publishedForUpdate(postId);
         if (post.getAuthor().getId().equals(reporter.getId())) throw new ArenaProblem.RuleViolation("Você não pode denunciar sua própria publicação.");
         CommunityReport report = reports.findByPostAndReporter(post, reporter).orElseGet(() -> {
             CommunityReport created = new CommunityReport(); created.setPost(post); created.setReporter(reporter); return created;
@@ -111,6 +114,8 @@ public class CommunityService {
         CommunityReport report = reports.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Denúncia não encontrada."));
         report.setStatus(request.status()); report.setModeratorNote(request.moderatorNote()); report.setModeratedBy(moderator); report.setReviewedAt(Instant.now());
         if (Boolean.TRUE.equals(request.hidePost())) { report.getPost().setStatus(ContentStatus.HIDDEN); report.getPost().touch(); }
+        audit.record("COMMUNITY_REPORT_MODERATED", "COMMUNITY_REPORT", report.getId(),
+                "Denúncia moderada com status " + report.getStatus());
         return reportResponse(report);
     }
 
@@ -118,10 +123,16 @@ public class CommunityService {
     public void moderatePost(Long id, ContentStatus status) {
         CommunityPost post = posts.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
         post.setStatus(status); post.touch();
+        audit.record("COMMUNITY_POST_MODERATED", "COMMUNITY_POST", post.getId(),
+                "Publicação moderada com status " + status);
     }
 
     private CommunityPost published(Long id) {
         return posts.findByIdAndStatus(id, ContentStatus.PUBLISHED).orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
+    }
+    private CommunityPost publishedForUpdate(Long id) {
+        return posts.findByIdAndStatusForUpdate(id, ContentStatus.PUBLISHED)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
     }
     private PostResponse response(CommunityPost post, User current) {
         String avatar = profiles.findByUser(post.getAuthor()).map(PlayerProfile::getAvatarUrl).orElse(null);

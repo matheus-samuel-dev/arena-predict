@@ -19,11 +19,14 @@ public class ArenaCatalogService {
     private final PredictionMarketRepository markets;
     private final MarketOptionRepository options;
     private final EventParticipantRepository eventParticipants;
+    private final ArenaPredictionRepository predictions;
+    private final AdminAuditService audit;
 
     public ArenaCatalogService(SportRepository sports, ChampionshipRepository championships,
                                CompetitorRepository competitors, ArenaEventRepository events,
                                PredictionMarketRepository markets, MarketOptionRepository options,
-                               EventParticipantRepository eventParticipants) {
+                               EventParticipantRepository eventParticipants,
+                               ArenaPredictionRepository predictions, AdminAuditService audit) {
         this.sports = sports;
         this.championships = championships;
         this.competitors = competitors;
@@ -31,6 +34,8 @@ public class ArenaCatalogService {
         this.markets = markets;
         this.options = options;
         this.eventParticipants = eventParticipants;
+        this.predictions = predictions;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +57,10 @@ public class ArenaCatalogService {
         sport.setIcon(request.icon());
         if (request.active() != null) sport.setActive(request.active());
         if (request.displayOrder() != null) sport.setDisplayOrder(request.displayOrder());
-        return sportResponse(sports.save(sport));
+        sport = sports.save(sport);
+        audit.record(id == null ? "SPORT_CREATED" : "SPORT_UPDATED", "SPORT", sport.getId(),
+                "Modalidade " + sport.getName() + " salva");
+        return sportResponse(sport);
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +82,10 @@ public class ArenaCatalogService {
         championship.setImageUrl(request.imageUrl());
         championship.setStartsAt(request.startsAt());
         championship.setEndsAt(request.endsAt());
-        return championshipResponse(championships.save(championship));
+        championship = championships.save(championship);
+        audit.record(id == null ? "CHAMPIONSHIP_CREATED" : "CHAMPIONSHIP_UPDATED", "CHAMPIONSHIP",
+                championship.getId(), "Campeonato " + championship.getName() + " salvo");
+        return championshipResponse(championship);
     }
 
     @Transactional(readOnly = true)
@@ -92,7 +103,10 @@ public class ArenaCatalogService {
         competitor.setImageUrl(request.imageUrl());
         competitor.setCountry(request.country());
         if (request.active() != null) competitor.setActive(request.active());
-        return competitorResponse(competitors.save(competitor));
+        competitor = competitors.save(competitor);
+        audit.record(id == null ? "COMPETITOR_CREATED" : "COMPETITOR_UPDATED", "COMPETITOR",
+                competitor.getId(), "Participante " + competitor.getName() + " salvo");
+        return competitorResponse(competitor);
     }
 
     @Transactional(readOnly = true)
@@ -116,10 +130,17 @@ public class ArenaCatalogService {
 
     @Transactional
     public EventResponse saveEvent(Long id, EventRequest request) {
-        ArenaEvent event = id == null ? new ArenaEvent() : event(id);
-        EventStatus requestedStatus = request.status() == null ? EventStatus.SCHEDULED : request.status();
-        if (id != null && requestedStatus == EventStatus.CANCELLED && event.getStatus() != EventStatus.CANCELLED)
+        ArenaEvent event = id == null ? new ArenaEvent() : eventForUpdate(id);
+        EventStatus requestedStatus = request.status() == null
+                ? (id == null ? EventStatus.SCHEDULED : event.getStatus())
+                : request.status();
+        if (id != null && (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.FINISHED))
+            throw new ArenaProblem.Conflict("Eventos em estado terminal não podem ser alterados pelo cadastro genérico.");
+        if (requestedStatus == EventStatus.CANCELLED)
             throw new ArenaProblem.RuleViolation("Use a ação de cancelamento para reembolsar os palpites do evento.");
+        if (requestedStatus == EventStatus.FINISHED)
+            throw new ArenaProblem.RuleViolation("Use a ação de resultado para finalizar o evento.");
+        if (id != null) validateEventTransition(event.getStatus(), requestedStatus);
         Championship championship = championship(request.championshipId());
         event.setExternalKey(request.externalKey().trim());
         event.setChampionship(championship);
@@ -133,6 +154,9 @@ public class ArenaCatalogService {
         if (request.predictionClosesAt().isAfter(request.startsAt())) {
             throw new ArenaProblem.RuleViolation("O prazo de palpites não pode ser posterior ao início do evento.");
         }
+        if (requestedStatus == EventStatus.OPEN_FOR_PREDICTIONS
+                && !Instant.now().isBefore(request.predictionClosesAt()))
+            throw new ArenaProblem.RuleViolation("Um evento aberto precisa ter prazo futuro para palpites.");
         event.setTitle(request.title().trim());
         event.setStage(request.stage());
         event.setVenue(request.venue());
@@ -142,7 +166,10 @@ public class ArenaCatalogService {
         event.setPredictionClosesAt(request.predictionClosesAt());
         event.setStatus(requestedStatus);
         event.setFormat(request.format() == null ? EventFormat.STANDARD : request.format());
-        event.setBestOf(request.bestOf() == null ? 1 : request.bestOf());
+        int bestOf = request.bestOf() == null ? 1 : request.bestOf();
+        if (bestOf != 1 && bestOf != 3 && bestOf != 5)
+            throw new ArenaProblem.RuleViolation("A série deve usar melhor de 1, 3 ou 5.");
+        event.setBestOf(bestOf);
         event.setFeatured(Boolean.TRUE.equals(request.featured()));
         event.setDemo(Boolean.TRUE.equals(request.demo()));
         event = events.save(event);
@@ -153,50 +180,75 @@ public class ArenaCatalogService {
             if (request.awayCompetitorId() != null) defaults.add(new EventParticipantRequest(request.awayCompetitorId(), 1, null, null));
             if (!defaults.isEmpty()) syncParticipants(event, defaults);
         }
+        audit.record(id == null ? "EVENT_CREATED" : "EVENT_UPDATED", "EVENT", event.getId(),
+                "Evento " + event.getTitle() + " salvo com status " + event.getStatus());
         return eventResponse(event);
     }
 
     @Transactional
     public EventResponse recordResult(Long id, EventResultRequest request) {
-        ArenaEvent event = event(id);
+        ArenaEvent event = eventForUpdate(id);
+        ensureResultMutable(event);
         event.setHomeScore(request.homeScore());
         event.setAwayScore(request.awayScore());
         if (Boolean.TRUE.equals(request.finishEvent())) event.setStatus(EventStatus.FINISHED);
+        audit.record("EVENT_RESULT_RECORDED", "EVENT", event.getId(),
+                "Resultado registrado para " + event.getTitle() + ": " + event.getHomeScore() + " x " + event.getAwayScore());
         return eventResponse(event);
     }
 
     @Transactional
     public EventResponse recordClassification(Long id, EventClassificationRequest request) {
-        ArenaEvent event = event(id);
+        ArenaEvent event = eventForUpdate(id);
+        ensureResultMutable(event);
+        if (event.getFormat() != EventFormat.INDIVIDUAL && event.getFormat() != EventFormat.RACE)
+            throw new ArenaProblem.RuleViolation("Use o placar tradicional para este formato de evento.");
         List<EventParticipant> existing = eventParticipants.findByEventOrderByDisplayOrderAsc(event);
+        if (request.participants().size() != existing.size())
+            throw new ArenaProblem.RuleViolation("Informe a classificação de todos os participantes do evento.");
         Map<Long, EventParticipant> byCompetitor = existing.stream().collect(java.util.stream.Collectors.toMap(
                 value -> value.getCompetitor().getId(), value -> value));
         Set<Integer> positions = new HashSet<>();
+        Set<Long> receivedCompetitors = new HashSet<>();
         for (EventParticipantRequest input : request.participants()) {
+            if (!receivedCompetitors.add(input.competitorId()))
+                throw new ArenaProblem.RuleViolation("Não repita participantes na classificação.");
             EventParticipant participant = byCompetitor.get(input.competitorId());
             if (participant == null) throw new ArenaProblem.RuleViolation("O competidor não pertence a este evento.");
+            if (Boolean.TRUE.equals(request.finishEvent()) && input.position() == null)
+                throw new ArenaProblem.RuleViolation("Informe a posição final de todos os participantes.");
             if (input.position() != null && !positions.add(input.position()))
                 throw new ArenaProblem.RuleViolation("Não repita posições na classificação.");
             participant.setPosition(input.position());
             participant.setScoreLabel(input.scoreLabel());
         }
         if (Boolean.TRUE.equals(request.finishEvent())) event.setStatus(EventStatus.FINISHED);
+        audit.record("EVENT_CLASSIFICATION_RECORDED", "EVENT", event.getId(),
+                "Classificação registrada para " + event.getTitle());
         return eventResponse(event);
     }
 
     @Transactional
     public MarketResponse saveMarket(Long id, MarketRequest request) {
-        PredictionMarket market = id == null ? new PredictionMarket() : market(id);
-        if (id != null && market.getStatus() == MarketStatus.SETTLED)
-            throw new ArenaProblem.Conflict("Mercado liquidado não pode ser alterado.");
+        PredictionMarket market = id == null ? new PredictionMarket() : marketForUpdate(id);
+        if (id != null && isTerminal(market.getStatus()))
+            throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser alterado.");
         ArenaEvent event = event(request.eventId());
+        MarketStatus requestedStatus = request.status() == null
+                ? (id == null ? MarketStatus.OPEN : market.getStatus())
+                : request.status();
+        validateGenericMarketStatus(requestedStatus);
+        validateMarketEvent(event, requestedStatus, id == null);
+        if (id != null) validateMarketTransition(market, requestedStatus);
+        List<MarketOption> existingOptions = id == null ? List.of() : options.findByMarketOrderByIdAsc(market);
+        if (id != null && predictions.existsByMarket(market))
+            validateFrozenMarketStructure(market, event, request, existingOptions);
         market.setEvent(event);
         market.setCode(normalizeCode(request.code()));
         market.setName(request.name().trim());
-        market.setStatus(request.status() == null ? MarketStatus.OPEN : request.status());
+        market.setStatus(requestedStatus);
         market.setMinimumPoints(request.minimumPoints() == null ? 10 : request.minimumPoints());
         market = markets.save(market);
-        List<MarketOption> existingOptions = id == null ? List.of() : options.findByMarketOrderByIdAsc(market);
         Set<String> receivedKeys = new HashSet<>();
         for (MarketOptionRequest input : request.options()) {
             String key = normalizeCode(input.key());
@@ -210,15 +262,22 @@ public class ArenaCatalogService {
             options.save(option);
         }
         existingOptions.stream().filter(value -> !receivedKeys.contains(value.getKey())).forEach(value -> value.setActive(false));
+        audit.record(id == null ? "MARKET_CREATED" : "MARKET_UPDATED", "MARKET", market.getId(),
+                "Mercado " + market.getName() + " salvo com status " + market.getStatus());
         return marketResponse(market);
     }
 
     @Transactional
     public MarketResponse changeMarketStatus(Long id, MarketStatus status) {
-        PredictionMarket market = market(id);
-        if (market.getStatus() == MarketStatus.SETTLED)
-            throw new ArenaProblem.Conflict("Mercado liquidado não pode ser reaberto.");
+        PredictionMarket market = marketForUpdate(id);
+        if (isTerminal(market.getStatus()))
+            throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser reaberto.");
+        validateGenericMarketStatus(status);
+        validateMarketEvent(market.getEvent(), status, false);
+        validateMarketTransition(market, status);
         market.setStatus(status);
+        audit.record("MARKET_STATUS_CHANGED", "MARKET", market.getId(),
+                "Status do mercado " + market.getName() + " alterado para " + status);
         return marketResponse(market);
     }
 
@@ -227,7 +286,9 @@ public class ArenaCatalogService {
     public Championship championship(Long id) { return championships.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Campeonato não encontrado.")); }
     public Competitor competitor(Long id) { return competitors.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Equipe ou participante não encontrado.")); }
     public ArenaEvent event(Long id) { return events.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado.")); }
+    private ArenaEvent eventForUpdate(Long id) { return events.findByIdForUpdate(id).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado.")); }
     public PredictionMarket market(Long id) { return markets.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado.")); }
+    private PredictionMarket marketForUpdate(Long id) { return markets.findByIdForUpdate(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado.")); }
 
     public SportResponse sportResponse(Sport value) {
         if (value == null) return null;
@@ -285,6 +346,88 @@ public class ArenaCatalogService {
     private void validateCompetitorSport(Competitor competitor, Championship championship) {
         if (competitor != null && !competitor.getSport().getId().equals(championship.getSport().getId()))
             throw new ArenaProblem.RuleViolation("A equipe ou participante não pertence à modalidade do campeonato.");
+    }
+    private void ensureResultMutable(ArenaEvent event) {
+        if (event.getStatus() == EventStatus.CANCELLED)
+            throw new ArenaProblem.Conflict("Eventos cancelados não podem receber resultados.");
+        if (event.getStatus() == EventStatus.POSTPONED)
+            throw new ArenaProblem.Conflict("Eventos adiados não podem receber resultados.");
+        if ((event.getStatus() == EventStatus.SCHEDULED || event.getStatus() == EventStatus.OPEN_FOR_PREDICTIONS)
+                && Instant.now().isBefore(event.getStartsAt()))
+            throw new ArenaProblem.RuleViolation("O evento precisa começar antes do registro do resultado.");
+        if (markets.findByEventForUpdate(event).stream().anyMatch(value -> value.getStatus() == MarketStatus.SETTLED))
+            throw new ArenaProblem.Conflict("O resultado não pode ser alterado após a liquidação de um mercado.");
+    }
+    private void validateEventTransition(EventStatus current, EventStatus target) {
+        if (current == target) return;
+        boolean allowed = switch (current) {
+            case SCHEDULED -> target == EventStatus.OPEN_FOR_PREDICTIONS
+                    || target == EventStatus.LIVE || target == EventStatus.POSTPONED;
+            case OPEN_FOR_PREDICTIONS -> target == EventStatus.LIVE || target == EventStatus.POSTPONED;
+            case LIVE -> target == EventStatus.POSTPONED;
+            case POSTPONED -> target == EventStatus.SCHEDULED || target == EventStatus.OPEN_FOR_PREDICTIONS;
+            case FINISHED, CANCELLED -> false;
+        };
+        if (!allowed)
+            throw new ArenaProblem.RuleViolation("Transição de status do evento não permitida: "
+                    + current + " → " + target + ".");
+    }
+    private void validateMarketEvent(ArenaEvent event, MarketStatus target, boolean creating) {
+        if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.FINISHED)
+            throw new ArenaProblem.Conflict("Eventos encerrados ou cancelados não aceitam alterações de mercado.");
+        if (creating && event.getStatus() == EventStatus.LIVE)
+            throw new ArenaProblem.Conflict("Não é possível criar um mercado depois que o evento começou.");
+        if (target == MarketStatus.OPEN && (event.getStatus() != EventStatus.OPEN_FOR_PREDICTIONS
+                || !Instant.now().isBefore(event.getPredictionClosesAt())))
+            throw new ArenaProblem.RuleViolation("O mercado só pode abrir enquanto o evento aceita palpites.");
+    }
+    private void validateFrozenMarketStructure(PredictionMarket market, ArenaEvent event, MarketRequest request,
+                                               List<MarketOption> existingOptions) {
+        int requestedMinimum = request.minimumPoints() == null ? 10 : request.minimumPoints();
+        if (!market.getEvent().getId().equals(event.getId())
+                || !market.getCode().equals(normalizeCode(request.code()))
+                || market.getMinimumPoints() != requestedMinimum)
+            throw new ArenaProblem.Conflict("A estrutura do mercado não pode mudar depois do primeiro palpite.");
+
+        Map<String, MarketOptionRequest> requestedOptions = new HashMap<>();
+        for (MarketOptionRequest input : request.options()) {
+            String key = normalizeCode(input.key());
+            if (requestedOptions.put(key, input) != null)
+                throw new ArenaProblem.RuleViolation("Não repita opções com a mesma chave no mercado.");
+        }
+        if (requestedOptions.size() != existingOptions.size())
+            throw new ArenaProblem.Conflict("As opções do mercado não podem mudar depois do primeiro palpite.");
+        for (MarketOption existing : existingOptions) {
+            MarketOptionRequest input = requestedOptions.get(existing.getKey());
+            boolean requestedActive = input != null && (input.active() == null || input.active());
+            if (input == null || !existing.getLabel().equals(input.label().trim())
+                    || existing.getMultiplier().compareTo(input.multiplier()) != 0
+                    || existing.isActive() != requestedActive)
+                throw new ArenaProblem.Conflict("As opções do mercado não podem mudar depois do primeiro palpite.");
+        }
+    }
+    private boolean isTerminal(MarketStatus status) {
+        return status == MarketStatus.SETTLED || status == MarketStatus.CANCELLED;
+    }
+    private void validateGenericMarketStatus(MarketStatus status) {
+        if (isTerminal(status))
+            throw new ArenaProblem.RuleViolation("Use a ação específica para liquidar ou cancelar o mercado.");
+    }
+    private void validateMarketTransition(PredictionMarket market, MarketStatus target) {
+        MarketStatus current = market.getStatus();
+        if (current == target) return;
+        boolean allowed = switch (current) {
+            case DRAFT -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
+            case OPEN -> target == MarketStatus.SUSPENDED || target == MarketStatus.CLOSED;
+            case SUSPENDED -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
+            case CLOSED -> target == MarketStatus.OPEN
+                    && market.getEvent().getStatus() == EventStatus.OPEN_FOR_PREDICTIONS
+                    && Instant.now().isBefore(market.getEvent().getPredictionClosesAt());
+            case SETTLED, CANCELLED -> false;
+        };
+        if (!allowed)
+            throw new ArenaProblem.RuleViolation("Transição de status do mercado não permitida: "
+                    + current + " → " + target + ".");
     }
     private String normalizeCode(String value) { return value.trim().toUpperCase(Locale.ROOT).replace(' ', '_'); }
     private String slug(String value) { return value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""); }

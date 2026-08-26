@@ -1,16 +1,16 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
-const brandValues = {
-  name: process.env.VITE_APP_NAME || "ArenaPredict",
-  shortName: process.env.VITE_APP_SHORT_NAME || "Arena",
-  tagline: process.env.VITE_APP_TAGLINE || "Sua leitura. Sua arena.",
-  description: process.env.VITE_APP_DESCRIPTION || "Previsões esportivas, bolões e ligas com pontos exclusivamente virtuais.",
+type BrandValues = {
+  name: string;
+  shortName: string;
+  tagline: string;
+  description: string;
 };
 
-function brandAssets(): Plugin {
+function brandAssets(brandValues: BrandValues): Plugin {
   const manifest = JSON.stringify({
     name: brandValues.name,
     short_name: brandValues.shortName,
@@ -50,22 +50,37 @@ function brandAssets(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), brandAssets()],
-  server: {
-    host: "0.0.0.0",
-    port: 5173,
-    proxy: {
-      "/api": {
-        target: process.env.VITE_BACKEND_PROXY || "http://localhost:8080",
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const brandValues: BrandValues = {
+    name: env.VITE_APP_NAME || "ArenaPredict",
+    shortName: env.VITE_APP_SHORT_NAME || "Arena",
+    tagline: env.VITE_APP_TAGLINE || "Sua leitura. Sua arena.",
+    description: env.VITE_APP_DESCRIPTION || "Previsões esportivas, bolões e ligas com pontos exclusivamente virtuais.",
+  };
+
+  return {
+    plugins: [react(), brandAssets(brandValues)],
+    server: {
+      host: "0.0.0.0",
+      port: 5173,
+      proxy: {
+        "/api": {
+          target: env.VITE_BACKEND_PROXY || "http://localhost:8080",
+          changeOrigin: true,
+        },
       },
     },
-  },
-  preview: { host: "0.0.0.0", port: 5173 },
-  test: {
-    environment: "jsdom",
-    setupFiles: "./src/test/setup.ts",
-    css: true,
-  },
+    preview: { host: "0.0.0.0", port: 5173 },
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.ts",
+      css: true,
+      // UI tests mount the complete routed shell and can be CPU-bound on
+      // constrained Windows/CI workers. Keep a finite, explicit ceiling so
+      // infrastructure contention does not become a false product failure.
+      testTimeout: 20_000,
+      hookTimeout: 20_000,
+    },
+  };
 });

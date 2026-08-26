@@ -1,233 +1,141 @@
 # ArenaPredict
 
-Plataforma full-stack de previsões esportivas, bolões e ligas com pontos exclusivamente virtuais. A aplicação cobre esportes tradicionais e eSports por meio de um domínio configurável, sem apostas, depósitos, saques ou conversão financeira.
+Plataforma full stack de previsões esportivas e de eSports com pontos exclusivamente virtuais, gamificação e uma superfície administrativa abrangente.
 
-> **Aviso:** todos os pontos, multiplicadores e recompensas são fictícios e destinados somente a entretenimento e demonstração de portfólio. Eles não possuem valor financeiro.
+> **Transparência:** o ArenaPredict não processa dinheiro, depósitos, saques ou prêmios financeiros. Pontos, multiplicadores e recompensas são recursos fictícios de entretenimento e demonstração de portfólio, sem valor monetário.
 
-`ArenaPredict` é uma marca provisória. O nome visível fica centralizado em variáveis de ambiente e em `frontend/src/app/branding.ts`, permitindo uma troca futura sem refatorar as regras de negócio.
+O projeto demonstra uma aplicação SaaS de ponta a ponta: domínio transacional em Java, autenticação e autorização, persistência relacional, experiência responsiva em React, infraestrutura Docker e testes das regras críticas.
 
-## Início rápido
+## Visão geral
 
-Pré-requisito: Docker Desktop com Docker Compose v2.
+O ArenaPredict organiza modalidades, campeonatos, participantes, eventos e mercados de previsão em um único produto. Participantes acompanham eventos, registram palpites com saldo virtual, evoluem na plataforma e competem em rankings e ligas. Administradores operam catálogo, resultados, engajamento, moderação e governança.
 
-```bash
-docker compose up -d --build
+Principais capacidades:
+
+- eventos futuros, ao vivo e finalizados;
+- mercados configuráveis e multiplicadores simulados;
+- palpites com débito, reembolso e recompensa em pontos virtuais;
+- carteira e razão append-only nos fluxos da aplicação;
+- bolões, ligas e rankings;
+- XP, níveis, desafios e conquistas;
+- notificações, comunidade e moderação;
+- dashboards para participante e administrador;
+- resultados e liquidação idempotente;
+- API documentada com OpenAPI;
+- dados ao vivo simulados, sempre identificados como demonstração.
+
+## Screenshots
+
+| Acesso | Visão do participante |
+|---|---|
+| ![Login do ArenaPredict](docs/screenshots/login.png) | ![Dashboard do participante](docs/screenshots/participant-dashboard.png) |
+
+| Eventos ao vivo | Operação administrativa |
+|---|---|
+| ![Experiência de eventos ao vivo](docs/screenshots/live.png) | ![Dashboard administrativo](docs/screenshots/admin-dashboard.png) |
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    B[Browser] --> N[Nginx]
+    N -->|arquivos estáticos| R[React + TypeScript]
+    N -->|/api| S[Spring Boot]
+    S --> P[(PostgreSQL)]
+    S --> F[Flyway]
+    S --> D[Provider interno demo]
 ```
 
-Depois da inicialização:
+O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução.
 
-- aplicação: <http://localhost:5173>
-- API: <http://localhost:8080>
-- Swagger: <http://localhost:8080/swagger-ui.html>
-- healthcheck da API: <http://localhost:8080/actuator/health>
-- healthcheck da aplicação web: <http://localhost:5173/health>
+### Organização do backend
 
-Para acompanhar a stack:
+- `com.bolao.copa.arena.domain`: entidades e estados do domínio;
+- `arena.repository`: persistência Spring Data JPA;
+- `arena.service`: regras transacionais de eventos, palpites, pontos, ranking e engajamento;
+- `arena.api`: contratos HTTP e endpoints;
+- `security`: JWT, autenticação e respostas 401/403;
+- `config`: CORS, segurança e inicialização demonstrativa.
 
-```bash
-docker compose ps
-docker compose logs -f backend frontend postgres
-```
+O namespace legado `com.bolao.copa` permanece como fronteira técnica de migração. As funcionalidades atuais estão isoladas no módulo `arena`; o alias HTTP `/auth/**` é mantido apenas por compatibilidade, enquanto o cliente atual usa `/api/auth/**`.
 
-Para encerrar sem apagar os dados:
+### Organização do frontend
 
-```bash
-docker compose down
-```
+- `app`: marca, formatadores e apresentação de estados;
+- `components`: shell, cards e componentes reutilizáveis;
+- `contexts`: sessão, dados globais e feedback;
+- `hooks`: carregamento e controle de requisições;
+- `pages`: experiências de participante e administração;
+- `services`: cliente HTTP tipado;
+- `types`: contratos compartilhados pela interface.
 
-O volume PostgreSQL é persistente. Use `docker compose down -v` somente quando quiser apagar deliberadamente todos os dados locais.
+## Stack
 
-## Credenciais de demonstração
+| Camada | Tecnologias |
+|---|---|
+| Frontend | React 18, TypeScript, Vite, React Router, Lucide |
+| Testes frontend | Vitest, Testing Library, jsdom |
+| Backend | Java 21, Spring Boot 3, Spring Web, Spring Security |
+| Persistência | Spring Data JPA, Hibernate, PostgreSQL 16, Flyway |
+| Segurança | JWT, BCrypt, RBAC, Bean Validation, CORS explícito |
+| Documentação | Springdoc OpenAPI / Swagger UI |
+| Infraestrutura | Docker, Docker Compose, Nginx |
+| Observabilidade local | Spring Boot Actuator e healthchecks do Compose |
+
+## Perfis
+
+| Perfil | Experiência |
+|---|---|
+| Participante | Dashboard, eventos, ao vivo, palpites, carteira, rankings, bolões, desafios, conquistas, comunidade, notificações e perfil |
+| Administrador | KPIs, catálogo, eventos, mercados, resultados, usuários, engajamento, moderação, relatórios, auditoria e configurações |
+
+As permissões são aplicadas no backend. Esconder uma rota no frontend não substitui a autorização da API.
+
+## Regras principais
+
+### Palpites e pontos
+
+- um palpite só pode ser criado em evento e mercado abertos;
+- o backend valida o prazo de fechamento;
+- o valor deve ser inteiro e respeitar o mínimo do mercado;
+- a carteira é bloqueada durante o débito para evitar corrida de saldo;
+- saldo insuficiente não gera palpite ou movimentação parcial;
+- a chave de idempotência impede submissões duplicadas;
+- cancelamentos permitidos devolvem os pontos;
+- eventos cancelados reembolsam palpites ativos;
+- a recompensa usa o multiplicador registrado no momento do palpite;
+- repetir a liquidação não credita a recompensa novamente;
+- cada movimentação registra valor, saldo final, referência e data.
+
+### Gamificação
+
+XP, nível, sequência, precisão, desafios e conquistas são calculados a partir da atividade e das recompensas do participante. O saldo inicial e os reembolsos não contam como XP. Cada desafio recorrente guarda a janela que originou o progresso; ao iniciar uma nova janela, ele pode ser concluído e recompensado novamente, uma única vez. Recompensas continuam sendo exclusivamente virtuais e são protegidas contra processamento duplicado.
+
+## Modo demonstração
+
+O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria um conjunto pequeno de modalidades, campeonatos, participantes, eventos, mercados, palpites, liga, notificações e conteúdo comunitário. O runtime do backend mantém o modo demo desativado por padrão; o `docker-compose.yml` o ativa deliberadamente para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
+
+O provider ao vivo incluído é interno e simulado. O projeto não afirma integração com ESPN, Sportradar, FIFA, Riot, Steam ou provedores de odds.
+
+O seed pode ser executado novamente sem duplicar os registros conhecidos e não redefine a senha de uma conta demo que já existe no banco persistido.
+
+Credenciais destinadas somente ao ambiente local:
 
 | Perfil | E-mail | Senha |
 |---|---|---|
 | Administrador | `admin@arenapredict.com` | `Admin@123` |
 | Participante | `jogador@arenapredict.com` | `Jogador@123` |
 
-Aliases antigos são mantidos apenas para compatibilidade de dados:
+Nunca publique uma instância com credenciais demo, segredo JWT ou senha de banco padrão.
 
-- `admin@bolao.com` / `123456`
-- `user@bolao.com` / `123456`
+## Execução com Docker
 
-O seed é idempotente e só é ativado quando `APP_DEMO_ENABLED=true`.
+Pré-requisitos:
 
-## Arquitetura
+- Docker Desktop ou Docker Engine;
+- Docker Compose v2.
 
-```text
-Browser
-  └─ Nginx / React + TypeScript (porta 5173)
-       └─ /api/* → Spring Boot 3 / Java 21 (porta 8080)
-                         └─ JPA + Flyway → PostgreSQL 16
-```
-
-### Frontend
-
-- React 18, TypeScript, Vite e React Router;
-- `AuthProvider` com restauração de sessão por `/api/auth/me`;
-- cliente HTTP com timeout, cancelamento, mensagens seguras e distinção de 401/403;
-- guards de rota e navegação por perfil;
-- design system responsivo, tema escuro, acessibilidade por teclado, skeletons, toasts e estados vazios;
-- marca e textos institucionais centralizados em `frontend/src/app/branding.ts`.
-
-### Backend
-
-- Spring Boot, Spring Security, JWT, BCrypt e RBAC;
-- DTOs e validação de entrada; entidades JPA não são expostas;
-- carteira de pontos com lock pessimista e extrato imutável;
-- transações para débito, recompensa e reembolso;
-- idempotência em palpites e processamento de resultados;
-- providers `SportsDataProvider` e `EsportsDataProvider` com implementação demo explícita;
-- Flyway com schema validado por Hibernate;
-- Actuator e OpenAPI.
-
-O namespace Java `com.bolao.copa` foi preservado como fronteira técnica de migração. O domínio novo fica isolado em `com.bolao.copa.arena` e não depende de conceitos de Copa ou pagamento.
-
-## Domínio principal
-
-- `Sport` e `Championship` para modalidades e competições configuráveis;
-- `Competitor` para equipes ou participantes;
-- `ArenaEvent` para eventos tradicionais e eSports, inclusive BO1/BO3/BO5;
-- `PredictionMarket` e `MarketOption` para mercados e multiplicadores simulados;
-- `ArenaPrediction` para palpites e seu ciclo de vida;
-- `PointWallet` e `PointLedgerEntry` para saldo e extrato virtual;
-- `ArenaPool` e `ArenaPoolMember` para bolões e ligas;
-- `ArenaNotification` para notificações;
-- perfil, preferências, conquistas, desafios e comunidade em módulos separados do núcleo transacional.
-
-As tabelas legadas permanecem na migration inicial para preservar bancos existentes, mas seus controllers e serviços não fazem parte do runtime. A integração Mercado Pago/PIX foi removida.
-
-## Regras de pontos e palpites
-
-- um palpite só pode ser criado em evento e mercado abertos;
-- o prazo de fechamento é validado no backend;
-- o valor mínimo vem da configuração do mercado;
-- o saldo é bloqueado em transação antes do débito;
-- saldo insuficiente não cria palpite nem movimentação parcial;
-- uma chave de idempotência impede duplicação;
-- o vencedor recebe a recompensa em pontos calculada pelo multiplicador;
-- o mesmo resultado não pode creditar recompensa duas vezes;
-- cancelamento antes do limite devolve os pontos;
-- cancelamento de evento reembolsa todos os palpites ativos;
-- toda movimentação registra saldo final, origem, descrição e data.
-
-## Autenticação e permissões
-
-Rotas públicas:
-
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `GET /actuator/health`
-- `/v3/api-docs/**`
-- `/swagger-ui/**`
-
-Comportamento esperado:
-
-- credencial inválida ou usuário inexistente: `401` sem enumeração de conta;
-- token ausente, inválido ou expirado: `401`;
-- usuário autenticado sem o perfil necessário: `403`;
-- `USER`, `PLAYER` e formas com prefixo `ROLE_` são normalizados para `PARTICIPANTE`;
-- o claim de perfil do JWT é comparado com as authorities atuais do usuário;
-- logout é stateless: a API responde `204` e o frontend remove o token local.
-
-## API principal
-
-### Participante
-
-- `GET /api/dashboard`
-- `GET /api/sports`
-- `GET /api/championships`
-- `GET /api/events`, `/api/events/live`, `/api/events/{id}`
-- `GET|POST /api/predictions`
-- `POST /api/predictions/{id}/cancel`
-- `GET /api/wallet`, `/api/wallet/transactions`
-- `GET|POST /api/pools`
-- `GET /api/pools/{id}`
-- `POST /api/pools/join`, `/api/pools/{id}/leave`
-- `GET /api/pools/{id}/ranking`, `/api/rankings`
-- `GET /api/notifications`
-- `PATCH /api/notifications/{id}/read`, `/api/notifications/read-all`
-- `GET|PATCH /api/profile`
-- `PATCH /api/profile/password`, `/api/profile/preferences`
-- `GET /api/achievements`, `/api/challenges`
-- `GET|POST /api/community/posts`
-- `POST /api/community/posts/{id}/like`, `/comments`, `/reports`
-- `GET /api/community/posts/{id}/comments`
-
-### Administração
-
-- `GET /api/admin/dashboard`, `/users`, `/pools`, `/scoring-rules`;
-- `GET /api/admin/reports`, `/audit`, `/settings`, `/moderation`;
-- `GET|POST|PUT /api/admin/sports`, `/championships`, `/competitors`, `/events`, `/markets`;
-- `PUT /api/admin/events/{id}/result`, `POST /api/admin/events/{id}/cancel`;
-- `PATCH /api/admin/markets/{id}/status`, `POST /api/admin/markets/{id}/settle`;
-- `GET|PATCH /api/admin/community/reports/**`, `PATCH /api/admin/community/posts/{id}`;
-- `POST /api/admin/demo/live/refresh`.
-
-Consulte o Swagger para payloads, enums e respostas atuais.
-
-## Dados demo
-
-Com `APP_DEMO_ENABLED=true`, o backend cria sem duplicar:
-
-- futebol, basquete, vôlei, tênis, automobilismo, futebol americano, CS2, Valorant, League of Legends e Dota 2;
-- campeonatos e competidores;
-- eventos futuros, ao vivo e encerrados;
-- mercados abertos, suspensos e processados;
-- palpites ativos, vencedores e perdedores;
-- carteiras, bônus inicial, débitos e recompensas;
-- bolão público com ranking;
-- notificações e conteúdo de demonstração.
-
-Eventos ao vivo simulados mostram uma identificação visível de demonstração.
-
-## Configuração
-
-Copie `.env.example` para `.env` somente quando precisar alterar os padrões locais.
-
-Variáveis mais importantes:
-
-- `APP_BRAND_NAME`, `VITE_APP_NAME`, `VITE_APP_SHORT_NAME`, `VITE_APP_TAGLINE`;
-- `APP_DEMO_ENABLED`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `VITE_DEMO_MODE`;
-- `VITE_API_URL` (incorporada no build do frontend; requer `--build` após alteração);
-- `JWT_SECRET`, `JWT_EXPIRATION_MINUTES`;
-- `CORS_ALLOWED_ORIGINS`;
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_VOLUME_NAME`;
-- `FRONTEND_PORT`, `BACKEND_PORT`.
-
-O PostgreSQL permanece restrito à rede interna do Compose. O nome padrão do banco e do volume mantém a nomenclatura legada para preservar instalações existentes. Em uma instalação limpa, `POSTGRES_VOLUME_NAME` pode ser definido como `arenapredict_postgres_data`. Para executar o backend fora do Docker, configure `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` explicitamente (o padrão de desenvolvimento local usa a porta `5433`).
-
-Nunca use o segredo ou a senha de demonstração em ambiente publicado.
-
-## Migrations
-
-- `V1__baseline_and_arena_predict.sql`: preserva as tabelas legadas e cria o núcleo ArenaPredict com seus índices iniciais;
-- `V2__profile_progression_and_community.sql`: adiciona perfil, preferências, conquistas, desafios e comunidade;
-- `V3__harden_arena_core_constraints.sql`: adiciona 20 chaves estrangeiras, 12 validações `CHECK` e 10 índices de relacionamento;
-- `V4__pool_types_and_challenge_windows.sql`: adiciona tipos de bolão/liga, recorrência e janelas repetíveis para desafios.
-
-`spring.jpa.hibernate.ddl-auto=validate` garante que a aplicação não altere o schema silenciosamente.
-
-## Desenvolvimento e testes
-
-Backend:
-
-```bash
-cd backend
-mvn test
-mvn clean package
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm install
-npm run typecheck
-npm run test:run
-npm run build
-```
-
-Infraestrutura:
+Na raiz do repositório:
 
 ```bash
 docker compose config
@@ -235,30 +143,164 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Os testes cobrem autenticação, claims JWT, 401/403, seed, saldo insuficiente, débito, idempotência e liquidação sem recompensa duplicada. O frontend cobre sessão, guards, loading/erro e fluxos principais.
+Serviços:
 
-## Estrutura
+- aplicação: <http://localhost:5173>
+- API: <http://localhost:8080>
+- Swagger UI: <http://localhost:8080/swagger-ui.html>
+- saúde da API: <http://localhost:8080/actuator/health>
+- saúde do frontend: <http://localhost:5173/health>
 
-```text
-backend/
-  src/main/java/com/bolao/copa/
-    arena/          # domínio e APIs novos
-    security/       # JWT e handlers 401/403
-    config/         # segurança, CORS e seed controlado
-  src/main/resources/db/migration/
-frontend/
-  src/
-    app/            # marca e formatadores
-    components/     # shell e componentes do design system
-    contexts/       # autenticação, toasts e dados globais
-    pages/          # participante e administração
-    services/       # cliente HTTP tipado
-    types/          # contratos da interface
+Por segurança, as portas da aplicação e da API são vinculadas a `127.0.0.1` por padrão. Para um teste deliberado em outro dispositivo da rede local, defina `APP_BIND_ADDRESS=0.0.0.0` e ajuste também `CORS_ALLOWED_ORIGINS`; não exponha a configuração demo à internet.
+
+Logs:
+
+```bash
+docker compose logs -f backend frontend postgres
 ```
 
-## Limites atuais
+Encerramento sem apagar o banco:
 
-- O provider incluído é demonstrativo; integrações externas devem implementar as interfaces de provider e ser configuradas explicitamente.
-- Rankings suportam períodos semanal, mensal e geral, com filtros globais, entre amigos e por modalidade; “entre amigos” considera participantes que compartilham bolões ou ligas.
-- A migration preserva tabelas legadas, mas não converte automaticamente palpites antigos no novo formato de mercados.
-- Antes de produção, adicione rotação de segredo, rate limiting distribuído, observação centralizada e uma política real de backup.
+```bash
+docker compose down
+```
+
+O volume PostgreSQL é persistente. `docker compose down -v` remove os dados e só deve ser usado deliberadamente em um ambiente descartável.
+
+## Desenvolvimento local
+
+### Backend
+
+Requer Java 21, Maven e uma instância PostgreSQL acessível. O `.env` da raiz é lido pelo Docker Compose, não pelo Maven. Para reutilizar somente o banco do Compose, expondo-o em `127.0.0.1:5433`, execute:
+
+```bash
+docker compose up -d postgres
+```
+
+Depois exporte `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e um `JWT_SECRET` com pelo menos 32 caracteres no shell que executará o Maven. Ative `APP_DEMO_ENABLED=true` apenas quando quiser carregar os fixtures locais.
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+### Frontend
+
+Requer Node.js 22, também registrado em `.nvmrc`.
+
+O Vite lê variáveis de `frontend/.env.local`. Para desenvolvimento fora do Compose, configure ali `VITE_BACKEND_PROXY=http://localhost:8080` e, se necessário, os valores de marca listados em `.env.example`. `VITE_API_TIMEOUT_MS` controla o timeout do cliente HTTP em milissegundos.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Por padrão, o Vite encaminha `/api` para <http://localhost:8080>. O arquivo `.env` da raiz continua reservado ao Compose.
+
+## Configuração
+
+Use `.env.example` como referência. O arquivo `.env` local não deve ser versionado.
+
+| Grupo | Variáveis principais |
+|---|---|
+| Produto | `APP_BRAND_NAME`, `VITE_APP_NAME`, `VITE_APP_SHORT_NAME`, `VITE_APP_TAGLINE`, `VITE_APP_DESCRIPTION`, `VITE_APP_STORAGE_NAMESPACE`, `VITE_SUPPORT_EMAIL` |
+| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
+| Segurança | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES`, `CORS_ALLOWED_ORIGINS` |
+| Banco | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_VOLUME_NAME`, `POSTGRES_HOST_PORT` |
+| Rede/frontend | `APP_BIND_ADDRESS`, `FRONTEND_PORT`, `BACKEND_PORT`, `VITE_API_URL`, `VITE_BACKEND_PROXY`, `VITE_API_TIMEOUT_MS` |
+
+`VITE_*` é incorporada ao bundle no build; alterá-la exige reconstruir o frontend. `VITE_BACKEND_PROXY` é usado apenas pelo servidor de desenvolvimento, enquanto o Compose encaminha `/api` pelo Nginx.
+
+`VITE_SUPPORT_EMAIL` define apenas o endereço exibido e copiado pela central de ajuda; não existe integração externa de atendimento. Em uma implantação real, substitua o valor demonstrativo por uma caixa monitorada.
+
+## Segurança
+
+- senhas protegidas com BCrypt;
+- sessão stateless com JWT;
+- perfis normalizados e RBAC no backend;
+- endpoints administrativos protegidos por autorização;
+- DTOs e Bean Validation na fronteira HTTP;
+- entidades JPA não expostas diretamente;
+- respostas JSON distintas para 401 e 403;
+- CORS limitado a origens explícitas;
+- inicialização interrompida quando o segredo JWT está ausente ou tem menos de 32 bytes;
+- transações em débito, reembolso e recompensa;
+- locks e chaves de idempotência nas regras críticas;
+- registro append-only de operações administrativas críticas, com ator, recurso e ID de correlação, sem senha ou token;
+- headers de segurança no Nginx;
+- mensagens inesperadas não expõem stack trace ao cliente.
+
+Para uma implantação pública ainda são necessários gestão externa e rotação de segredos, TLS no proxy de borda, rate limiting distribuído, política de backup e monitoramento centralizado.
+
+## Migrations
+
+O Flyway é a fonte de verdade do schema. O Hibernate usa `ddl-auto=validate`, portanto não altera tabelas silenciosamente.
+
+| Versão | Responsabilidade |
+|---|---|
+| V1 | Baseline compatível e núcleo ArenaPredict: modalidades, campeonatos, participantes, eventos, mercados, pontos, palpites, ligas e notificações |
+| V2 | Perfil, preferências, progressão, conquistas, desafios e comunidade |
+| V3 | Hardening relacional com chaves estrangeiras, validações e índices |
+| V4 | Tipos de bolão/liga e janelas de desafios |
+| V5 | Participantes genéricos de evento, incluindo formatos além de confronto casa/fora |
+| V6 | Auditoria administrativa e correção da progressão derivada do razão de pontos |
+| V7 | Recibos idempotentes de resultados/classificações, recorrência de desafios e XP baseado em atividade |
+
+Instalações existentes preservam estruturas legadas apenas para compatibilidade de migração; fora do alias de autenticação documentado acima, elas não fazem parte da superfície funcional atual.
+
+## Testes
+
+Backend:
+
+```bash
+cd backend
+mvn -B verify
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm ci
+npm run typecheck
+npm run test:run
+npm run build
+```
+
+Os testes existentes exercitam autenticação, claims JWT, 401/403, permissões, seed, carteira, saldo insuficiente, débito, cancelamento, idempotência, resultados por placar e classificação, liquidação, recompensa única, progressão recorrente, comunidade e formatos seguros dos recursos administrativos.
+
+O workflow `.github/workflows/ci.yml` executa backend e frontend em jobs independentes, com Java 21 e Node.js 22. O pipeline apenas valida o código; não publica artefatos nem realiza deploy.
+
+## API
+
+Rotas de participante incluem dashboard, modalidades, campeonatos, eventos, palpites, carteira, bolões, rankings, notificações, perfil, conquistas, desafios e comunidade.
+
+Rotas sob `/api/admin/**` cobrem dashboard, catálogo, eventos, mercados, resultados, usuários, bolões, pontuação, engajamento, moderação, relatórios, auditoria e configurações.
+
+Consulte o Swagger UI para payloads, validações, enums internos e respostas atuais. Faça login em `/api/auth/login` e use o botão **Authorize** com o JWT retornado para testar rotas protegidas.
+
+## Limitações conhecidas
+
+- o provider esportivo incluído é demonstrativo e não consome fonte externa;
+- o perfil automatizado de integração usa H2 em modo compatível com PostgreSQL; o smoke test final também foi executado contra PostgreSQL real, mas essa paridade ainda deve entrar no CI com Testcontainers;
+- ainda não há suíte E2E automatizada com navegador;
+- usuários, bolões, regras de pontuação e configurações são visões administrativas operacionais somente para consulta nesta versão; catálogo, eventos, mercados, resultados, engajamento, notificações e moderação possuem ações próprias;
+- logout remove o JWT do cliente, sem lista distribuída de revogação;
+- métricas, logs e traces ainda não são enviados a uma plataforma central;
+- estruturas legadas permanecem no baseline para migração, mas não são expostas pelo runtime;
+- o projeto não oferece nem planeja conversão de pontos em dinheiro.
+
+## Próximos passos
+
+- adicionar testes E2E dos fluxos participante e administrador;
+- executar integrações contra PostgreSQL real em CI;
+- ampliar cobertura de auditoria e correlação de requisições;
+- adicionar métricas, tracing e dashboards operacionais;
+- automatizar backup e restauração testada;
+- integrar um provider esportivo apenas quando houver contrato real e configuração explícita;
+- adotar rotação de segredos e rate limiting para cenários públicos.
+
+## Posicionamento técnico
+
+O ArenaPredict foi construído para demonstrar domínio full stack sem esconder seus limites: regras transacionais no backend, autorização efetiva, persistência versionada, interface responsiva, dados demo transparentes e uma base preparada para evolução incremental — sem confundir pontos virtuais com apostas financeiras.

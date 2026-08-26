@@ -1,6 +1,7 @@
 package com.bolao.copa.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bolao.copa.config.CorrelationIdContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,6 +36,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         body.put("code", "AUTHENTICATION_REQUIRED");
         body.put("message", "Sessão ausente, inválida ou expirada.");
         body.put("path", request.getRequestURI());
+        if (CorrelationIdContext.get() != null) body.put("correlationId", CorrelationIdContext.get());
         objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

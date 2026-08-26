@@ -16,7 +16,10 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("ArenaPredict frontend", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    window.sessionStorage.clear();
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -107,6 +110,30 @@ describe("ArenaPredict frontend", () => {
     window.removeEventListener("arena:forbidden", forbidden);
   });
 
+  it("substitui mensagens técnicas ou validações em inglês por copy segura", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      message: "Validation failed",
+      fieldErrors: { name: "must not be blank" },
+    }, 400));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(adminApi.create("sports", {})).rejects.toMatchObject({
+      message: "Revise os dados informados.",
+      fieldErrors: { name: "Valor inválido." },
+    } satisfies Partial<ApiError>);
+  });
+
+  it("não exibe enums internos recebidos em mensagens de erro", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      message: "O evento está OPEN_FOR_PREDICTIONS.",
+    }, 400));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(adminApi.create("sports", {})).rejects.toMatchObject({
+      message: "Revise os dados informados.",
+    } satisfies Partial<ApiError>);
+  });
+
   it("cria liga recorrente com regras e pontos exclusivamente virtuais", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 8, name: "Liga Teste", poolType: "LEAGUE", recurring: true }));
     vi.stubGlobal("fetch", fetchMock);
@@ -122,9 +149,10 @@ describe("ArenaPredict frontend", () => {
     expect(isPredictionOpen({ id: 3, startsAt: "2020-01-01T00:00:00Z", predictionClosesAt: "2020-01-01T00:00:00Z", status: "OPEN_FOR_PREDICTIONS" })).toBe(false);
   });
 
-  it("mantém registro de placar e liquidação de mercado como operações separadas", async () => {
+  it("mantém placar, classificação e liquidação como operações separadas", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ id: 9, homeScore: 2, awayScore: 1 }))
+      .mockResolvedValueOnce(jsonResponse({ id: 10, status: "FINISHED" }))
       .mockResolvedValueOnce(jsonResponse({
         marketId: 44,
         correctOptionKey: "HOME",
@@ -135,7 +163,14 @@ describe("ArenaPredict frontend", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await adminApi.recordEventResult(9, { homeScore: 2, awayScore: 1, finishEvent: true });
+    await adminApi.recordEventResult(9, { homeScore: 2, awayScore: 1, finishEvent: true }, "result-operation-key");
+    await adminApi.recordEventClassification(10, {
+      participants: [
+        { competitorId: 7, displayOrder: 0, position: 1, scoreLabel: "1h32min" },
+        { competitorId: 8, displayOrder: 1, position: 2, scoreLabel: "+4s" },
+      ],
+      finishEvent: true,
+    }, "classification-operation-key");
     await adminApi.settleMarket(44, "HOME");
 
     expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/api\/admin\/events\/9\/result$/);
@@ -143,8 +178,21 @@ describe("ArenaPredict frontend", () => {
       method: "PUT",
       body: JSON.stringify({ homeScore: 2, awayScore: 1, finishEvent: true }),
     });
-    expect(String(fetchMock.mock.calls[1][0])).toMatch(/\/api\/admin\/markets\/44\/settle$/);
+    expect((fetchMock.mock.calls[0][1]?.headers as Headers).get("Idempotency-Key")).toBe("result-operation-key");
+    expect(String(fetchMock.mock.calls[1][0])).toMatch(/\/api\/admin\/events\/10\/classification$/);
     expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      method: "PUT",
+      body: JSON.stringify({
+        participants: [
+          { competitorId: 7, displayOrder: 0, position: 1, scoreLabel: "1h32min" },
+          { competitorId: 8, displayOrder: 1, position: 2, scoreLabel: "+4s" },
+        ],
+        finishEvent: true,
+      }),
+    });
+    expect((fetchMock.mock.calls[1][1]?.headers as Headers).get("Idempotency-Key")).toBe("classification-operation-key");
+    expect(String(fetchMock.mock.calls[2][0])).toMatch(/\/api\/admin\/markets\/44\/settle$/);
+    expect(fetchMock.mock.calls[2][1]).toMatchObject({
       method: "POST",
       body: JSON.stringify({ correctOptionKey: "HOME" }),
     });

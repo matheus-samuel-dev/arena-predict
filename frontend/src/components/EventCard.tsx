@@ -1,7 +1,8 @@
-import { CalendarClock, ChevronRight, Clock3, MapPin, Radio, ShieldCheck, Sparkles } from "lucide-react";
+import { CalendarClock, ChevronRight, Clock3, MapPin, Radio, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, sportName } from "../app/format";
-import type { ArenaEvent, PredictionDraft, PredictionMarket } from "../types";
+import { enumLabel } from "../app/presentation";
+import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
 
 function teamMark(name?: string) {
@@ -11,6 +12,76 @@ function teamMark(name?: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+}
+
+export interface EventParticipantView {
+  id: number | string;
+  competitor: EventCompetitor;
+  displayOrder: number;
+  position?: number | null;
+  scoreLabel?: string | number | null;
+}
+
+export function eventParticipantViews(event: ArenaEvent): EventParticipantView[] {
+  const declared = (event.participants || []).map((participant, index) => ({
+    id: participant.id ?? participant.competitor.id ?? `${event.id}-participant-${index}`,
+    competitor: participant.competitor,
+    displayOrder: participant.displayOrder ?? index,
+    position: participant.position,
+    scoreLabel: participant.scoreLabel ?? participant.competitor.score,
+  }));
+  const competitors = declared.length ? declared : (event.competitors || []).map((competitor, index) => ({
+    id: competitor.id ?? `${event.id}-competitor-${index}`,
+    competitor,
+    displayOrder: index,
+    position: null,
+    scoreLabel: competitor.score,
+  }));
+  if (competitors.length) {
+    return competitors.sort((left, right) => {
+      if (left.position != null && right.position != null) return left.position - right.position;
+      if (left.position != null) return -1;
+      if (right.position != null) return 1;
+      return left.displayOrder - right.displayOrder;
+    });
+  }
+
+  const [home, away] = eventTeams(event);
+  return [home, away]
+    .filter((competitor) => competitor.name || competitor.code)
+    .map((competitor, index) => ({
+      id: `${event.id}-pair-${index}`,
+      competitor: { ...competitor, name: competitor.name || competitor.code || `Participante ${index + 1}` },
+      displayOrder: index,
+      position: null,
+      scoreLabel: competitor.score,
+    }));
+}
+
+export function isMultiParticipantEvent(event: ArenaEvent) {
+  const format = String(event.format || "").toUpperCase();
+  return ["INDIVIDUAL", "RACE"].includes(format) || eventParticipantViews(event).length > 2;
+}
+
+export function ParticipantList({ event, compact = false, limit = 6 }: { event: ArenaEvent; compact?: boolean; limit?: number }) {
+  const participants = eventParticipantViews(event);
+  const visible = participants.slice(0, compact ? Math.min(limit, 4) : limit);
+  return (
+    <div className={`mini-ranking event-participant-list ${compact ? "event-participant-list--compact" : ""}`} role="list" aria-label="Participantes e classificação">
+      {visible.map((participant, index) => {
+        const name = participant.competitor.name || participant.competitor.code || `Participante ${index + 1}`;
+        return (
+          <div role="listitem" key={participant.id}>
+            <b>{participant.position != null ? `#${participant.position}` : index + 1}</b>
+            <span className="team-mark">{teamMark(name)}</span>
+            <span><strong>{name}</strong><small>{participant.competitor.code && participant.competitor.code !== name ? participant.competitor.code : "Participante confirmado"}</small></span>
+            <em>{participant.scoreLabel != null && participant.scoreLabel !== "" ? participant.scoreLabel : "—"}</em>
+          </div>
+        );
+      })}
+      {participants.length > visible.length && <small className="event-participant-list__more"><Users size={14} /> +{participants.length - visible.length} participantes no detalhe</small>}
+    </div>
+  );
 }
 
 export function EventCard({
@@ -24,6 +95,7 @@ export function EventCard({
 }) {
   const [home, away] = eventTeams(event);
   const isLive = ["LIVE", "AO_VIVO"].includes(String(event.status).toUpperCase());
+  const multiParticipant = isMultiParticipantEvent(event);
   const predictionOpen = isPredictionOpen(event);
   const primaryMarket = predictionOpen ? event.markets?.find(isMarketOpen) : undefined;
 
@@ -33,12 +105,15 @@ export function EventCard({
         <div>
           <span className="sport-chip">{sportName(event.sport || event.sportName)}</span>
           <strong>{championshipName(event.championship || event.championshipName)}</strong>
-          {event.phase && <small>{event.phase}</small>}
+          {multiParticipant && event.title && <small>{event.title}</small>}
+          {event.phase && <small>{enumLabel(event.phase)}</small>}
         </div>
         <StatusBadge status={event.status} label={eventStatusLabel(event.status)} />
       </header>
 
-      <div className="event-card__matchup">
+      {multiParticipant ? (
+        <ParticipantList event={event} compact={compact} />
+      ) : <div className="event-card__matchup">
         <div className="competitor competitor--home">
           <span className="team-mark">{teamMark(home.name || home.shortName || home.code)}</span>
           <strong>{home.shortName || home.name || home.code}</strong>
@@ -46,15 +121,15 @@ export function EventCard({
         <div className="match-center">
           {isLive ? (
             <>
-              <span className="live-clock"><Radio size={13} /> {event.liveClock || event.clock || event.period || "AO VIVO"}</span>
+              <span className="live-clock"><Radio size={13} /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span>
               <b>{home.score ?? "0"}<i>:</i>{away.score ?? "0"}</b>
-              {(event.demoLiveData || event.demo) && <small>dados demo</small>}
+              {(event.demoLiveData || event.demo) && <small>dados demonstrativos</small>}
             </>
           ) : (
             <>
               <span><CalendarClock size={14} /> {dateTime(event.startsAt)}</span>
-              <b className="versus">VS</b>
-              <small>{event.format || event.venue || "Evento programado"}</small>
+              <b className="versus" aria-label="versus">×</b>
+              <small>{event.format ? enumLabel(event.format) : event.venue || "Evento programado"}</small>
             </>
           )}
         </div>
@@ -62,7 +137,7 @@ export function EventCard({
           <span className="team-mark team-mark--alt">{teamMark(away.name || away.shortName || away.code)}</span>
           <strong>{away.shortName || away.name || away.code}</strong>
         </div>
-      </div>
+      </div>}
 
       {!compact && primaryMarket && (
         <div className="market-preview">
@@ -93,10 +168,9 @@ export function EventCard({
   );
 }
 
-export function FeaturedEventCard({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
+export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
   const [home, away] = eventTeams(event);
-  const market = isPredictionOpen(event) ? event.markets?.find(isMarketOpen) : undefined;
-  const option = market?.options?.find(isOptionOpen);
+  const multiParticipant = isMultiParticipantEvent(event);
   return (
     <article className="featured-event">
       <div className="featured-event__ambient" />
@@ -104,19 +178,15 @@ export function FeaturedEventCard({ event, onPredict }: { event: ArenaEvent; onP
         <span>{sportName(event.sport || event.sportName)}</span>
         <StatusBadge status={event.status} label={eventStatusLabel(event.status)} />
       </header>
-      <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{event.phase ? ` · ${event.phase}` : ""}</div>
-      <div className="featured-event__teams">
+      <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{multiParticipant && event.title ? ` · ${event.title}` : event.phase ? ` · ${enumLabel(event.phase)}` : ""}</div>
+      {multiParticipant ? <ParticipantList event={event} compact limit={4} /> : <div className="featured-event__teams">
         <div><span className="team-mark">{teamMark(home.name || home.code)}</span><strong>{home.shortName || home.name || home.code}</strong></div>
-        <b>VS</b>
+        <b aria-label="versus">×</b>
         <div><span className="team-mark team-mark--alt">{teamMark(away.name || away.code)}</span><strong>{away.shortName || away.name || away.code}</strong></div>
-      </div>
+      </div>}
       <footer>
         <span><MapPin size={14} /> {event.venue || dateTime(event.startsAt)}</span>
-        {market && option ? (
-          <button type="button" onClick={() => onPredict({ event, market, option })}>Fazer palpite <ChevronRight size={16} /></button>
-        ) : (
-          <Link to={`/events/${event.id}`}>Ver mercados <ChevronRight size={16} /></Link>
-        )}
+        <Link to={`/events/${event.id}`}>{isPredictionOpen(event) ? "Escolher uma opção" : "Ver detalhes"} <ChevronRight size={16} /></Link>
       </footer>
     </article>
   );

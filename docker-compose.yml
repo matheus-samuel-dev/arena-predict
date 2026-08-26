@@ -2,7 +2,10 @@ name: arenapredict
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # The persisted cluster was created with glibc collation 2.41. Keep the
+    # Debian image so PostgreSQL can validate the recorded collation version;
+    # Alpine/musl reports no actual version for this cluster.
+    image: postgres:16
     container_name: arenapredict-postgres
     restart: unless-stopped
     environment:
@@ -10,6 +13,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bolao_copa}
       POSTGRES_USER: ${POSTGRES_USER:-bolao}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bolao123}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,11 +46,12 @@ services:
       APP_DEMO_LIVE_PROVIDER_ENABLED: ${APP_DEMO_LIVE_PROVIDER_ENABLED:-true}
       APP_DEMO_LIVE_SCHEDULER_ENABLED: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:-true}
       APP_DEMO_LIVE_REFRESH_MS: ${APP_DEMO_LIVE_REFRESH_MS:-30000}
+      APP_DEMO_LIVE_INITIAL_DELAY_MS: ${APP_DEMO_LIVE_INITIAL_DELAY_MS:-30000}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s
@@ -65,14 +71,17 @@ services:
         VITE_APP_SHORT_NAME: ${VITE_APP_SHORT_NAME:-Arena}
         VITE_APP_TAGLINE: ${VITE_APP_TAGLINE:-Sua leitura. Sua arena.}
         VITE_APP_DESCRIPTION: ${VITE_APP_DESCRIPTION:-Previsões esportivas, bolões e ligas com pontos exclusivamente virtuais.}
+        VITE_APP_STORAGE_NAMESPACE: ${VITE_APP_STORAGE_NAMESPACE:-arena-predict}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-suporte@arenapredict.com}
         VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+        VITE_API_TIMEOUT_MS: ${VITE_API_TIMEOUT_MS:-12000}
     container_name: arenapredict-web
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "${FRONTEND_PORT:-5173}:80"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-5173}:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health | grep -q healthy"]
       interval: 10s
@@ -84,7 +93,7 @@ services:
 
 volumes:
   postgres_data:
-    name: ${POSTGRES_VOLUME_NAME:-sistemadebolopracopa_postgres_dev_data}
+    name: ${POSTGRES_VOLUME_NAME:-arenapredict_postgres_data}
 
 networks:
   arena-network:
