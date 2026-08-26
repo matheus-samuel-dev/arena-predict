@@ -1,7 +1,7 @@
 import { AlertTriangle, Flag, Heart, LoaderCircle, MessageCircle, MoreHorizontal, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { relativeTime } from "../app/format";
-import { Avatar, Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton } from "../components/UI";
+import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, UserAvatar } from "../components/UI";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
@@ -85,7 +85,7 @@ export function CommunityPage() {
       <div className="community-layout">
         <div>
           <form className="surface composer" onSubmit={publish}>
-            <Avatar name={user?.name} image={user?.avatarUrl} />
+            <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} />
             <textarea value={content} onChange={(event) => setContent(event.target.value)} maxLength={600} placeholder="Qual é sua leitura para os próximos eventos?" aria-label="Nova publicação" />
             <footer><span>{content.length}/600</span><Button size="sm" type="submit" loading={posting}><Send size={15} /> Publicar</Button></footer>
           </form>
@@ -98,7 +98,7 @@ export function CommunityPage() {
                 return (
                   <article className="surface post" key={post.id}>
                     <header>
-                      <Avatar name={author} image={post.author?.avatarUrl || post.avatarUrl} />
+                      <UserAvatar name={author} avatarUrl={post.author?.avatarUrl || post.avatarUrl} />
                       <div><strong>{author}</strong><span>{post.topic || "Discussão geral"} · {relativeTime(post.createdAt)}</span></div>
                       <button className="icon-button" type="button" onClick={() => setReportTarget(post)} aria-label="Denunciar publicação"><MoreHorizontal size={18} /></button>
                     </header>
@@ -197,7 +197,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
       {post && (
         <div className="comments-panel">
           <div className="comments-context">
-            <Avatar name={author} image={post.author?.avatarUrl || post.avatarUrl} size="sm" />
+            <UserAvatar name={author} avatarUrl={post.author?.avatarUrl || post.avatarUrl} size="sm" />
             <div><strong>{author}</strong><p>{post.content}</p></div>
           </div>
 
@@ -208,7 +208,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
               <ErrorState message={error} onRetry={() => setReloadKey((value) => value + 1)} />
             ) : comments.length ? comments.map((comment) => (
               <article className="comment-row" key={comment.id}>
-                <Avatar name={comment.author?.name} image={comment.author?.avatarUrl} size="sm" />
+                <UserAvatar name={comment.author?.name} avatarUrl={comment.author?.avatarUrl} size="sm" />
                 <div>
                   <header><strong>{comment.author?.name || "Participante da Arena"}</strong><span>{relativeTime(comment.createdAt)}</span></header>
                   <p>{comment.content}</p>

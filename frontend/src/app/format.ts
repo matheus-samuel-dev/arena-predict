@@ -36,15 +36,6 @@ export function relativeTime(value?: string | null) {
   return formatter.format(Math.round(difference / 86_400_000), "day");
 }
 
-export function initials(name?: string) {
-  return (name || "Participante Arena")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
 export function multiplier(value: unknown) {
   const number = Number(value || 0);
   return `${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)}×`;

@@ -3,7 +3,7 @@ import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { points, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { Avatar, Button, EmptyState, ErrorState, PageHeader, PageSkeleton } from "../components/UI";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, UserAvatar } from "../components/UI";
 import { useAppData } from "../contexts/AppDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -203,7 +203,7 @@ export function ProfilePage() {
     <>
       <PageHeader eyebrow="IDENTIDADE DO PARTICIPANTE" title="Perfil" description="Gerencie seus dados, segurança e preferências da experiência." />
       <section className="profile-hero surface">
-        <Avatar name={profile.name} image={profile.avatarUrl} size="lg" />
+        <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size="lg" />
         <div><span>{profile.role === "ADMIN" ? "Administrador" : "Participante"}</span><h2>{profile.name}</h2><p>{profile.email}</p></div>
         <div><small>Nível</small><strong>{level}</strong><small>{points(xp)} XP acumulados</small></div>
         <div><small>Pontos virtuais</small><strong>{points(virtualPoints)}</strong></div>

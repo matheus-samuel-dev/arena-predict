@@ -6,6 +6,7 @@ import {
   BookOpen,
   CalendarRange,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   ClipboardCheck,
   Cog,
@@ -41,7 +42,7 @@ import { useAppData } from "../contexts/AppDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { Brand } from "./Brand";
-import { Avatar, Button } from "./UI";
+import { Button, UserAvatar } from "./UI";
 
 interface NavItem {
   label: string;
@@ -211,7 +212,7 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
                 >
                   <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
                   <span>{label}</span>
-                  {to === "/notifications" && unreadCount > 0 && <b className="nav-badge">{Math.min(unreadCount, 99)}</b>}
+                  {to === "/notifications" && unreadCount > 0 && <b className="nav-badge">{unreadCount > 99 ? "99+" : unreadCount}</b>}
                 </NavLink>
               ))}
             </div>
@@ -396,11 +397,11 @@ export function AppShell() {
           <NavLink className="points-card" to="/points">
             <span className="points-card__icon"><Zap size={17} /></span>
             <span><small>Saldo virtual</small><strong>{walletError ? "Indisponível" : `${points(balance)} pts`}</strong></span>
-            <ChevronDown size={16} className="points-card__arrow" />
+            <ChevronRight size={16} className="points-card__arrow" aria-hidden="true" />
           </NavLink>
           <div className="safe-note"><ShieldCheck size={15} /><span>Pontos sem valor financeiro</span></div>
           <div className="sidebar-mobile-account">
-            <div><Avatar name={user?.name} image={user?.avatarUrl} /><span><strong>{user?.name}</strong><small>{user?.role === "ADMIN" ? "Administrador" : "Participante"}</small></span></div>
+            <div><UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} /><span><strong>{user?.name}</strong><small>{user?.role === "ADMIN" ? "Administrador" : "Participante"}</small></span></div>
             <NavLink to="/profile" onClick={() => setSidebarOpen(false)}><UserCircle size={18} aria-hidden="true" /> Meu perfil</NavLink>
             <button type="button" onClick={() => void logout()}><LogOut size={18} aria-hidden="true" /> Sair da conta</button>
           </div>
@@ -429,9 +430,9 @@ export function AppShell() {
           </form>
           <div className="topbar__actions">
             <div className="dropdown-wrap" ref={notificationRef}>
-              <button ref={notificationButtonRef} className="icon-button notification-button" type="button" onClick={() => { setNotificationOpen((value) => !value); setAccountOpen(false); }} aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ""}`} aria-expanded={notificationOpen} aria-controls="notifications-dropdown">
+              <button ref={notificationButtonRef} className="icon-button notification-button" type="button" onClick={() => { setNotificationOpen((value) => !value); setAccountOpen(false); }} aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ""}`} aria-haspopup="true" aria-expanded={notificationOpen} aria-controls="notifications-dropdown">
                 <Bell size={20} aria-hidden="true" />
-                {unreadCount > 0 && <span>{Math.min(unreadCount, 9)}</span>}
+                {unreadCount > 0 && <span>{unreadCount > 9 ? "9+" : unreadCount}</span>}
               </button>
               {notificationOpen && (
                 <div className="dropdown dropdown--notifications" id="notifications-dropdown" role="region" aria-label="Notificações recentes">
@@ -449,8 +450,8 @@ export function AppShell() {
             </div>
 
             <div className="dropdown-wrap account-wrap" ref={accountRef}>
-              <button ref={accountButtonRef} className="account-button" type="button" onClick={() => { setAccountOpen((value) => !value); setNotificationOpen(false); }} aria-expanded={accountOpen} aria-controls="account-dropdown" aria-label="Abrir opções da conta">
-                <Avatar name={user?.name} image={user?.avatarUrl} />
+              <button ref={accountButtonRef} className="account-button" type="button" onClick={() => { setAccountOpen((value) => !value); setNotificationOpen(false); }} aria-haspopup="true" aria-expanded={accountOpen} aria-controls="account-dropdown" aria-label="Abrir opções da conta">
+                <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} loading="eager" />
                 <span><strong>{user?.name}</strong><small>{user?.role === "ADMIN" ? "Administrador" : "Participante"}</small></span>
                 <ChevronDown size={16} />
               </button>

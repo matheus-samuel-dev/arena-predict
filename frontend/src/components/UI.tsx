@@ -22,6 +22,8 @@ import { Link } from "react-router-dom";
 import { brand } from "../app/branding";
 import { statusPresentation, type PresentationIcon } from "../app/presentation";
 
+export { UserAvatar } from "./UserAvatar";
+
 export function Button({
   variant = "primary",
   size = "md",
@@ -256,20 +258,6 @@ export function Modal({
         <div className="modal__body">{children}</div>
       </section>
     </div>
-  );
-}
-
-export function Avatar({ name, image, size = "md" }: { name?: string; image?: string | null; size?: "sm" | "md" | "lg" }) {
-  const initials = (name || "Participante Arena")
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  return image ? (
-    <img className={`avatar avatar--${size}`} src={image} alt="" />
-  ) : (
-    <span className={`avatar avatar--${size}`} aria-hidden="true">{initials}</span>
   );
 }
 

@@ -318,74 +318,40 @@ select:focus {
 .brand-lockup {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
+  width: fit-content;
+  min-width: 0;
+  line-height: 1;
   user-select: none;
 }
 
 .brand-symbol {
-  position: relative;
-  width: 34px;
-  height: 38px;
+  display: block;
+  width: 40px;
+  height: 40px;
   flex: none;
-  filter: drop-shadow(0 8px 15px rgba(131, 79, 255, 0.28));
-}
-
-.brand-symbol::before {
-  content: "";
-  position: absolute;
-  inset: 1px 2px 2px;
-  border: 2px solid var(--violet-2);
-  border-radius: 11px 11px 15px 15px;
-  background: linear-gradient(150deg, rgba(151, 100, 255, 0.22), rgba(48, 163, 255, 0.04));
-  clip-path: polygon(50% 0, 100% 14%, 88% 77%, 50% 100%, 12% 77%, 0 14%);
-}
-
-.brand-symbol__core {
-  position: absolute;
-  z-index: 1;
-  left: 10px;
-  top: 8px;
-  width: 15px;
-  height: 21px;
-  border-left: 3px solid #fff;
-  border-right: 3px solid #fff;
-  transform: skew(-11deg);
-}
-
-.brand-symbol__core::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  width: 12px;
-  border-top: 3px solid var(--green);
-  transform: skew(11deg);
-}
-
-.brand-symbol__pulse {
-  position: absolute;
-  right: -1px;
-  top: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 11px var(--green);
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(113, 103, 255, 0.2));
 }
 
 .brand-wordmark {
-  font-size: 19px;
-  letter-spacing: -0.65px;
+  font-size: 20px;
+  letter-spacing: -0.8px;
   line-height: 1;
 }
 
 .brand-wordmark b {
-  font-weight: 780;
+  font-weight: 760;
   color: var(--text);
-  background: linear-gradient(100deg, var(--text) 10%, var(--violet-2) 68%, var(--green));
+  background: linear-gradient(104deg, var(--text) 14%, #ded8ff 72%, #a9d7ff);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.brand-lockup--compact .brand-symbol {
+  width: 36px;
+  height: 36px;
 }
 
 .app-shell {
@@ -547,7 +513,6 @@ select:focus {
 }
 
 .points-card__arrow {
-  transform: rotate(-90deg);
   color: var(--muted);
 }
 
@@ -732,33 +697,63 @@ select:focus {
   color: var(--muted);
 }
 
-.avatar {
+.user-avatar {
+  --user-avatar-size: 2.5rem;
+  --user-avatar-font-size: var(--font-size-xs);
+  position: relative;
+  isolation: isolate;
   flex: none;
-  width: 37px;
-  height: 37px;
+  width: var(--user-avatar-size);
+  height: var(--user-avatar-size);
   border: 1px solid rgba(163, 116, 255, 0.35);
-  border-radius: 11px;
-  object-fit: cover;
-  background: linear-gradient(135deg, #774ce9, #2a77bc);
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--violet), #2a77bc);
   color: #fff;
   display: inline-grid;
   place-items: center;
-  font-size: 11px;
+  font-size: var(--user-avatar-font-size);
   font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.025em;
+  vertical-align: middle;
 }
 
-.avatar--sm {
-  width: 29px;
-  height: 29px;
-  border-radius: 9px;
-  font-size: 9px;
+.user-avatar__initials {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
-.avatar--lg {
-  width: 58px;
-  height: 58px;
-  border-radius: 17px;
-  font-size: 16px;
+.user-avatar__image {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.user-avatar--xs {
+  --user-avatar-size: 1.5rem;
+  --user-avatar-font-size: 0.625rem;
+}
+
+.user-avatar--sm {
+  --user-avatar-size: 2rem;
+  --user-avatar-font-size: 0.75rem;
+}
+
+.user-avatar--lg {
+  --user-avatar-size: 4rem;
+  --user-avatar-font-size: 1rem;
+}
+
+.user-avatar--xl {
+  --user-avatar-size: 4.5rem;
+  --user-avatar-font-size: 1.25rem;
 }
 
 .dropdown {
@@ -2498,7 +2493,7 @@ select:focus {
   padding: 8px;
   border-bottom: 1px solid var(--line);
   display: grid;
-  grid-template-columns: 45px 1fr auto;
+  grid-template-columns: 45px 2rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
 }
@@ -2553,7 +2548,7 @@ select:focus {
 
 .podium__item--1 { min-height: 240px; border: 1px solid rgba(255, 172, 90, 0.22); border-bottom: 0; }
 .podium__item--2, .podium__item--3 { border: 1px solid var(--line); border-bottom: 0; }
-.podium__item .avatar { margin-top: 5px; }
+.podium__item .user-avatar { margin-top: 5px; }
 .podium__crown { color: var(--orange); }
 .podium__item > strong { max-width: 100%; margin-top: 10px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .podium__item > small { margin-top: 4px; color: var(--muted); font-size: 8px; }
@@ -3230,7 +3225,7 @@ select:focus {
   .podium { min-height: 250px; padding-inline: 4px; gap: 4px; }
   .podium__item { width: 33%; min-height: 165px; padding: 8px 4px; }
   .podium__item--1 { min-height: 210px; }
-  .podium__item .avatar { width: 45px; height: 45px; }
+  .podium__item .user-avatar { --user-avatar-size: 45px; }
   .podium__item > strong { font-size: 9px; }
   .podium__item > small { display: none; }
   .ranking-table--header { display: none; }
@@ -3263,7 +3258,7 @@ select:focus {
   .metric-card div { width: 100%; }
   .metric-card strong { font-size: 15px; }
   .player-strip { padding: 12px; }
-  .player-strip__identity .avatar { width: 46px; height: 46px; }
+  .player-strip__identity .user-avatar { --user-avatar-size: 46px; }
   .featured-event { min-height: 230px; }
   .featured-event__teams { grid-template-columns: 1fr 22px 1fr; }
   .featured-event__teams > div { flex-direction: column; text-align: center; }
@@ -3535,6 +3530,13 @@ select:focus {
   font-size: var(--font-size-xs);
 }
 
+.notification-button > span {
+  width: auto;
+  min-width: 1.25rem;
+  padding-inline: 0.25rem;
+  border-radius: 999px;
+}
+
 .topbar__title strong,
 .account-button strong,
 .dropdown__head strong,
@@ -3549,8 +3551,8 @@ select:focus {
   font-size: var(--font-size-xs);
 }
 
-.avatar,
-.avatar--sm,
+.user-avatar--xs,
+.user-avatar--sm,
 .team-mark {
   font-size: var(--font-size-xs);
 }
@@ -4744,7 +4746,24 @@ select:focus {
   }
 
   .account-wrap {
+    display: block;
+  }
+
+  .account-wrap .account-button {
+    width: 3rem;
+    min-width: 3rem;
+    min-height: 3rem;
+    padding: var(--space-1);
+    justify-content: center;
+  }
+
+  .account-wrap .account-button > span:nth-child(2),
+  .account-wrap .account-button > svg {
     display: none;
+  }
+
+  .account-wrap .dropdown--account {
+    width: min(19rem, calc(100vw - 1.5rem));
   }
 
   .sidebar-mobile-account {

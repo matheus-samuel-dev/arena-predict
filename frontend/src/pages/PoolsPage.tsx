@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { brand } from "../app/branding";
 import { championshipName, dateTime, points, sportName } from "../app/format";
-import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, Progress, StatusBadge } from "../components/UI";
+import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
 import { useAppData } from "../contexts/AppDataContext";
 import { useApiResource } from "../hooks/useApiResource";
@@ -192,5 +192,5 @@ function JoinPoolModal({ open, onClose, onJoined }: { open: boolean; onClose: ()
 }
 
 function PoolRankingModal({ pool, rows, loading, error, onRetry, onClose }: { pool: Pool | null; rows: RankingRow[]; loading: boolean; error: string; onRetry: () => void; onClose: () => void }) {
-  return <Modal open={Boolean(pool)} onClose={onClose} title={`Ranking · ${pool?.name || "Bolão"}`}><div className="pool-ranking">{loading ? <p role="status">Carregando ranking...</p> : error ? <ErrorState message={error} onRetry={onRetry} /> : rows.length ? rows.map((row) => <div className={row.currentUser ? "current" : ""} key={row.userId || row.position}><b>#{row.position}</b><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)} pts</em></div>) : <EmptyState icon={Users} title="Ranking ainda sem posições" description="Os resultados dos primeiros eventos formarão esta classificação." />}</div></Modal>;
+  return <Modal open={Boolean(pool)} onClose={onClose} title={`Ranking · ${pool?.name || "Bolão"}`}><div className="pool-ranking">{loading ? <p role="status">Carregando ranking...</p> : error ? <ErrorState message={error} onRetry={onRetry} /> : rows.length ? rows.map((row) => <div className={row.currentUser ? "current" : ""} key={row.userId || row.position}><b>#{row.position}</b><UserAvatar name={row.name || row.participant} avatarUrl={row.avatarUrl} size="sm" /><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)} pts</em></div>) : <EmptyState icon={Users} title="Ranking ainda sem posições" description="Os resultados dos primeiros eventos formarão esta classificação." />}</div></Modal>;
 }

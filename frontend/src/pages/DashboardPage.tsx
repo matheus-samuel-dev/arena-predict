@@ -19,7 +19,7 @@ import { Link } from "react-router-dom";
 import { dateTime, percentage, points, predictionStatusLabel } from "../app/format";
 import { EventCard, FeaturedEventCard } from "../components/EventCard";
 import { PredictionComposer } from "../components/PredictionComposer";
-import { Avatar, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, SectionHeader, StatusBadge } from "../components/UI";
+import { EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, SectionHeader, StatusBadge, UserAvatar } from "../components/UI";
 import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { dashboardApi } from "../services/api";
@@ -106,7 +106,7 @@ export function DashboardPage() {
 
       <section className="player-strip surface">
         <div className="player-strip__identity">
-          <Avatar name={user?.name} image={user?.avatarUrl} size="lg" />
+          <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="lg" />
           <div><span>Nível {progression.level} · {progression.levelTitle}</span><strong>{user?.name}</strong><small>{points(progression.xp)} XP conquistados</small></div>
         </div>
         <div className="player-strip__xp">
@@ -194,7 +194,7 @@ export function DashboardPage() {
             <SectionHeader title="Ranking semanal" link="/rankings" />
             {ranking.length ? <div className="mini-ranking">{ranking.slice(0, 6).map((row) => (
               <div className={row.currentUser ? "current" : ""} key={row.userId || row.position}>
-                <b>{row.position}</b><Avatar name={row.name || row.participant} size="sm" /><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)}</em>
+                <b>{row.position}</b><UserAvatar name={row.name || row.participant} avatarUrl={row.avatarUrl} size="sm" /><span><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos</small></span><em>{points(row.points)}</em>
               </div>
             ))}</div> : <EmptyState icon={Trophy} title="Ranking sendo formado" description="As posições aparecem após o processamento dos primeiros eventos." />}
           </section>

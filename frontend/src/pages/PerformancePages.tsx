@@ -2,7 +2,7 @@ import { Award, BarChart3, CalendarClock, CheckCircle2, ChevronDown, Crown, Flam
 import { useMemo, useState } from "react";
 import { dateTime, percentage, points, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { Avatar, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge } from "../components/UI";
+import { EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useApiResource } from "../hooks/useApiResource";
 import { achievementsApi, asList, catalogApi, challengesApi, predictionsApi, rankingsApi } from "../services/api";
 import type { Achievement, Challenge, RankingRow } from "../types";
@@ -36,11 +36,11 @@ export function RankingsPage() {
 }
 
 function Podium({ rows }: { rows: RankingRow[] }) {
-  return <section className="podium" aria-label="Pódio"><div className="podium__ambient" />{rows.filter(Boolean).map((row) => <article className={`podium__item podium__item--${row.position} ${row.currentUser ? "current" : ""}`} style={{ order: row.position === 1 ? 2 : row.position === 2 ? 1 : 3 }} key={row.userId || row.position}><span className="podium__crown">{row.position === 1 ? <Crown size={20} /> : <Medal size={20} />}</span><Avatar name={row.name || row.participant} image={row.avatarUrl} size="lg" /><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos · {percentage(row.accuracy)}</small><b>{points(row.points)} pts</b><em>#{row.position}</em></article>)}</section>;
+  return <section className="podium" aria-label="Pódio"><div className="podium__ambient" />{rows.filter(Boolean).map((row) => <article className={`podium__item podium__item--${row.position} ${row.currentUser ? "current" : ""}`} style={{ order: row.position === 1 ? 2 : row.position === 2 ? 1 : 3 }} key={row.userId || row.position}><span className="podium__crown">{row.position === 1 ? <Crown size={20} /> : <Medal size={20} />}</span><UserAvatar name={row.name || row.participant} avatarUrl={row.avatarUrl} size="lg" /><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos · {percentage(row.accuracy)}</small><b>{points(row.points)} pts</b><em>#{row.position}</em></article>)}</section>;
 }
 
 function RankingLine({ row }: { row: RankingRow }) {
-  return <div className={`ranking-table ranking-table--row ${row.currentUser ? "current" : ""}`} role="row"><span role="cell" data-label="Posição"><b>#{row.position}</b>{row.movement !== undefined && row.movement !== 0 && <small className={row.movement > 0 ? "up" : "down"}>{row.movement > 0 ? "↑" : "↓"}{Math.abs(row.movement)}</small>}</span><span role="cell" data-label="Participante"><Avatar name={row.name || row.participant} image={row.avatarUrl} size="sm" /><strong>{row.name || row.participant}</strong>{row.currentUser && <em>Você</em>}</span><span role="cell" data-label="Pontos"><strong>{points(row.points)}</strong></span><span role="cell" data-label="Acertos">{row.hits || 0}/{row.predictions || 0}</span><span role="cell" data-label="Precisão">{percentage(row.accuracy)}</span><span role="cell" data-label="Sequência"><Flame size={15} aria-hidden="true" /> {row.streak || 0}</span></div>;
+  return <div className={`ranking-table ranking-table--row ${row.currentUser ? "current" : ""}`} role="row"><span role="cell" data-label="Posição"><b>#{row.position}</b>{row.movement !== undefined && row.movement !== 0 && <small className={row.movement > 0 ? "up" : "down"}>{row.movement > 0 ? "↑" : "↓"}{Math.abs(row.movement)}</small>}</span><span role="cell" data-label="Participante"><UserAvatar name={row.name || row.participant} avatarUrl={row.avatarUrl} size="sm" /><strong>{row.name || row.participant}</strong>{row.currentUser && <em>Você</em>}</span><span role="cell" data-label="Pontos"><strong>{points(row.points)}</strong></span><span role="cell" data-label="Acertos">{row.hits || 0}/{row.predictions || 0}</span><span role="cell" data-label="Precisão">{percentage(row.accuracy)}</span><span role="cell" data-label="Sequência"><Flame size={15} aria-hidden="true" /> {row.streak || 0}</span></div>;
 }
 
 export function StatisticsPage() {

@@ -24,8 +24,8 @@ function brandAssets(brandValues: BrandValues): Plugin {
     theme_color: "#080b14",
     categories: ["sports", "entertainment", "social"],
     icons: [
-      { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-      { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+      { src: "/assets/brand/arena-predict-app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/assets/brand/arena-predict-app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
     ],
   }, null, 2);
   const renderHtml = (html: string) => html

@@ -1,14 +1,22 @@
 import { brand } from "../app/branding";
 
-export function Brand({ compact = false }: { compact?: boolean }) {
+const brandMark = "/assets/brand/arena-predict-mark.svg";
+
+type BrandProps = {
+  compact?: boolean;
+  className?: string;
+};
+
+export function Brand({ compact = false, className = "" }: BrandProps) {
   return (
-    <span className={`brand-lockup ${compact ? "brand-lockup--compact" : ""}`} aria-label={brand.name}>
-      <span className="brand-symbol" aria-hidden="true">
-        <i className="brand-symbol__core" />
-        <i className="brand-symbol__pulse" />
-      </span>
+    <span
+      className={["brand-lockup", compact && "brand-lockup--compact", className].filter(Boolean).join(" ")}
+      role="img"
+      aria-label={brand.name}
+    >
+      <img className="brand-symbol" src={brandMark} width="40" height="40" alt="" aria-hidden="true" draggable="false" />
       {!compact && (
-        <span className="brand-wordmark">
+        <span className="brand-wordmark" aria-hidden="true">
           <b>{brand.name}</b>
         </span>
       )}

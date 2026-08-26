@@ -32,7 +32,7 @@ import { Link, useParams } from "react-router-dom";
 import { brand } from "../app/branding";
 import { dateTime, multiplier, points } from "../app/format";
 import { auditSummaryLabel, enumLabel, presentationCode } from "../app/presentation";
-import { Avatar, Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
+import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, StatusBadge, UserAvatar } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { adminApi, ApiError, asList, createIdempotencyKey } from "../services/api";
@@ -626,7 +626,7 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
     }
     case "users":
       return [
-        <span className="admin-user-cell"><Avatar name={String(row.name || "Usuário")} image={typeof row.avatarUrl === "string" ? row.avatarUrl : undefined} /><span><strong>{String(row.name || "Usuário")}</strong><small>{String(row.email || "E-mail não informado")}</small></span></span>,
+        <span className="admin-user-cell"><UserAvatar name={String(row.name || "Usuário")} avatarUrl={typeof row.avatarUrl === "string" ? row.avatarUrl : undefined} /><span><strong>{String(row.name || "Usuário")}</strong><small>{String(row.email || "E-mail não informado")}</small></span></span>,
         <AdminDetail primary={enumLabel(String(row.role || "PARTICIPANTE"))} secondary={statusBadge} />,
         <span className="admin-points"><Coins size={16} /> <strong>{points(row.pointBalance)} pts</strong><small>sem valor financeiro</small></span>,
         <AdminDetail primary={displayDate(row.createdAt)} secondary={`Atividade ${displayDate(row.updatedAt || row.createdAt)}`} />,
