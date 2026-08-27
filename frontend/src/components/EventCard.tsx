@@ -4,15 +4,7 @@ import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, s
 import { enumLabel } from "../app/presentation";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
-
-function teamMark(name?: string) {
-  return (name || "AP")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
+import { TeamLogo } from "./TeamLogo";
 
 export interface EventParticipantView {
   id: number | string;
@@ -73,7 +65,7 @@ export function ParticipantList({ event, compact = false, limit = 6 }: { event: 
         return (
           <div role="listitem" key={participant.id}>
             <b>{participant.position != null ? `#${participant.position}` : index + 1}</b>
-            <span className="team-mark">{teamMark(name)}</span>
+            <TeamLogo name={name} code={participant.competitor.code} logoUrl={participant.competitor.logoUrl || participant.competitor.imageUrl} size="sm" />
             <span><strong>{name}</strong><small>{participant.competitor.code && participant.competitor.code !== name ? participant.competitor.code : "Participante confirmado"}</small></span>
             <em>{participant.scoreLabel != null && participant.scoreLabel !== "" ? participant.scoreLabel : "—"}</em>
           </div>
@@ -115,7 +107,7 @@ export function EventCard({
         <ParticipantList event={event} compact={compact} />
       ) : <div className="event-card__matchup">
         <div className="competitor competitor--home">
-          <span className="team-mark">{teamMark(home.name || home.shortName || home.code)}</span>
+          <TeamLogo name={home.name || home.shortName || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="md" />
           <strong>{home.shortName || home.name || home.code}</strong>
         </div>
         <div className="match-center">
@@ -134,7 +126,7 @@ export function EventCard({
           )}
         </div>
         <div className="competitor competitor--away">
-          <span className="team-mark team-mark--alt">{teamMark(away.name || away.shortName || away.code)}</span>
+          <TeamLogo name={away.name || away.shortName || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" />
           <strong>{away.shortName || away.name || away.code}</strong>
         </div>
       </div>}
@@ -180,9 +172,9 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
       </header>
       <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{multiParticipant && event.title ? ` · ${event.title}` : event.phase ? ` · ${enumLabel(event.phase)}` : ""}</div>
       {multiParticipant ? <ParticipantList event={event} compact limit={4} /> : <div className="featured-event__teams">
-        <div><span className="team-mark">{teamMark(home.name || home.code)}</span><strong>{home.shortName || home.name || home.code}</strong></div>
+        <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="lg" /><strong>{home.shortName || home.name || home.code}</strong></div>
         <b aria-label="versus">×</b>
-        <div><span className="team-mark team-mark--alt">{teamMark(away.name || away.code)}</span><strong>{away.shortName || away.name || away.code}</strong></div>
+        <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="lg" /><strong>{away.shortName || away.name || away.code}</strong></div>
       </div>}
       <footer>
         <span><MapPin size={14} /> {event.venue || dateTime(event.startsAt)}</span>

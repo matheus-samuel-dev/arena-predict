@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList } from "../components/EventCard";
+import { TeamLogo } from "../components/TeamLogo";
 import { PredictionComposer } from "../components/PredictionComposer";
 import { Button, EmptyState, ErrorState, NoResults, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
@@ -181,9 +182,9 @@ function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (d
     <article className="surface live-event-panel">
       <header><div><span className="sport-chip">{sportName(event.sport || event.sportName)}</span><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
       {multiParticipant ? <ParticipantList event={event} limit={12} /> : <div className="live-scoreboard">
-        <div><span className="team-mark">{String(home.name || home.code || "AP").slice(0, 2).toUpperCase()}</span><strong>{home.name || home.code}</strong></div>
+        <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="md" /><strong>{home.name || home.code}</strong></div>
         <b>{home.score ?? 0}<i>:</i>{away.score ?? 0}<small>{enumLabel(event.format || event.phase || "LIVE")}</small></b>
-        <div><span className="team-mark team-mark--alt">{String(away.name || away.code || "AP").slice(0, 2).toUpperCase()}</span><strong>{away.name || away.code}</strong></div>
+        <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" /><strong>{away.name || away.code}</strong></div>
       </div>}
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
       {(event.demoLiveData || event.demo) && <div className="demo-data-note"><ShieldCheck size={14} /> Placar atualizado pelo serviço interno de demonstração.</div>}

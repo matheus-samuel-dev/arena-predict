@@ -34,6 +34,17 @@ Principais capacidades:
 |---|---|
 | ![Experiência de eventos ao vivo](docs/screenshots/live.png) | ![Dashboard administrativo](docs/screenshots/admin-dashboard.png) |
 
+### Identidade visual
+
+O tema claro é o padrão, com superfícies neutras, acentos índigo e feedbacks
+semânticos. O tema escuro continua disponível pelo menu do perfil e a escolha
+fica persistida no navegador. Eventos usam o componente reutilizável
+`TeamLogo`: ele prioriza `logoUrl` vindo do catálogo, resolve os quatro aliases
+demonstrativos conhecidos (Palmeiras, Flamengo, Team Vitality e G2 Esports) e
+troca qualquer imagem indisponível por iniciais acessíveis. As fontes e os
+créditos dos logos estão documentados em
+[`frontend/public/assets/teams/README.md`](frontend/public/assets/teams/README.md).
+
 ## Arquitetura
 
 ```mermaid

@@ -9,6 +9,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { profileApi } from "../services/api";
+import { getStoredTheme, setTheme, type Theme } from "../app/theme";
+import { ThemeSelector } from "../components/ThemeSelector";
 
 export function NotificationsPage() {
   const { notifications, notificationsError, unreadCount, loading, refreshNotifications, markNotificationRead, markAllNotificationsRead } = useAppData();
@@ -82,6 +84,7 @@ export function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [notifications, setNotifications] = useState(true);
   const [publicProfile, setPublicProfile] = useState(true);
+  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
 
   useEffect(() => {
     if (requestedTab === "security" || requestedTab === "preferences") setTab(requestedTab);
@@ -148,11 +151,11 @@ export function ProfilePage() {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = await profileApi.preferences({ theme: "dark", language: "pt-BR", notifications, publicProfile });
+      const updated = await profileApi.preferences({ theme, language: "pt-BR", notifications, publicProfile });
       setProfile((current) => current ? { ...current, ...updated } : current);
       setNotifications(updated.notifications);
       setPublicProfile(updated.publicProfile);
-      document.documentElement.dataset.theme = "dark";
+      setTheme(theme);
       notify("Preferências atualizadas.", "success");
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : "Não foi possível salvar as preferências.", "error");
@@ -238,7 +241,8 @@ export function ProfilePage() {
           {tab === "preferences" && (
             <form className="stack-form" onSubmit={savePreferences}>
               <div><h2>Preferências</h2><p>Gerencie privacidade e notificações da sua experiência.</p></div>
-              <div className="preference-lock"><ShieldCheck size={19} aria-hidden="true" /><span><strong>Experiência ArenaPredict</strong><small>Tema escuro e português do Brasil, otimizados para toda a plataforma.</small></span></div>
+              <div className="preference-lock"><ShieldCheck size={19} aria-hidden="true" /><span><strong>Experiência ArenaPredict</strong><small>Escolha uma aparência confortável. O português do Brasil é mantido em toda a plataforma.</small></span></div>
+              <ThemeSelector value={theme} onChange={setThemeState} />
               <label className="toggle-row"><span><Bell size={17} /><span><strong>Notificações da plataforma</strong><small>Resultados, convites, conquistas e avisos.</small></span></span><input type="checkbox" checked={notifications} onChange={(event) => setNotifications(event.target.checked)} /></label>
               <label className="toggle-row"><span><UserCircle size={17} /><span><strong>Perfil público</strong><small>Permite que outros participantes vejam suas estatísticas.</small></span></span><input type="checkbox" checked={publicProfile} onChange={(event) => setPublicProfile(event.target.checked)} /></label>
               <div className="form-actions"><Button type="submit" loading={saving}><Save size={16} /> Salvar preferências</Button></div>

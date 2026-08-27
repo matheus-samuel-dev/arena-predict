@@ -5,7 +5,10 @@ import App from "./App";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { initializeTheme } from "./app/theme";
 import "./styles.css";
+
+initializeTheme();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

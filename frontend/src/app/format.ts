@@ -57,6 +57,8 @@ interface TeamLike {
   name?: string;
   shortName?: string;
   code?: string;
+  logoUrl?: string | null;
+  imageUrl?: string | null;
   score?: number | string | null;
 }
 

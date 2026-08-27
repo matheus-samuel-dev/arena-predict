@@ -20,8 +20,8 @@ function brandAssets(brandValues: BrandValues): Plugin {
     scope: "/",
     display: "standalone",
     orientation: "any",
-    background_color: "#080b14",
-    theme_color: "#080b14",
+    background_color: "#f6f7fb",
+    theme_color: "#f6f7fb",
     categories: ["sports", "entertainment", "social"],
     icons: [
       { src: "/assets/brand/arena-predict-app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },

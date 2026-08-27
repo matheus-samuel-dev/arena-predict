@@ -42,6 +42,7 @@ import { useAppData } from "../contexts/AppDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { Brand } from "./Brand";
+import { ThemeSelector } from "./ThemeSelector";
 import { Button, UserAvatar } from "./UI";
 
 interface NavItem {
@@ -61,7 +62,7 @@ interface NavGroup {
 const playerNavigation: NavGroup[] = [
   {
     id: "experience",
-    title: "Experiência",
+    title: "Principal",
     defaultOpen: true,
     items: [
       { label: "Visão geral", to: "/app", icon: LayoutDashboard, end: true },
@@ -72,7 +73,7 @@ const playerNavigation: NavGroup[] = [
   },
   {
     id: "compete",
-    title: "Competir",
+    title: "Competições",
     defaultOpen: true,
     items: [
       { label: "Bolões", to: "/pools", icon: Trophy },
@@ -85,8 +86,8 @@ const playerNavigation: NavGroup[] = [
   },
   {
     id: "connect",
-    title: "Conectar",
-    defaultOpen: true,
+    title: "Comunidade e conta",
+    defaultOpen: false,
     items: [
       { label: "Comunidade", to: "/community", icon: MessageSquareText },
       { label: "Notificações", to: "/notifications", icon: Bell },
@@ -459,6 +460,7 @@ export function AppShell() {
                 <div className="dropdown dropdown--account" id="account-dropdown" role="group" aria-label="Opções da conta">
                   <NavLink to="/profile"><UserCircle size={17} aria-hidden="true" /> Meu perfil</NavLink>
                   <NavLink to="/profile?tab=preferences"><Cog size={17} aria-hidden="true" /> Preferências</NavLink>
+                  <ThemeSelector compact />
                   <NavLink to="/points"><WalletCards size={17} aria-hidden="true" /> Pontos virtuais</NavLink>
                   <button type="button" onClick={() => void logout()}><LogOut size={17} aria-hidden="true" /> Sair</button>
                 </div>

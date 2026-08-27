@@ -33,6 +33,7 @@ import { brand } from "../app/branding";
 import { dateTime, multiplier, points } from "../app/format";
 import { auditSummaryLabel, enumLabel, presentationCode } from "../app/presentation";
 import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, StatusBadge, UserAvatar } from "../components/UI";
+import { TeamLogo } from "../components/TeamLogo";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { adminApi, ApiError, asList, createIdempotencyKey } from "../services/api";
@@ -592,7 +593,7 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       ];
     case "competitors":
       return [
-        <AdminIdentity icon={Users} title={String(row.name || "Participante")} subtitle={String(row.code || "Sem código")} image={typeof row.imageUrl === "string" ? row.imageUrl : undefined} />,
+        <AdminIdentity icon={Users} title={String(row.name || "Participante")} subtitle={String(row.code || "Sem código")} image={typeof row.imageUrl === "string" ? row.imageUrl : undefined} logo />,
         <AdminDetail primary={String(row.sportName || nestedText(row.sport, "name") || "Modalidade não informada")} secondary={String(row.country || "País não informado")} />,
         activeBadge,
         updated,
@@ -704,10 +705,10 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
   }
 }
 
-function AdminIdentity({ icon: Icon, title, subtitle, image }: { icon: LucideIcon; title: string; subtitle: string; image?: string }) {
+function AdminIdentity({ icon: Icon, title, subtitle, image, logo = false }: { icon: LucideIcon; title: string; subtitle: string; image?: string; logo?: boolean }) {
   return (
     <span className="admin-identity">
-      {image ? <img src={image} alt="" /> : <i><Icon size={18} /></i>}
+      {logo ? <TeamLogo name={title} code={subtitle} logoUrl={image} size="sm" /> : image ? <img src={image} alt="" /> : <i><Icon size={18} /></i>}
       <span><strong>{title}</strong><small>{subtitle}</small></span>
     </span>
   );

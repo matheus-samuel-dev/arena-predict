@@ -2,19 +2,19 @@
   <title id="arena-predict-mark-title">Símbolo ArenaPredict</title>
   <defs>
     <linearGradient id="arena-edge" x1="5" y1="5" x2="43" y2="43" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#A879FF"/>
-      <stop offset="0.55" stop-color="#7167FF"/>
-      <stop offset="1" stop-color="#42C5FF"/>
+      <stop stop-color="#5F55B8"/>
+      <stop offset="0.55" stop-color="#6F67C8"/>
+      <stop offset="1" stop-color="#2B73C5"/>
     </linearGradient>
     <linearGradient id="arena-letter" x1="10" y1="9" x2="38" y2="39" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F7F5FF"/>
-      <stop offset="0.48" stop-color="#E5DFFF"/>
-      <stop offset="1" stop-color="#AFCFFF"/>
+      <stop stop-color="#5F55B8"/>
+      <stop offset="0.48" stop-color="#6F67C8"/>
+      <stop offset="1" stop-color="#4E95D2"/>
     </linearGradient>
   </defs>
   <path d="M24 3.75 42.25 13.9v20.2L24 44.25 5.75 34.1V13.9L24 3.75Z" stroke="url(#arena-edge)" stroke-width="2.5" stroke-linejoin="round" opacity="0.78"/>
   <path d="m10.25 38.5 11.45-28a2.48 2.48 0 0 1 4.6 0l11.45 28" stroke="url(#arena-letter)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M15.75 29.25h4.15M28.1 29.25h4.15" stroke="url(#arena-letter)" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="24" cy="29.25" r="4.15" fill="#0D1324" stroke="#43E0C0" stroke-width="2"/>
-  <circle cx="24" cy="29.25" r="1.45" fill="#75F5DC"/>
+  <circle cx="24" cy="29.25" r="4.15" fill="#EEF1F7" stroke="#218653" stroke-width="2"/>
+  <circle cx="24" cy="29.25" r="1.45" fill="#218653"/>
 </svg>

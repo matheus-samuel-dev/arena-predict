@@ -2,21 +2,21 @@
   <title id="arena-predict-social-title">ArenaPredict</title>
   <desc id="arena-predict-social-description">Plataforma multiesportiva de previsões e competição com pontos virtuais.</desc>
   <defs>
-    <linearGradient id="social-bg" x1="104" y1="50" x2="1060" y2="618" gradientUnits="userSpaceOnUse"><stop stop-color="#151A31"/><stop offset="0.52" stop-color="#0B0F1E"/><stop offset="1" stop-color="#060911"/></linearGradient>
-    <radialGradient id="social-violet" cx="0" cy="0" r="1" gradientTransform="translate(212 154) rotate(32) scale(470 340)" gradientUnits="userSpaceOnUse"><stop stop-color="#7848EF" stop-opacity="0.3"/><stop offset="1" stop-color="#7848EF" stop-opacity="0"/></radialGradient>
-    <radialGradient id="social-cyan" cx="0" cy="0" r="1" gradientTransform="translate(1041 549) rotate(-150) scale(430 270)" gradientUnits="userSpaceOnUse"><stop stop-color="#32C7FF" stop-opacity="0.2"/><stop offset="1" stop-color="#32C7FF" stop-opacity="0"/></radialGradient>
-    <linearGradient id="social-edge" x1="105" y1="118" x2="357" y2="382" gradientUnits="userSpaceOnUse"><stop stop-color="#A879FF"/><stop offset="0.55" stop-color="#7167FF"/><stop offset="1" stop-color="#42C5FF"/></linearGradient>
-    <linearGradient id="social-letter" x1="143" y1="138" x2="322" y2="355" gradientUnits="userSpaceOnUse"><stop stop-color="#FAF8FF"/><stop offset="0.5" stop-color="#E5DFFF"/><stop offset="1" stop-color="#AFCFFF"/></linearGradient>
+    <linearGradient id="social-bg" x1="104" y1="50" x2="1060" y2="618" gradientUnits="userSpaceOnUse"><stop stop-color="#273451"/><stop offset="0.52" stop-color="#182236"/><stop offset="1" stop-color="#0F1728"/></linearGradient>
+    <radialGradient id="social-violet" cx="0" cy="0" r="1" gradientTransform="translate(212 154) rotate(32) scale(470 340)" gradientUnits="userSpaceOnUse"><stop stop-color="#6F67C8" stop-opacity="0.18"/><stop offset="1" stop-color="#6F67C8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="social-cyan" cx="0" cy="0" r="1" gradientTransform="translate(1041 549) rotate(-150) scale(430 270)" gradientUnits="userSpaceOnUse"><stop stop-color="#4E95D2" stop-opacity="0.14"/><stop offset="1" stop-color="#4E95D2" stop-opacity="0"/></radialGradient>
+    <linearGradient id="social-edge" x1="105" y1="118" x2="357" y2="382" gradientUnits="userSpaceOnUse"><stop stop-color="#8E84D9"/><stop offset="0.55" stop-color="#6F67C8"/><stop offset="1" stop-color="#4E95D2"/></linearGradient>
+    <linearGradient id="social-letter" x1="143" y1="138" x2="322" y2="355" gradientUnits="userSpaceOnUse"><stop stop-color="#F6F8FC"/><stop offset="0.5" stop-color="#DCE3F0"/><stop offset="1" stop-color="#AFC2DD"/></linearGradient>
   </defs>
   <rect width="1200" height="630" rx="36" fill="url(#social-bg)"/>
   <rect width="1200" height="630" rx="36" fill="url(#social-violet)"/>
   <rect width="1200" height="630" rx="36" fill="url(#social-cyan)"/>
   <g opacity="0.13" stroke="#C8D1EC"><path d="M0 96.5h1200M0 192.5h1200M0 288.5h1200M0 384.5h1200M0 480.5h1200M0 576.5h1200"/><path d="M96.5 0v630M192.5 0v630M288.5 0v630M384.5 0v630M480.5 0v630M576.5 0v630M672.5 0v630M768.5 0v630M864.5 0v630M960.5 0v630M1056.5 0v630M1152.5 0v630"/></g>
-  <path d="M232 101 362 173.5v167L232 413 102 340.5v-167L232 101Z" fill="#0C1222" stroke="url(#social-edge)" stroke-width="15" stroke-linejoin="round"/>
+  <path d="M232 101 362 173.5v167L232 413 102 340.5v-167L232 101Z" fill="#182236" stroke="url(#social-edge)" stroke-width="15" stroke-linejoin="round"/>
   <path d="m139 356 78.8-192.4a15.3 15.3 0 0 1 28.4 0L325 356" stroke="url(#social-letter)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M177 291h28M259 291h28" stroke="url(#social-letter)" stroke-width="27" stroke-linecap="round"/>
-  <circle cx="232" cy="291" r="27" fill="#0C1222" stroke="#43E0C0" stroke-width="13"/><circle cx="232" cy="291" r="9" fill="#75F5DC"/>
-  <text x="432" y="241" fill="#F7F5FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="78" font-weight="760" letter-spacing="-3.5">ArenaPredict</text>
+  <circle cx="232" cy="291" r="27" fill="#182236" stroke="#63C994" stroke-width="13"/><circle cx="232" cy="291" r="9" fill="#63C994"/>
+  <text x="432" y="241" fill="#F6F8FC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="78" font-weight="760" letter-spacing="-3.5">ArenaPredict</text>
   <text x="436" y="305" fill="#B7C0D6" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="28" font-weight="540">Sua leitura. Sua arena.</text>
   <rect x="436" y="354" width="430" height="1" fill="#A8B4D2" opacity="0.3"/>
   <text x="436" y="410" fill="#D8DEEC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23" font-weight="480">Predição · competição · gamificação · dados</text>
