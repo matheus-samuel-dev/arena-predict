@@ -74,6 +74,42 @@ public class DataInitializer {
                     UserRole.PARTICIPANTE,
                     true
             );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "camila.rocha@arenapredict.com",
+                    "Camila Rocha",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
+            );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "lucas.almeida@arenapredict.com",
+                    "Lucas Almeida",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
+            );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "ana.ribeiro@arenapredict.com",
+                    "Ana Ribeiro",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
+            );
+            ensureUser(
+                    userRepository,
+                    passwordEncoder,
+                    "diego.ferreira@arenapredict.com",
+                    "Diego Ferreira",
+                    "Jogador@123",
+                    UserRole.PARTICIPANTE,
+                    true
+            );
 
         });
     }

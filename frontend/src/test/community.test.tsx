@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { CommunityPage } from "../pages/CommunityPage";
 
 const mocks = vi.hoisted(() => ({
@@ -45,6 +46,10 @@ const post = {
   commentCount: 1,
 };
 
+function renderCommunity() {
+  return render(<MemoryRouter><CommunityPage /></MemoryRouter>);
+}
+
 describe("comentários da comunidade", () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset());
@@ -71,7 +76,7 @@ describe("comentários da comunidade", () => {
     });
     const user = userEvent.setup();
 
-    render(<CommunityPage />);
+    renderCommunity();
     const openComments = await screen.findByRole("button", { name: /Abrir comentários de Ana Arena, 1 comentário/i });
     await user.click(openComments);
 
@@ -101,7 +106,7 @@ describe("comentários da comunidade", () => {
       }]);
     const user = userEvent.setup();
 
-    render(<CommunityPage />);
+    renderCommunity();
     await user.click(await screen.findByRole("button", { name: /Abrir comentários/i }));
 
     expect(await screen.findByText("Falha ao consultar a discussão.")).toBeInTheDocument();

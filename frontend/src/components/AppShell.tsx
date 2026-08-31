@@ -91,7 +91,7 @@ const playerNavigation: NavGroup[] = [
     items: [
       { label: "Comunidade", to: "/community", icon: MessageSquareText },
       { label: "Notificações", to: "/notifications", icon: Bell },
-      { label: "Perfil", to: "/profile", icon: UserCircle },
+      { label: "Conta", to: "/account", icon: UserCircle },
       { label: "Ajuda", to: "/help", icon: CircleHelp },
     ],
   },
@@ -161,6 +161,7 @@ const pageTitles: Record<string, string> = {
   "/achievements": "Conquistas",
   "/community": "Comunidade",
   "/notifications": "Notificações",
+  "/account": "Conta",
   "/profile": "Perfil",
   "/help": "Central de ajuda",
   "/points": "Pontos virtuais",
@@ -403,7 +404,7 @@ export function AppShell() {
           <div className="safe-note"><ShieldCheck size={15} /><span>Pontos sem valor financeiro</span></div>
           <div className="sidebar-mobile-account">
             <div><UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} /><span><strong>{user?.name}</strong><small>{user?.role === "ADMIN" ? "Administrador" : "Participante"}</small></span></div>
-            <NavLink to="/profile" onClick={() => setSidebarOpen(false)}><UserCircle size={18} aria-hidden="true" /> Meu perfil</NavLink>
+            <NavLink to="/account" onClick={() => setSidebarOpen(false)}><UserCircle size={18} aria-hidden="true" /> Minha conta</NavLink>
             <button type="button" onClick={() => void logout()}><LogOut size={18} aria-hidden="true" /> Sair da conta</button>
           </div>
         </div>
@@ -458,8 +459,8 @@ export function AppShell() {
               </button>
               {accountOpen && (
                 <div className="dropdown dropdown--account" id="account-dropdown" role="group" aria-label="Opções da conta">
-                  <NavLink to="/profile"><UserCircle size={17} aria-hidden="true" /> Meu perfil</NavLink>
-                  <NavLink to="/profile?tab=preferences"><Cog size={17} aria-hidden="true" /> Preferências</NavLink>
+                  <NavLink to="/account"><UserCircle size={17} aria-hidden="true" /> Minha conta</NavLink>
+                  <NavLink to="/account?tab=preferences"><Cog size={17} aria-hidden="true" /> Preferências</NavLink>
                   <ThemeSelector compact />
                   <NavLink to="/points"><WalletCards size={17} aria-hidden="true" /> Pontos virtuais</NavLink>
                   <button type="button" onClick={() => void logout()}><LogOut size={17} aria-hidden="true" /> Sair</button>
@@ -479,13 +480,13 @@ export function AppShell() {
             { label: "Eventos", to: "/admin/events", icon: CalendarRange },
             { label: "Mercados", to: "/admin/markets", icon: SlidersHorizontal },
             { label: "Resultados", to: "/admin/results", icon: ClipboardCheck },
-            { label: "Perfil", to: "/profile", icon: UserCircle },
+            { label: "Conta", to: "/account", icon: UserCircle },
           ] : [
             { label: "Início", to: "/app", icon: LayoutDashboard },
             { label: "Eventos", to: "/events", icon: Compass },
             { label: "Ao vivo", to: "/live", icon: Activity },
             { label: "Palpites", to: "/predictions", icon: Target },
-            { label: "Perfil", to: "/profile", icon: UserCircle },
+            { label: "Conta", to: "/account", icon: UserCircle },
           ]).map(({ label, to, icon: Icon }) => (
             <NavLink to={to} key={to} className={({ isActive }) => (isActive ? "active" : "")}>
               <Icon size={20} /><span>{label}</span>

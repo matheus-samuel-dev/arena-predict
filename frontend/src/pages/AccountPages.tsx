@@ -1,14 +1,14 @@
-import { Bell, CheckCheck, KeyRound, LockKeyhole, Mail, Moon, Save, ShieldCheck, UserCircle } from "lucide-react";
+import { Activity, Award, Bell, CheckCheck, Flame, Gauge, KeyRound, LockKeyhole, Mail, Moon, Save, ShieldCheck, Target, Trophy, UserCircle } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { points, relativeTime } from "../app/format";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { percentage, points, predictionStatusLabel, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, UserAvatar } from "../components/UI";
 import { useAppData } from "../contexts/AppDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
-import { profileApi } from "../services/api";
+import { achievementsApi, asList, dashboardApi, profileApi } from "../services/api";
 import { getStoredTheme, setTheme, type Theme } from "../app/theme";
 import { ThemeSelector } from "../components/ThemeSelector";
 
@@ -69,6 +69,14 @@ export function ProfilePage() {
   const { updateLocalUser } = useAuth();
   const { notify } = useToast();
   const { data: profile, setData: setProfile, loading, error, reload } = useApiResource(() => profileApi.get(), []);
+  const {
+    data: insights,
+    loading: insightsLoading,
+    error: insightsError,
+  } = useApiResource(async () => {
+    const [dashboard, achievements] = await Promise.all([dashboardApi.get(), achievementsApi.list()]);
+    return { dashboard, achievements: asList(achievements) };
+  }, []);
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const [tab, setTab] = useState<"profile" | "security" | "preferences">(
@@ -168,7 +176,7 @@ export function ProfilePage() {
   if (error || !profile) {
     return (
       <>
-        <PageHeader eyebrow="IDENTIDADE DO PARTICIPANTE" title="Perfil" description="Gerencie seus dados, segurança e preferências da experiência." />
+        <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Conta" description="Seus dados, desempenho, preferências e segurança em um só lugar." />
         <ErrorState message={error || "O perfil não retornou dados."} onRetry={() => reload().catch(() => undefined)} />
       </>
     );
@@ -177,6 +185,11 @@ export function ProfilePage() {
   const level = Math.max(1, Math.floor(safeMetric(profile.level, 1)));
   const xp = safeMetric(profile.xp);
   const virtualPoints = safeMetric(profile.points);
+  const accountIdentifier = `@${profile.email.split("@")[0].replace(/[^a-z0-9._-]/gi, "") || "participante"}`;
+  const dashboard = insights?.dashboard;
+  const totalPredictions = safeMetric(dashboard?.activePredictions) + safeMetric(dashboard?.finishedPredictions);
+  const recentAchievements = (insights?.achievements || []).filter((item) => item.unlocked || item.unlockedAt).slice(0, 3);
+  const recentActivity = (dashboard?.recentPredictions || []).slice(0, 4);
   const profileTabs = [
     { id: "profile" as const, label: "Dados pessoais", icon: UserCircle },
     { id: "security" as const, label: "Segurança", icon: LockKeyhole },
@@ -204,13 +217,30 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader eyebrow="IDENTIDADE DO PARTICIPANTE" title="Perfil" description="Gerencie seus dados, segurança e preferências da experiência." />
+      <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Conta" description="Acompanhe sua identidade, desempenho, preferências e segurança em um só lugar." />
       <section className="profile-hero surface">
-        <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size="lg" />
-        <div><span>{profile.role === "ADMIN" ? "Administrador" : "Participante"}</span><h2>{profile.name}</h2><p>{profile.email}</p></div>
+        <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size="xl" loading="eager" aria-label={`Avatar de ${profile.name}`} />
+        <div className="profile-hero__identity"><span>{profile.role === "ADMIN" ? "Administrador" : "Participante"}</span><h2>{profile.name}</h2><p>{accountIdentifier} <i aria-hidden="true">•</i> {profile.email}</p></div>
         <div><small>Nível</small><strong>{level}</strong><small>{points(xp)} XP acumulados</small></div>
         <div><small>Pontos virtuais</small><strong>{points(virtualPoints)}</strong></div>
       </section>
+      <section className="account-metrics" aria-label="Resumo de desempenho">
+        <article className="surface account-metric"><span><Target size={19} /></span><div><small>Palpites feitos</small><strong>{insightsLoading ? "—" : points(totalPredictions)}</strong><p>{points(safeMetric(dashboard?.activePredictions))} aguardando resultado</p></div></article>
+        <article className="surface account-metric"><span><Gauge size={19} /></span><div><small>Taxa de acerto</small><strong>{insightsLoading ? "—" : percentage(dashboard?.accuracy)}</strong><p>desempenho em palpites encerrados</p></div></article>
+        <article className="surface account-metric"><span><Flame size={19} /></span><div><small>Sequência atual</small><strong>{insightsLoading ? "—" : `${points(dashboard?.streak)} acerto${safeMetric(dashboard?.streak) === 1 ? "" : "s"}`}</strong><p>melhor momento recente</p></div></article>
+        <article className="surface account-metric"><span><Trophy size={19} /></span><div><small>Ranking geral</small><strong>{insightsLoading ? "—" : dashboard?.rankingPosition ? `#${dashboard.rankingPosition}` : "Em formação"}</strong><p>posição na comunidade</p></div></article>
+      </section>
+      <div className="account-overview-grid">
+        <section className="surface account-insight-card">
+          <header><div><span><Award size={19} /></span><div><small>PROGRESSÃO</small><h2>Conquistas recentes</h2></div></div><Link to="/achievements">Ver catálogo</Link></header>
+          {recentAchievements.length ? <div className="account-achievement-list">{recentAchievements.map((achievement) => <article key={achievement.id}><span><Award size={18} /></span><div><strong>{achievement.name}</strong><p>{achievement.description}</p></div><em>+{points(achievement.pointsReward)} pts</em></article>)}</div> : <p className="account-insight-empty">{insightsLoading ? "Carregando suas conquistas..." : "Continue participando para desbloquear novas conquistas."}</p>}
+        </section>
+        <section className="surface account-insight-card">
+          <header><div><span><Activity size={19} /></span><div><small>HISTÓRICO</small><h2>Atividade recente</h2></div></div><Link to="/predictions">Ver palpites</Link></header>
+          {recentActivity.length ? <div className="account-activity-list">{recentActivity.map((prediction) => <article key={prediction.id}><span><Target size={17} /></span><div><strong>{prediction.eventTitle || "Evento esportivo"}</strong><p>{prediction.optionName || prediction.optionLabel || "Opção registrada"} · {points(prediction.stakePoints ?? prediction.points)} pts</p></div><div><em>{predictionStatusLabel(prediction.status)}</em><small>{relativeTime(prediction.placedAt || prediction.createdAt)}</small></div></article>)}</div> : <p className="account-insight-empty">{insightsLoading ? "Carregando sua atividade..." : "Seus próximos palpites aparecerão neste histórico."}</p>}
+        </section>
+      </div>
+      {insightsError && <div className="virtual-footer-note" role="status">Os dados da conta estão disponíveis; o resumo de desempenho não pôde ser atualizado agora.</div>}
       <div className="profile-layout">
         <nav className="surface profile-tabs" role="tablist" aria-label="Seções do perfil">
           {profileTabs.map(({ id, label, icon: Icon }) => (

@@ -43,6 +43,36 @@ class ArenaExperienceIntegrationTest {
     @Autowired ChallengeDefinitionRepository challengeDefinitions;
     @Autowired CommunityPostRepository communityPosts;
     @Autowired CommunityLikeRepository communityLikes;
+    @Autowired PlayerProfileRepository profileRecords;
+
+    @Test
+    @Transactional
+    void demoCommunityStartsPopulatedAndEveryDemoIdentityHasAVisualAvatar() {
+        var demoEmails = List.of(
+                "jogador@arenapredict.com",
+                "beatriz.nunes@arenapredict.com",
+                "marina.costa@arenapredict.com",
+                "rafael.lima@arenapredict.com",
+                "camila.rocha@arenapredict.com",
+                "lucas.almeida@arenapredict.com",
+                "ana.ribeiro@arenapredict.com",
+                "diego.ferreira@arenapredict.com"
+        );
+
+        for (String email : demoEmails) {
+            var user = users.findByEmail(email).orElseThrow();
+            assertThat(profileRecords.findByUser(user).orElseThrow().getAvatarUrl())
+                    .startsWith("/assets/avatars/");
+        }
+
+        var current = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var feed = community.feed(0, 20, current);
+        assertThat(feed.getTotalElements()).isGreaterThanOrEqualTo(5);
+        assertThat(feed.getContent())
+                .allMatch(post -> post.author() != null
+                        && post.author().avatarUrl() != null
+                        && post.author().avatarUrl().startsWith("/assets/avatars/"));
+    }
 
     @Test
     @Transactional

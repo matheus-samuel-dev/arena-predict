@@ -755,7 +755,6 @@ select:focus {
 
 .user-avatar {
   --user-avatar-size: 2.5rem;
-  --user-avatar-font-size: var(--font-size-xs);
   position: relative;
   isolation: isolate;
   flex: none;
@@ -768,18 +767,8 @@ select:focus {
   color: #fff;
   display: inline-grid;
   place-items: center;
-  font-size: var(--user-avatar-font-size);
-  font-weight: 800;
   line-height: 1;
-  letter-spacing: 0.025em;
   vertical-align: middle;
-}
-
-.user-avatar__initials {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
 }
 
 .user-avatar__image {
@@ -794,22 +783,18 @@ select:focus {
 
 .user-avatar--xs {
   --user-avatar-size: 1.5rem;
-  --user-avatar-font-size: 0.625rem;
 }
 
 .user-avatar--sm {
   --user-avatar-size: 2rem;
-  --user-avatar-font-size: 0.75rem;
 }
 
 .user-avatar--lg {
   --user-avatar-size: 4rem;
-  --user-avatar-font-size: 1rem;
 }
 
 .user-avatar--xl {
   --user-avatar-size: 4.5rem;
-  --user-avatar-font-size: 1.25rem;
 }
 
 .dropdown {
@@ -5664,6 +5649,482 @@ html[data-theme="dark"] .showcase-features > div { background: rgba(255,255,255,
   .mobile-bottom-nav a.active { color: var(--color-primary); background: var(--violet-soft); }
   .event-card__head strong { font-size: var(--font-size-sm); }
   .featured-event__teams strong { font-size: var(--font-size-sm); }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Demo identities, community and account completion                          */
+/* -------------------------------------------------------------------------- */
+
+.user-avatar {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--line));
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
+.user-avatar__placeholder {
+  width: 72%;
+  height: 72%;
+  fill: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  stroke: var(--color-primary);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.team-logo--fallback img {
+  width: 82%;
+  height: 82%;
+}
+
+.team-logo--furia:not(.team-logo--fallback) {
+  border-color: #2f3949;
+  background: #111827;
+}
+
+.team-logo--furia:not(.team-logo--fallback) img {
+  width: 84%;
+  height: 84%;
+}
+
+.community-overview,
+.account-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.community-overview > article,
+.account-metric {
+  min-height: 7.25rem;
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.community-overview > article > span,
+.account-metric > span {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--violet-soft);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+}
+
+.community-overview small,
+.community-overview strong,
+.community-overview p,
+.account-metric small,
+.account-metric strong,
+.account-metric p {
+  display: block;
+}
+
+.community-overview small,
+.account-metric small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.community-overview strong,
+.account-metric strong {
+  margin-top: .2rem;
+  color: var(--text-primary);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.community-overview p,
+.account-metric p {
+  margin: .2rem 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.community-layout {
+  grid-template-columns: minmax(0, 1fr) 19.5rem;
+  gap: var(--space-4);
+}
+
+.composer {
+  padding: var(--space-4);
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.composer textarea {
+  min-height: 5.75rem;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+}
+
+.post {
+  padding: var(--space-5);
+}
+
+.post > header {
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2.75rem;
+  gap: var(--space-3);
+}
+
+.post > header span {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.post > p {
+  margin-block: var(--space-4);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.post > footer {
+  gap: var(--space-3);
+}
+
+.post > footer button {
+  min-height: 2.75rem;
+  padding-inline: .25rem;
+  border-radius: var(--radius-xs);
+}
+
+.trending-card {
+  padding: var(--space-4);
+}
+
+.trending-card > header {
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trending-card > header > span {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--violet-soft);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+}
+
+.trending-card > header small,
+.trending-card > header h2 {
+  display: block;
+}
+
+.trending-card > header small {
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.trending-card > header h2 {
+  margin: .15rem 0 0;
+  font-size: var(--font-size-base);
+}
+
+.trending-card > a {
+  min-height: 4.25rem;
+  padding: var(--space-2);
+  border-top: 1px solid var(--line);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}
+
+.trending-card > a:hover,
+.trending-card > a:focus-visible {
+  border-radius: var(--radius-xs);
+  background: var(--panel-soft);
+  color: var(--text-primary);
+}
+
+.trending-card > a > span {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: .6rem;
+  background: var(--panel-3);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+}
+
+.trending-card > a strong,
+.trending-card > a small {
+  display: block;
+}
+
+.trending-card > a strong {
+  font-size: var(--font-size-sm);
+}
+
+.trending-card > a small {
+  margin-top: .15rem;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.profile-hero {
+  min-height: 8.5rem;
+  grid-template-columns: 4.75rem minmax(0, 1fr) repeat(2, minmax(8rem, 10rem));
+  gap: var(--space-4);
+}
+
+.profile-hero__identity p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.profile-hero__identity p i {
+  color: var(--muted-2);
+  font-style: normal;
+}
+
+.account-overview-grid {
+  margin-bottom: var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.account-insight-card {
+  min-height: 18rem;
+  padding: var(--space-5);
+}
+
+.account-insight-card > header {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.account-insight-card > header > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.account-insight-card > header > div > span {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--violet-soft);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+}
+
+.account-insight-card header small {
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.account-insight-card header h2 {
+  margin: .15rem 0 0;
+  font-size: var(--font-size-card);
+}
+
+.account-insight-card header a {
+  flex: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 750;
+}
+
+.account-achievement-list,
+.account-activity-list {
+  display: grid;
+}
+
+.account-achievement-list > article,
+.account-activity-list > article {
+  min-height: 4.75rem;
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.account-achievement-list > article:last-child,
+.account-activity-list > article:last-child {
+  border-bottom: 0;
+}
+
+.account-achievement-list > article > span,
+.account-activity-list > article > span {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--panel-3);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+}
+
+.account-achievement-list strong,
+.account-activity-list strong {
+  font-size: var(--font-size-sm);
+}
+
+.account-achievement-list p,
+.account-activity-list p {
+  margin: .2rem 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.account-achievement-list em {
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.account-activity-list > article > div:last-child {
+  text-align: right;
+}
+
+.account-activity-list em,
+.account-activity-list small {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-style: normal;
+}
+
+.account-activity-list em {
+  color: var(--text-secondary);
+  font-weight: 750;
+}
+
+.account-activity-list small {
+  margin-top: .2rem;
+  color: var(--muted);
+}
+
+.account-insight-empty {
+  min-height: 11rem;
+  margin: 0;
+  padding: var(--space-6);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .community-overview,
+  .account-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  .community-layout,
+  .account-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .community-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trending-card {
+    grid-row: span 2;
+  }
+
+  .profile-hero {
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+  }
+
+  .profile-hero > div:nth-last-child(-n+2) {
+    padding: var(--space-3) 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .community-overview,
+  .account-metrics,
+  .community-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .community-overview > article,
+  .account-metric {
+    min-height: 6.25rem;
+  }
+
+  .profile-hero {
+    padding: var(--space-4);
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .profile-hero > div:nth-last-child(-n+2) {
+    grid-column: 1 / -1;
+  }
+
+  .profile-hero__identity p i {
+    display: none;
+  }
+
+  .profile-hero__identity p {
+    display: grid;
+  }
+
+  .account-insight-card {
+    min-height: 0;
+    padding: var(--space-4);
+  }
+
+  .account-insight-card > header {
+    align-items: flex-start;
+  }
+
+  .account-achievement-list > article,
+  .account-activity-list > article {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+
+  .account-achievement-list em,
+  .account-activity-list > article > div:last-child {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .post > footer {
+    justify-content: space-between;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

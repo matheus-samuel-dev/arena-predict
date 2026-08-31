@@ -71,6 +71,7 @@ export default function App() {
             <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/account" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route element={<AdminRoute />}>

@@ -1,4 +1,4 @@
-import { useMemo, useState, type HTMLAttributes } from "react";
+import { useEffect, useMemo, useState, type HTMLAttributes } from "react";
 
 export type UserAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -11,49 +11,49 @@ export interface UserAvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "
   loading?: "eager" | "lazy";
 }
 
-export const DEMO_PLAYER_AVATAR_PATH = "/assets/brand/demo-player-avatar.jpg";
-
-const nameParticles = new Set(["da", "das", "de", "do", "dos", "e"]);
-
-function characters(value: string) {
-  return Array.from(value.normalize("NFC"));
-}
+export const DEFAULT_USER_AVATAR_PATH = "/assets/avatars/avatar-default.webp";
+export const DEMO_PLAYER_AVATAR_PATH = "/assets/avatars/jogador-demo.webp";
 
 /**
- * Produces a compact, predictable identity for every name shape used by the UI.
- * One-word names keep two characters; compound names use the first and last
- * meaningful words so long Portuguese names remain recognizable.
+ * Demo identities are centralized here so ranking and administration responses
+ * that only contain a display name still receive the same local visual avatar.
+ * API-provided avatar URLs always take priority.
  */
-export function getAvatarInitials(name?: string | null) {
-  const words = (name || "")
-    .trim()
-    .split(/\s+/u)
-    .filter(Boolean);
+export const DEMO_USER_AVATAR_MAP: Record<string, string> = {
+  "administrador demo": "/assets/avatars/admin-demo.webp",
+  "jogador demo": DEMO_PLAYER_AVATAR_PATH,
+  "beatriz nunes": "/assets/avatars/beatriz-nunes.webp",
+  "marina costa": "/assets/avatars/marina-costa.webp",
+  "rafael lima": "/assets/avatars/rafael-lima.webp",
+  "camila rocha": "/assets/avatars/camila-rocha.webp",
+  "lucas almeida": "/assets/avatars/lucas-almeida.webp",
+  "ana ribeiro": "/assets/avatars/ana-ribeiro.webp",
+  "diego ferreira": "/assets/avatars/diego-ferreira.webp",
+};
 
-  if (!words.length) return "AP";
-  if (words.length === 1) return characters(words[0]).slice(0, 2).join("").toLocaleUpperCase("pt-BR");
-
-  const meaningfulWords = words.filter((word, index) => (
-    index === 0 || index === words.length - 1 || !nameParticles.has(word.toLocaleLowerCase("pt-BR"))
-  ));
-  const first = meaningfulWords[0] || words[0];
-  const last = meaningfulWords.at(-1) || words.at(-1) || first;
-  return `${characters(first)[0] || ""}${characters(last)[0] || ""}`.toLocaleUpperCase("pt-BR");
+export function normalizeUserName(value?: string | null) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function resolveAvatarSource(name?: string | null, avatarUrl?: string | null, src?: string | null) {
+export function resolveAvatarSource(name?: string | null, avatarUrl?: string | null, src?: string | null) {
   const explicitSource = avatarUrl?.trim() || src?.trim();
   if (explicitSource) return explicitSource;
-  return name?.trim().toLocaleLowerCase("pt-BR") === "jogador demo"
-    ? DEMO_PLAYER_AVATAR_PATH
-    : undefined;
+  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || DEFAULT_USER_AVATAR_PATH;
+}
+
+export function resolveAvatarFallback(name?: string | null) {
+  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || DEFAULT_USER_AVATAR_PATH;
 }
 
 /**
  * Stable avatar surface shared by account, ranking, community and admin views.
- * The wrapper never changes size when an image fails, preventing layout shift.
- * It is decorative by default because every current usage renders the user's
- * visible name next to it; callers may provide aria-label for standalone use.
+ * Failed remote images fall back to a local illustrated portrait, never initials,
+ * so every identity keeps a polished and context-rich visual treatment.
  */
 export function UserAvatar({
   name,
@@ -64,11 +64,14 @@ export function UserAvatar({
   className = "",
   ...props
 }: UserAvatarProps) {
-  const source = resolveAvatarSource(name, avatarUrl, src);
-  const [failedSource, setFailedSource] = useState<string>();
-  const initials = useMemo(() => getAvatarInitials(name), [name]);
-  const showImage = Boolean(source && source !== failedSource);
+  const preferredSource = useMemo(() => resolveAvatarSource(name, avatarUrl, src), [name, avatarUrl, src]);
+  const visualFallback = useMemo(() => resolveAvatarFallback(name), [name]);
+  const [source, setSource] = useState<string | null>(preferredSource);
   const accessibleLabel = props["aria-label"];
+
+  useEffect(() => {
+    setSource(preferredSource);
+  }, [preferredSource]);
 
   return (
     <span
@@ -77,7 +80,7 @@ export function UserAvatar({
       role={accessibleLabel ? props.role || "img" : props.role}
       aria-hidden={accessibleLabel ? undefined : true}
     >
-      {showImage ? (
+      {source ? (
         <img
           className="user-avatar__image"
           src={source}
@@ -85,10 +88,17 @@ export function UserAvatar({
           aria-hidden="true"
           loading={loading}
           decoding="async"
-          onError={() => setFailedSource(source)}
+          onError={() => {
+            if (source !== visualFallback) setSource(visualFallback);
+            else if (source !== DEFAULT_USER_AVATAR_PATH) setSource(DEFAULT_USER_AVATAR_PATH);
+            else setSource(null);
+          }}
         />
       ) : (
-        <span className="user-avatar__initials">{initials}</span>
+        <svg className="user-avatar__placeholder" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="18" r="8" />
+          <path d="M9 42c1.4-9 6.6-13.5 15-13.5S37.6 33 39 42" />
+        </svg>
       )}
     </span>
   );

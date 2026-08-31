@@ -1,29 +1,27 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  DEFAULT_USER_AVATAR_PATH,
   DEMO_PLAYER_AVATAR_PATH,
-  getAvatarInitials,
+  normalizeUserName,
+  resolveAvatarSource,
   UserAvatar,
 } from "../components/UserAvatar";
 
 describe("UserAvatar", () => {
   afterEach(() => cleanup());
 
-  it.each([
-    ["Rafa", "RA"],
-    ["Ana Lima", "AL"],
-    ["João Pedro de Almeida", "JA"],
-    ["  Maria   da   Silva  ", "MS"],
-    [undefined, "AP"],
-  ])("gera iniciais previsíveis para %s", (name, expected) => {
-    expect(getAvatarInitials(name)).toBe(expected);
+  it("resolve identidades demo de forma centralizada e tolerante a acentos", () => {
+    expect(normalizeUserName("  Beatríz   Nunes  ")).toBe("beatriz nunes");
+    expect(resolveAvatarSource("Jogador Demo")).toBe(DEMO_PLAYER_AVATAR_PATH);
+    expect(resolveAvatarSource("Beatriz Nunes")).toBe("/assets/avatars/beatriz-nunes.webp");
   });
 
-  it("exibe iniciais quando não há imagem e mantém o avatar decorativo", () => {
-    const { container } = render(<UserAvatar name="Ana Lima" size="xl" />);
+  it("usa um retrato visual padrão, nunca letras, quando o usuário não tem imagem", () => {
+    const { container } = render(<UserAvatar name="Participante sem cadastro" size="xl" />);
 
-    expect(screen.getByText("AL")).toBeInTheDocument();
-    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(container.querySelector("img")).toHaveAttribute("src", DEFAULT_USER_AVATAR_PATH);
+    expect(container.textContent).toBe("");
     expect(container.firstElementChild).toHaveClass("user-avatar", "user-avatar--xl");
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
   });
@@ -35,20 +33,26 @@ describe("UserAvatar", () => {
     expect(image).toHaveAttribute("src", "/assets/users/ana.jpg");
     expect(image).toHaveAttribute("alt", "");
     expect(image).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByText("AL")).not.toBeInTheDocument();
   });
 
-  it("troca uma URL quebrada pelas iniciais sem substituir a superfície estável", () => {
+  it("troca uma URL quebrada pelo avatar visual local sem alterar a superfície", () => {
     const { container } = render(<UserAvatar name="Carlos Souza" src="/imagem-quebrada.jpg" />);
     const surface = container.firstElementChild;
     const image = container.querySelector("img");
 
-    expect(image).toBeInTheDocument();
     fireEvent.error(image!);
 
     expect(container.firstElementChild).toBe(surface);
-    expect(container.querySelector("img")).not.toBeInTheDocument();
-    expect(screen.getByText("CS")).toBeInTheDocument();
+    expect(container.querySelector("img")).toHaveAttribute("src", DEFAULT_USER_AVATAR_PATH);
+    expect(container.textContent).toBe("");
+  });
+
+  it("preserva a identidade demo mapeada quando uma URL antiga falha", () => {
+    const { container } = render(<UserAvatar name="Beatriz Nunes" avatarUrl="/imagem-antiga.jpg" />);
+    fireEvent.error(container.querySelector("img")!);
+
+    expect(container.querySelector("img")).toHaveAttribute("src", "/assets/avatars/beatriz-nunes.webp");
+    expect(container.textContent).toBe("");
   });
 
   it("usa o asset local no perfil Jogador Demo e permite rótulo acessível quando isolado", () => {

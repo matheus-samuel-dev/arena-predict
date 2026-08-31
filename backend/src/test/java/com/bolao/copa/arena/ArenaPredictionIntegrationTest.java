@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 class ArenaPredictionIntegrationTest {
     @Autowired UserRepository users;
     @Autowired ArenaEventRepository events;
+    @Autowired CompetitorRepository competitors;
     @Autowired PredictionMarketRepository markets;
     @Autowired MarketOptionRepository options;
     @Autowired ArenaPredictionRepository predictions;
@@ -46,6 +47,14 @@ class ArenaPredictionIntegrationTest {
         assertThat(users.findByEmailIgnoreCase("marina.costa@arenapredict.com")).isPresent();
         assertThat(users.findByEmailIgnoreCase("rafael.lima@arenapredict.com")).isPresent();
         assertThat(users.findByEmailIgnoreCase("beatriz.nunes@arenapredict.com")).isPresent();
+        assertThat(users.findByEmailIgnoreCase("camila.rocha@arenapredict.com")).isPresent();
+        assertThat(users.findByEmailIgnoreCase("lucas.almeida@arenapredict.com")).isPresent();
+        assertThat(users.findByEmailIgnoreCase("ana.ribeiro@arenapredict.com")).isPresent();
+        assertThat(users.findByEmailIgnoreCase("diego.ferreira@arenapredict.com")).isPresent();
+        assertThat(competitors.findAll())
+                .filteredOn(value -> "FURIA".equals(value.getCode()) || "NAVI".equals(value.getCode()))
+                .hasSize(2)
+                .allMatch(value -> value.getImageUrl() != null && !value.getImageUrl().isBlank());
         var cancelled = events.findByExternalKey("demo-football-cancelled").orElseThrow();
         assertThat(cancelled.getStatus()).isEqualTo(EventStatus.CANCELLED);
         assertThat(predictions.findByEventAndStatus(cancelled, PredictionStatus.REFUNDED)).isNotEmpty();

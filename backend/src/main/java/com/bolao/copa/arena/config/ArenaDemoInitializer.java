@@ -26,8 +26,19 @@ public class ArenaDemoInitializer {
             "jogador@arenapredict.com",
             "marina.costa@arenapredict.com",
             "rafael.lima@arenapredict.com",
-            "beatriz.nunes@arenapredict.com"
+            "beatriz.nunes@arenapredict.com",
+            "camila.rocha@arenapredict.com",
+            "lucas.almeida@arenapredict.com",
+            "ana.ribeiro@arenapredict.com",
+            "diego.ferreira@arenapredict.com"
     );
+    private static final String PALMEIRAS_LOGO = "https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg";
+    private static final String FLAMENGO_LOGO = "https://upload.wikimedia.org/wikipedia/commons/9/96/Clube_de_Regatas_do_Flamengo_logo.svg";
+    private static final String FURIA_LOGO = "https://us.furia.gg/images/brand/logotipo-white.svg";
+    private static final String NAVI_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Natus_Vincere_logo.png";
+    private static final String LOUD_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/LOUD_logo.svg";
+    private static final String T1_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/T1_esports_logo.svg";
+    private static final String GENG_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg";
     private final SportRepository sports;
     private final ChampionshipRepository championships;
     private final CompetitorRepository competitors;
@@ -85,22 +96,24 @@ public class ArenaDemoInitializer {
         Championship lck = championship(sport.get("LEAGUE_OF_LEGENDS"), "LCK Summer", "lck-summer", "2026");
         Championship formula1 = championship(sport.get("MOTORSPORT"), "Fórmula 1", "formula-1", "2026");
 
-        Competitor palmeiras = competitor(sport.get("FOOTBALL"), "Palmeiras", "PAL", "Brasil");
-        Competitor flamengo = competitor(sport.get("FOOTBALL"), "Flamengo", "FLA", "Brasil");
-        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos");
-        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos");
-        Competitor furia = competitor(sport.get("CS2"), "FURIA", "FURIA", "Brasil");
-        Competitor navi = competitor(sport.get("CS2"), "NAVI", "NAVI", "Ucrânia");
-        Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina");
-        Competitor loud = competitor(sport.get("VALORANT"), "LOUD", "LOUD", "Brasil");
-        Competitor alcaraz = competitor(sport.get("TENNIS"), "Carlos Alcaraz", "ALC", "Espanha");
-        Competitor sinner = competitor(sport.get("TENNIS"), "Jannik Sinner", "SIN", "Itália");
-        Competitor t1 = competitor(sport.get("LEAGUE_OF_LEGENDS"), "T1", "T1", "Coreia do Sul");
-        Competitor geng = competitor(sport.get("LEAGUE_OF_LEGENDS"), "Gen.G", "GENG", "Coreia do Sul");
-        Competitor verstappen = competitor(sport.get("MOTORSPORT"), "Max Verstappen", "VER", "Países Baixos");
-        Competitor norris = competitor(sport.get("MOTORSPORT"), "Lando Norris", "NOR", "Reino Unido");
-        Competitor leclerc = competitor(sport.get("MOTORSPORT"), "Charles Leclerc", "LEC", "Mônaco");
-        Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália");
+        Competitor palmeiras = competitor(sport.get("FOOTBALL"), "Palmeiras", "PAL", "Brasil", PALMEIRAS_LOGO);
+        Competitor flamengo = competitor(sport.get("FOOTBALL"), "Flamengo", "FLA", "Brasil", FLAMENGO_LOGO);
+        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos",
+                "https://en.wikipedia.org/wiki/Special:Redirect/file/Boston_Celtics.svg");
+        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos",
+                "https://en.wikipedia.org/wiki/Special:Redirect/file/Dallas_Mavericks_logo.svg");
+        Competitor furia = competitor(sport.get("CS2"), "FURIA", "FURIA", "Brasil", FURIA_LOGO);
+        Competitor navi = competitor(sport.get("CS2"), "NAVI", "NAVI", "Ucrânia", NAVI_LOGO);
+        Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina", null);
+        Competitor loud = competitor(sport.get("VALORANT"), "LOUD", "LOUD", "Brasil", LOUD_LOGO);
+        Competitor alcaraz = competitor(sport.get("TENNIS"), "Carlos Alcaraz", "ALC", "Espanha", null);
+        Competitor sinner = competitor(sport.get("TENNIS"), "Jannik Sinner", "SIN", "Itália", null);
+        Competitor t1 = competitor(sport.get("LEAGUE_OF_LEGENDS"), "T1", "T1", "Coreia do Sul", T1_LOGO);
+        Competitor geng = competitor(sport.get("LEAGUE_OF_LEGENDS"), "Gen.G", "GENG", "Coreia do Sul", GENG_LOGO);
+        Competitor verstappen = competitor(sport.get("MOTORSPORT"), "Max Verstappen", "VER", "Países Baixos", null);
+        Competitor norris = competitor(sport.get("MOTORSPORT"), "Lando Norris", "NOR", "Reino Unido", null);
+        Competitor leclerc = competitor(sport.get("MOTORSPORT"), "Charles Leclerc", "LEC", "Mônaco", null);
+        Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália", null);
 
         Instant now = Instant.now();
         ArenaEvent footballLive = event("demo-football-live", brasileirao, palmeiras, flamengo, "Palmeiras x Flamengo",
@@ -188,8 +201,22 @@ public class ArenaDemoInitializer {
     private Championship championship(Sport sport, String name, String slug, String season) {
         return championships.findBySportAndSlugAndSeason(sport, slug, season).orElseGet(() -> { Championship value = new Championship(); value.setSport(sport); value.setName(name); value.setSlug(slug); value.setSeason(season); return championships.save(value); });
     }
-    private Competitor competitor(Sport sport, String name, String code, String country) {
-        return competitors.findBySportAndCodeIgnoreCase(sport, code).orElseGet(() -> { Competitor value = new Competitor(); value.setSport(sport); value.setName(name); value.setCode(code); value.setCountry(country); return competitors.save(value); });
+    private Competitor competitor(Sport sport, String name, String code, String country, String imageUrl) {
+        Competitor value = competitors.findBySportAndCodeIgnoreCase(sport, code).orElse(null);
+        if (value == null) {
+            value = new Competitor();
+            value.setSport(sport);
+            value.setName(name);
+            value.setCode(code);
+            value.setCountry(country);
+            value.setImageUrl(imageUrl);
+            return competitors.save(value);
+        }
+        if ((value.getImageUrl() == null || value.getImageUrl().isBlank()) && imageUrl != null) {
+            value.setImageUrl(imageUrl);
+            return competitors.save(value);
+        }
+        return value;
     }
     private ArenaEvent event(String key, Championship championship, Competitor home, Competitor away, String title,
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {
