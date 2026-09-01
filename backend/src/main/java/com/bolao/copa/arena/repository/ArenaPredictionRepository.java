@@ -26,6 +26,8 @@ public interface ArenaPredictionRepository extends JpaRepository<ArenaPrediction
     long countByStatus(PredictionStatus status);
     List<ArenaPrediction> findByPool(ArenaPool pool);
     @EntityGraph(attributePaths = {"user", "event", "event.championship", "event.championship.sport"})
-    @Query("select prediction from ArenaPrediction prediction where prediction.placedAt >= :since order by prediction.placedAt desc")
+    @Query("select prediction from ArenaPrediction prediction " +
+            "where prediction.resolvedAt >= :since " +
+            "order by prediction.resolvedAt desc, prediction.id desc")
     List<ArenaPrediction> findForRankingSince(Instant since);
 }

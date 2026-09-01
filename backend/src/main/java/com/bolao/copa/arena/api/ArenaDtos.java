@@ -19,8 +19,9 @@ public final class ArenaDtos {
     public record ChampionshipResponse(Long id, Long sportId, String sportCode, String name, String slug,
                                        String season, ChampionshipStatus status, String imageUrl,
                                        Instant startsAt, Instant endsAt) { }
-    public record CompetitorResponse(Long id, Long sportId, String name, String code, String imageUrl,
-                                     String country, boolean active) { }
+    public record CompetitorResponse(Long id, Long sportId, String sportCode, String sportName,
+                                     String name, String code, String imageUrl, String country,
+                                     boolean active) { }
     public record CompetitorSummary(Long id, String name, String code, String imageUrl) { }
     public record EventParticipantResponse(Long id, CompetitorSummary competitor, int displayOrder,
                                            Integer position, String scoreLabel) { }

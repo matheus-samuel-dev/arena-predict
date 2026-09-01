@@ -9,17 +9,19 @@ describe("TeamLogo", () => {
     expect(normalizeTeamName("  São Paulo  ")).toBe("sao paulo");
     expect(resolveTeamLogo("Palmeiras")).toContain("Palmeiras_logo.svg");
     expect(resolveTeamLogo("Team Vitality")).toContain("Team_Vitality_logo.svg");
-    expect(resolveTeamLogo("FURIA")).toContain("furia.gg");
+    expect(resolveTeamLogo("FURIA")).toContain("FURIA_Esports_logo.svg");
     expect(resolveTeamLogo("Natus Vincere")).toContain("Natus_Vincere_logo.png");
+    expect(resolveTeamLogo("Carlos Alcaraz")).toBe("/assets/teams/carlos-alcaraz.svg");
   });
 
-  it("prioriza URL da API e troca uma imagem quebrada pelo placeholder visual", () => {
+  it("prioriza URL da API e troca uma imagem quebrada por identidade exclusiva", () => {
     const { container } = render(<TeamLogo name="Clube Aurora" logoUrl="/logos/aurora.svg" decorative={false} />);
     const image = container.querySelector("img");
     expect(image).toHaveAttribute("src", "/logos/aurora.svg");
     expect(screen.getByRole("img", { name: "Clube Aurora" })).toBeInTheDocument();
     fireEvent.error(image!);
-    expect(container.querySelector("img")).toHaveAttribute("src", TEAM_PLACEHOLDER_PATH);
+    expect(container.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    expect(container.querySelector("img")).not.toHaveAttribute("src", TEAM_PLACEHOLDER_PATH);
     expect(container.textContent).toBe("");
   });
 
@@ -31,10 +33,14 @@ describe("TeamLogo", () => {
     expect(container.firstElementChild).not.toHaveClass("team-logo--fallback");
   });
 
-  it("mantém fallback gráfico para participante sem logo", () => {
+  it("gera fallbacks diferentes para participantes sem logo", () => {
     const { container } = render(<TeamLogo name="Equipe sem imagem" />);
-    expect(container.firstElementChild).toHaveClass("team-logo--fallback");
-    expect(container.querySelector("img")).toHaveAttribute("src", TEAM_PLACEHOLDER_PATH);
+    const firstSource = container.querySelector("img")?.getAttribute("src");
+    expect(container.firstElementChild).toHaveClass("team-logo--generated");
+    expect(firstSource).toMatch(/^data:image\/svg\+xml/);
+    cleanup();
+    const other = render(<TeamLogo name="Outro participante" />);
+    expect(other.container.querySelector("img")?.getAttribute("src")).not.toBe(firstSource);
     expect(container.textContent).toBe("");
   });
 });

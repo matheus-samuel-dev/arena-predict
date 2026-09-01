@@ -34,11 +34,20 @@ public class ArenaDemoInitializer {
     );
     private static final String PALMEIRAS_LOGO = "https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg";
     private static final String FLAMENGO_LOGO = "https://upload.wikimedia.org/wikipedia/commons/9/96/Clube_de_Regatas_do_Flamengo_logo.svg";
-    private static final String FURIA_LOGO = "https://us.furia.gg/images/brand/logotipo-white.svg";
+    private static final String FURIA_LOGO = "/assets/teams/furia.svg";
+    private static final String LEGACY_FURIA_WORDMARK = "https://us.furia.gg/images/brand/logotipo-white.svg";
+    private static final String LEGACY_GENERIC_BADGE = "/assets/teams/team-placeholder.svg";
     private static final String NAVI_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Natus_Vincere_logo.png";
     private static final String LOUD_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/LOUD_logo.svg";
     private static final String T1_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/T1_esports_logo.svg";
     private static final String GENG_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg";
+    private static final String LEVIATAN_IDENTITY = "/assets/teams/leviatan.svg";
+    private static final String ALCARAZ_IDENTITY = "/assets/teams/carlos-alcaraz.svg";
+    private static final String SINNER_IDENTITY = "/assets/teams/jannik-sinner.svg";
+    private static final String VERSTAPPEN_IDENTITY = "/assets/teams/max-verstappen.svg";
+    private static final String NORRIS_IDENTITY = "/assets/teams/lando-norris.svg";
+    private static final String LECLERC_IDENTITY = "/assets/teams/charles-leclerc.svg";
+    private static final String PIASTRI_IDENTITY = "/assets/teams/oscar-piastri.svg";
     private final SportRepository sports;
     private final ChampionshipRepository championships;
     private final CompetitorRepository competitors;
@@ -104,16 +113,16 @@ public class ArenaDemoInitializer {
                 "https://en.wikipedia.org/wiki/Special:Redirect/file/Dallas_Mavericks_logo.svg");
         Competitor furia = competitor(sport.get("CS2"), "FURIA", "FURIA", "Brasil", FURIA_LOGO);
         Competitor navi = competitor(sport.get("CS2"), "NAVI", "NAVI", "Ucrânia", NAVI_LOGO);
-        Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina", null);
+        Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina", LEVIATAN_IDENTITY);
         Competitor loud = competitor(sport.get("VALORANT"), "LOUD", "LOUD", "Brasil", LOUD_LOGO);
-        Competitor alcaraz = competitor(sport.get("TENNIS"), "Carlos Alcaraz", "ALC", "Espanha", null);
-        Competitor sinner = competitor(sport.get("TENNIS"), "Jannik Sinner", "SIN", "Itália", null);
+        Competitor alcaraz = competitor(sport.get("TENNIS"), "Carlos Alcaraz", "ALC", "Espanha", ALCARAZ_IDENTITY);
+        Competitor sinner = competitor(sport.get("TENNIS"), "Jannik Sinner", "SIN", "Itália", SINNER_IDENTITY);
         Competitor t1 = competitor(sport.get("LEAGUE_OF_LEGENDS"), "T1", "T1", "Coreia do Sul", T1_LOGO);
         Competitor geng = competitor(sport.get("LEAGUE_OF_LEGENDS"), "Gen.G", "GENG", "Coreia do Sul", GENG_LOGO);
-        Competitor verstappen = competitor(sport.get("MOTORSPORT"), "Max Verstappen", "VER", "Países Baixos", null);
-        Competitor norris = competitor(sport.get("MOTORSPORT"), "Lando Norris", "NOR", "Reino Unido", null);
-        Competitor leclerc = competitor(sport.get("MOTORSPORT"), "Charles Leclerc", "LEC", "Mônaco", null);
-        Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália", null);
+        Competitor verstappen = competitor(sport.get("MOTORSPORT"), "Max Verstappen", "VER", "Países Baixos", VERSTAPPEN_IDENTITY);
+        Competitor norris = competitor(sport.get("MOTORSPORT"), "Lando Norris", "NOR", "Reino Unido", NORRIS_IDENTITY);
+        Competitor leclerc = competitor(sport.get("MOTORSPORT"), "Charles Leclerc", "LEC", "Mônaco", LECLERC_IDENTITY);
+        Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália", PIASTRI_IDENTITY);
 
         Instant now = Instant.now();
         ArenaEvent footballLive = event("demo-football-live", brasileirao, palmeiras, flamengo, "Palmeiras x Flamengo",
@@ -212,11 +221,26 @@ public class ArenaDemoInitializer {
             value.setImageUrl(imageUrl);
             return competitors.save(value);
         }
-        if ((value.getImageUrl() == null || value.getImageUrl().isBlank()) && imageUrl != null) {
-            value.setImageUrl(imageUrl);
-            return competitors.save(value);
+        boolean changed = false;
+        if (!Objects.equals(value.getName(), name)) {
+            value.setName(name);
+            changed = true;
         }
-        return value;
+        if (!Objects.equals(value.getCountry(), country)) {
+            value.setCountry(country);
+            changed = true;
+        }
+        if (shouldRepairDemoImage(code, value.getImageUrl(), imageUrl)) {
+            value.setImageUrl(imageUrl);
+            changed = true;
+        }
+        return changed ? competitors.save(value) : value;
+    }
+
+    private boolean shouldRepairDemoImage(String code, String currentImageUrl, String expectedImageUrl) {
+        if (expectedImageUrl == null) return false;
+        if (currentImageUrl == null || currentImageUrl.isBlank() || LEGACY_GENERIC_BADGE.equals(currentImageUrl)) return true;
+        return "FURIA".equalsIgnoreCase(code) && !Objects.equals(currentImageUrl, expectedImageUrl);
     }
     private ArenaEvent event(String key, Championship championship, Competitor home, Competitor away, String title,
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {

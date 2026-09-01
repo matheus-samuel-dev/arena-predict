@@ -300,7 +300,9 @@ public class ArenaCatalogService {
                 value.getSlug(), value.getSeason(), value.getStatus(), value.getImageUrl(), value.getStartsAt(), value.getEndsAt());
     }
     public CompetitorResponse competitorResponse(Competitor value) {
-        return new CompetitorResponse(value.getId(), value.getSport().getId(), value.getName(), value.getCode(), value.getImageUrl(), value.getCountry(), value.isActive());
+        return new CompetitorResponse(value.getId(), value.getSport().getId(), value.getSport().getCode(),
+                value.getSport().getName(), value.getName(), value.getCode(), value.getImageUrl(),
+                value.getCountry(), value.isActive());
     }
     public EventResponse eventResponse(ArenaEvent value) {
         List<MarketResponse> eventMarkets = markets.findByEventOrderByIdAsc(value).stream().map(this::marketResponse).toList();

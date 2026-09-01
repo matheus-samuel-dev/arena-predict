@@ -1,8 +1,8 @@
-import { Award, BarChart3, CalendarClock, CheckCircle2, ChevronDown, Crown, Flame, Gauge, Medal, ShieldCheck, Sparkles, Target, Trophy, Users, Zap } from "lucide-react";
+import { Award, BarChart3, CalendarClock, CheckCircle2, ChevronDown, Crown, Flame, Gauge, Medal, Search, ShieldCheck, Sparkles, Target, Trophy, Users, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { dateTime, percentage, points, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useApiResource } from "../hooks/useApiResource";
 import { achievementsApi, asList, catalogApi, challengesApi, predictionsApi, rankingsApi } from "../services/api";
 import type { Achievement, Challenge, RankingRow } from "../types";
@@ -11,6 +11,7 @@ export function RankingsPage() {
   const [period, setPeriod] = useState("WEEKLY");
   const [scope, setScope] = useState("GLOBAL");
   const [sport, setSport] = useState("");
+  const [participantQuery, setParticipantQuery] = useState("");
   const { data, loading, error, reload } = useApiResource(async () => {
     const [rankingResponse, sportsResponse] = await Promise.all([
       rankingsApi.list({ period, scope, sport: sport || undefined }),
@@ -21,22 +22,81 @@ export function RankingsPage() {
   if (loading) return <PageSkeleton cards={3} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
   const rows = data?.rows || [];
+  const normalizedParticipantQuery = normalizeParticipantFilter(participantQuery);
+  const visibleRows = normalizedParticipantQuery
+    ? rows.filter((row) => normalizeParticipantFilter(row.name || row.participant).includes(normalizedParticipantQuery))
+    : rows;
   return (
     <>
       <PageHeader eyebrow="PLACAR DA COMUNIDADE" title="Rankings" description="Compare consistência, precisão e evolução em diferentes períodos e modalidades." />
       <section className="ranking-controls surface">
         <div className="filter-tabs" role="group" aria-label="Filtrar ranking por período">{[{ value: "WEEKLY", label: "Semanal" }, { value: "MONTHLY", label: "Mensal" }, { value: "ALL", label: "Geral" }].map((item) => <button type="button" aria-pressed={period === item.value} className={period === item.value ? "active" : ""} onClick={() => setPeriod(item.value)} key={item.value}>{item.label}</button>)}</div>
-        <label className="select-field"><Users size={16} aria-hidden="true" /><select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Filtrar ranking por grupo"><option value="GLOBAL">Todos os participantes</option><option value="FRIENDS">Entre amigos</option></select><ChevronDown size={15} aria-hidden="true" /></label>
-        <label className="select-field"><Trophy size={16} aria-hidden="true" /><select value={sport} onChange={(event) => setSport(event.target.value)} aria-label="Filtrar ranking por modalidade"><option value="">Todas as modalidades</option>{(data?.sports || []).map((item) => <option value={item.slug || item.id} key={item.id}>{item.name}</option>)}</select><ChevronDown size={15} aria-hidden="true" /></label>
+        <div className="ranking-controls__fields">
+          <label className="ranking-participant-search">
+            <Search size={17} aria-hidden="true" />
+            <input
+              type="search"
+              value={participantQuery}
+              onChange={(event) => setParticipantQuery(event.target.value)}
+              placeholder="Buscar participante..."
+              aria-label="Buscar participante no ranking"
+              autoComplete="off"
+            />
+          </label>
+          <label className="select-field"><Users size={16} aria-hidden="true" /><select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Filtrar ranking por grupo"><option value="GLOBAL">Todos os participantes</option><option value="FRIENDS">Entre amigos</option></select><ChevronDown size={15} aria-hidden="true" /></label>
+          <label className="select-field"><Trophy size={16} aria-hidden="true" /><select value={sport} onChange={(event) => setSport(event.target.value)} aria-label="Filtrar ranking por modalidade"><option value="">Todas as modalidades</option>{(data?.sports || []).map((item) => <option value={item.slug || item.id} key={item.id}>{item.name}</option>)}</select><ChevronDown size={15} aria-hidden="true" /></label>
+        </div>
       </section>
-      {rows.length ? <><Podium rows={rows.slice(0, 3)} /><section className="surface ranking-table-panel" role="table" aria-label="Classificação do ranking"><div role="rowgroup"><div className="ranking-table ranking-table--header" role="row"><span role="columnheader">Posição</span><span role="columnheader">Participante</span><span role="columnheader">Pontos</span><span role="columnheader">Acertos</span><span role="columnheader">Precisão</span><span role="columnheader">Sequência</span></div></div><div role="rowgroup">{rows.map((row) => <RankingLine row={row} key={row.userId || row.position} />)}</div></section></> : <EmptyState icon={Trophy} title="Ranking ainda em formação" description="As posições surgem depois que os resultados oficiais são processados." />}
+      {rows.length ? <>
+        <Podium rows={rows.slice(0, 3)} />
+        {normalizedParticipantQuery && (
+          <div className="ranking-results-summary" role="status">
+            <span>{visibleRows.length} {visibleRows.length === 1 ? "participante encontrado" : "participantes encontrados"}</span>
+            <Button type="button" variant="quiet" size="sm" onClick={() => setParticipantQuery("")}>Limpar busca</Button>
+          </div>
+        )}
+        {visibleRows.length ? <section className="surface ranking-table-panel" role="table" aria-label="Classificação do ranking"><div role="rowgroup"><div className="ranking-table ranking-table--header" role="row"><span role="columnheader">Posição</span><span role="columnheader">Participante</span><span role="columnheader">Pontos</span><span role="columnheader">Acertos</span><span role="columnheader">Precisão</span><span role="columnheader">Sequência</span></div></div><div role="rowgroup">{visibleRows.map((row) => <RankingLine row={row} key={row.userId || row.position} />)}</div></section> : <EmptyState icon={Search} title="Nenhum participante encontrado" description="Tente buscar por outro nome ou limpe o filtro para ver a classificação completa." action={<Button type="button" variant="secondary" onClick={() => setParticipantQuery("")}>Limpar busca</Button>} />}
+      </> : <EmptyState icon={Trophy} title="Ranking ainda em formação" description="As posições surgem depois que os resultados oficiais são processados." />}
       <div className="virtual-footer-note"><ShieldCheck size={15} /> Rankings concedem apenas reconhecimento e recompensas virtuais.</div>
     </>
   );
 }
 
 function Podium({ rows }: { rows: RankingRow[] }) {
-  return <section className="podium" aria-label="Pódio"><div className="podium__ambient" />{rows.filter(Boolean).map((row) => <article className={`podium__item podium__item--${row.position} ${row.currentUser ? "current" : ""}`} style={{ order: row.position === 1 ? 2 : row.position === 2 ? 1 : 3 }} key={row.userId || row.position}><span className="podium__crown">{row.position === 1 ? <Crown size={20} /> : <Medal size={20} />}</span><UserAvatar name={row.name || row.participant} avatarUrl={row.avatarUrl} size="lg" /><strong>{row.name || row.participant}</strong><small>{row.hits || 0} acertos · {percentage(row.accuracy)}</small><b>{points(row.points)} pts</b><em>#{row.position}</em></article>)}</section>;
+  return (
+    <section className="podium" aria-label="Pódio">
+      {rows.filter(Boolean).map((row) => {
+        const participantName = row.name || row.participant || "Participante";
+        return (
+          <article className={`podium__item podium__item--${row.position} ${row.currentUser ? "current" : ""}`} key={row.userId || row.position}>
+            <header className="podium__rank">
+              <span className="podium__crown" aria-hidden="true">{row.position === 1 ? <Crown size={20} /> : <Medal size={20} />}</span>
+              <span className="podium__position" aria-label={`${row.position}ª posição`}>#{row.position}</span>
+            </header>
+            <UserAvatar name={participantName} avatarUrl={row.avatarUrl} size="lg" aria-label={`Avatar de ${participantName}`} />
+            <div className="podium__identity">
+              <strong>{participantName}</strong>
+              {row.currentUser && <small>Você</small>}
+            </div>
+            <div className="podium__metrics" aria-label={`Desempenho de ${participantName}`}>
+              <span><strong>{row.hits || 0}</strong><small>acertos</small></span>
+              <span><strong>{percentage(row.accuracy)}</strong><small>precisão</small></span>
+            </div>
+            <footer className="podium__score"><small>Pontuação</small><strong>{points(row.points)} pts</strong></footer>
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+function normalizeParticipantFilter(value?: string) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function RankingLine({ row }: { row: RankingRow }) {

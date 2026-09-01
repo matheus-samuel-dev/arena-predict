@@ -6,6 +6,7 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
+import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -136,8 +137,11 @@ public class ArenaPoolRankingService {
                         .collect(java.util.stream.Collectors.toSet())
                 : null;
         Map<Long, List<ArenaPrediction>> byUser = predictions.findForRankingSince(since).stream()
-                .filter(value -> value.getStatus() == PredictionStatus.ACTIVE
-                        || value.getStatus() == PredictionStatus.WON || value.getStatus() == PredictionStatus.LOST)
+                // A ranking is a performance table, therefore only finalized
+                // predictions count. Active predictions remain visible in the
+                // participant dashboard without diluting accuracy with 0/0 rows.
+                .filter(value -> value.getStatus() == PredictionStatus.WON || value.getStatus() == PredictionStatus.LOST)
+                .filter(value -> value.getUser().getRole().canonical() == UserRole.PARTICIPANTE)
                 .filter(value -> eligibleUsers == null || eligibleUsers.contains(value.getUser().getId()))
                 .filter(value -> matchesSport(value, sport))
                 .collect(java.util.stream.Collectors.groupingBy(value -> value.getUser().getId(),
