@@ -25,6 +25,7 @@ public class ArenaPoolRankingService {
     private final ChampionshipRepository championships;
     private final ArenaPredictionRepository predictions;
     private final PointWalletRepository wallets;
+    private final PlayerProfileRepository profiles;
     private final UserRepository users;
     private final ArenaCatalogService catalog;
     private final ProgressionService progression;
@@ -32,9 +33,11 @@ public class ArenaPoolRankingService {
     public ArenaPoolRankingService(ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                    SportRepository sports, ChampionshipRepository championships,
                                    ArenaPredictionRepository predictions, PointWalletRepository wallets,
-                                   UserRepository users, ArenaCatalogService catalog, ProgressionService progression) {
+                                   PlayerProfileRepository profiles, UserRepository users,
+                                   ArenaCatalogService catalog, ProgressionService progression) {
         this.pools = pools; this.members = members; this.sports = sports; this.championships = championships;
-        this.predictions = predictions; this.wallets = wallets; this.users = users; this.catalog = catalog; this.progression = progression;
+        this.predictions = predictions; this.wallets = wallets; this.profiles = profiles; this.users = users;
+        this.catalog = catalog; this.progression = progression;
     }
 
     @Transactional(readOnly = true)
@@ -195,12 +198,18 @@ public class ArenaPoolRankingService {
     private List<RankingRow> rows(List<PlayerStats> values, User current) {
         List<PlayerStats> sorted = values.stream().sorted(Comparator.comparingLong(PlayerStats::score).reversed()
                 .thenComparing(Comparator.comparingLong(PlayerStats::wins).reversed()).thenComparing(value -> value.user().getName())).toList();
+        Map<Long, String> avatars = new HashMap<>();
+        if (!sorted.isEmpty()) {
+            profiles.findByUserIn(sorted.stream().map(PlayerStats::user).distinct().toList())
+                    .forEach(profile -> avatars.put(profile.getUser().getId(), profile.getAvatarUrl()));
+        }
         List<RankingRow> response = new ArrayList<>();
         for (int i = 0; i < sorted.size(); i++) {
             PlayerStats value = sorted.get(i);
             double accuracy = value.total() == 0 ? 0 : Math.round(value.wins() * 10_000.0 / value.total()) / 100.0;
-            response.add(new RankingRow(i + 1, value.user().getId(), value.user().getName(), value.score(), value.wins(),
-                    value.total(), accuracy, value.streak(), current != null && value.user().getId().equals(current.getId())));
+            response.add(new RankingRow(i + 1, value.user().getId(), value.user().getName(),
+                    avatars.get(value.user().getId()), value.score(), value.wins(), value.total(), accuracy,
+                    value.streak(), current != null && value.user().getId().equals(current.getId())));
         }
         return response;
     }

@@ -269,6 +269,7 @@ export interface DashboardData {
   rankingPosition?: number;
   position?: number;
   streak?: number;
+  bestStreak?: number;
   accuracy?: number;
   activePredictions?: number;
   settledPredictions?: number;
@@ -311,6 +312,37 @@ export interface PlayerProfile extends ProfilePreferences {
   level: number;
   xp: number;
   points: number;
+  createdAt?: string;
+}
+
+export interface CommunityAuthor {
+  id?: number | string;
+  name?: string;
+  avatarUrl?: string | null;
+}
+
+export interface CommunityPost {
+  id: number | string;
+  author?: CommunityAuthor;
+  authorName?: string;
+  avatarUrl?: string | null;
+  content?: string;
+  topic?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  likeCount?: number;
+  commentCount?: number;
+  likedByCurrentUser?: boolean;
+  ownedByCurrentUser?: boolean;
+}
+
+export interface CommunityComment {
+  id: number | string;
+  postId?: number | string;
+  author?: CommunityAuthor;
+  content?: string;
+  createdAt?: string;
+  ownedByCurrentUser?: boolean;
 }
 
 export interface PageResponse<T> {

@@ -1,9 +1,10 @@
 import { Activity, Award, Bell, CheckCheck, Flame, Gauge, KeyRound, LockKeyhole, Mail, Moon, Save, ShieldCheck, Target, Trophy, UserCircle } from "lucide-react";
-import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { percentage, points, predictionStatusLabel, relativeTime } from "../app/format";
+import { dateTime, percentage, points, predictionStatusLabel, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, UserAvatar } from "../components/UI";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, UserAvatar } from "../components/UI";
+import { USER_AVATAR_OPTIONS } from "../components/UserAvatar";
 import { useAppData } from "../contexts/AppDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -88,6 +89,9 @@ export function ProfilePage() {
   const [bio, setBio] = useState("");
   const [favoriteSports, setFavoriteSports] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const avatarRequestRef = useRef(false);
+  const preserveDraftOnProfileSync = useRef(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [notifications, setNotifications] = useState(true);
@@ -101,6 +105,11 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (!profile) return;
+    if (preserveDraftOnProfileSync.current) {
+      preserveDraftOnProfileSync.current = false;
+      setAvatarUrl(profile.avatarUrl || "");
+      return;
+    }
     setName(profile.name || "");
     setEmail(profile.email || "");
     setAvatarUrl(profile.avatarUrl || "");
@@ -112,7 +121,7 @@ export function ProfilePage() {
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault();
-    if (!profile || saving) return;
+    if (!profile || saving || avatarSaving) return;
     const sports = favoriteSports.split(",").map((value) => value.trim()).filter(Boolean).slice(0, 12);
     setSaving(true);
     try {
@@ -134,9 +143,35 @@ export function ProfilePage() {
     }
   }
 
+  async function selectAvatar(nextAvatarUrl: string) {
+    if (!profile || saving || avatarRequestRef.current || nextAvatarUrl === avatarUrl) return;
+    avatarRequestRef.current = true;
+    setAvatarSaving(true);
+    try {
+      const updated = await profileApi.update({
+        name: profile.name,
+        email: profile.email,
+        avatarUrl: nextAvatarUrl,
+        bio: profile.bio || null,
+        favoriteSports: profile.favoriteSports || [],
+        publicProfile: profile.publicProfile,
+      });
+      preserveDraftOnProfileSync.current = true;
+      setProfile(updated);
+      setAvatarUrl(updated.avatarUrl || nextAvatarUrl);
+      updateLocalUser({ name: updated.name, email: updated.email, avatarUrl: updated.avatarUrl || nextAvatarUrl });
+      notify("Avatar atualizado em toda a ArenaPredict.", "success");
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Não foi possível atualizar o avatar.", "error");
+    } finally {
+      avatarRequestRef.current = false;
+      setAvatarSaving(false);
+    }
+  }
+
   async function password(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || avatarSaving) return;
     if (newPassword.length < 8) {
       notify("A nova senha deve ter ao menos 8 caracteres.", "error");
       return;
@@ -156,7 +191,7 @@ export function ProfilePage() {
 
   async function savePreferences(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || avatarSaving) return;
     setSaving(true);
     try {
       const updated = await profileApi.preferences({ theme, language: "pt-BR", notifications, publicProfile });
@@ -176,7 +211,7 @@ export function ProfilePage() {
   if (error || !profile) {
     return (
       <>
-        <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Conta" description="Seus dados, desempenho, preferências e segurança em um só lugar." />
+        <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Minha conta" description="Seus dados, desempenho, preferências e segurança em um só lugar." />
         <ErrorState message={error || "O perfil não retornou dados."} onRetry={() => reload().catch(() => undefined)} />
       </>
     );
@@ -188,6 +223,13 @@ export function ProfilePage() {
   const accountIdentifier = `@${profile.email.split("@")[0].replace(/[^a-z0-9._-]/gi, "") || "participante"}`;
   const dashboard = insights?.dashboard;
   const totalPredictions = safeMetric(dashboard?.activePredictions) + safeMetric(dashboard?.finishedPredictions);
+  const wonPredictions = safeMetric(dashboard?.wonPredictions);
+  const currentStreak = safeMetric(dashboard?.streak);
+  const bestStreak = Math.max(currentStreak, safeMetric(dashboard?.bestStreak, currentStreak));
+  const nextLevelXp = Math.max(xp + 1, safeMetric(dashboard?.nextLevelXp, level * 5_000));
+  const levelStartXp = Math.max(0, (level - 1) * 5_000);
+  const xpInCurrentLevel = Math.max(0, xp - levelStartXp);
+  const xpRequiredInLevel = Math.max(1, nextLevelXp - levelStartXp);
   const recentAchievements = (insights?.achievements || []).filter((item) => item.unlocked || item.unlockedAt).slice(0, 3);
   const recentActivity = (dashboard?.recentPredictions || []).slice(0, 4);
   const profileTabs = [
@@ -217,17 +259,18 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Conta" description="Acompanhe sua identidade, desempenho, preferências e segurança em um só lugar." />
+      <PageHeader eyebrow="CENTRAL DO PARTICIPANTE" title="Minha conta" description="Acompanhe sua identidade, desempenho, preferências e segurança em um só lugar." />
       <section className="profile-hero surface">
-        <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size="xl" loading="eager" aria-label={`Avatar de ${profile.name}`} />
-        <div className="profile-hero__identity"><span>{profile.role === "ADMIN" ? "Administrador" : "Participante"}</span><h2>{profile.name}</h2><p>{accountIdentifier} <i aria-hidden="true">•</i> {profile.email}</p></div>
-        <div><small>Nível</small><strong>{level}</strong><small>{points(xp)} XP acumulados</small></div>
+        <UserAvatar name={profile.name} avatarUrl={avatarUrl || profile.avatarUrl} size="xl" loading="eager" aria-label={`Avatar de ${profile.name}`} />
+        <div className="profile-hero__identity"><span>{profile.role === "ADMIN" ? "Administrador" : "Participante"}</span><h2>{profile.name}</h2><p>{accountIdentifier} <i aria-hidden="true">•</i> {profile.email}</p>{profile.createdAt && <small>Membro desde {dateTime(profile.createdAt)}</small>}</div>
+        <div className="profile-hero__progress"><small>Nível {level}</small><strong>{points(xp)} XP</strong><Progress value={xpInCurrentLevel} max={xpRequiredInLevel} label={`Progresso para o nível ${level + 1}`} /><small>{points(xpInCurrentLevel)} de {points(xpRequiredInLevel)} XP neste nível</small></div>
         <div><small>Pontos virtuais</small><strong>{points(virtualPoints)}</strong></div>
       </section>
       <section className="account-metrics" aria-label="Resumo de desempenho">
         <article className="surface account-metric"><span><Target size={19} /></span><div><small>Palpites feitos</small><strong>{insightsLoading ? "—" : points(totalPredictions)}</strong><p>{points(safeMetric(dashboard?.activePredictions))} aguardando resultado</p></div></article>
+        <article className="surface account-metric"><span><Award size={19} /></span><div><small>Palpites vencedores</small><strong>{insightsLoading ? "—" : points(wonPredictions)}</strong><p>resultados encerrados com acerto</p></div></article>
         <article className="surface account-metric"><span><Gauge size={19} /></span><div><small>Taxa de acerto</small><strong>{insightsLoading ? "—" : percentage(dashboard?.accuracy)}</strong><p>desempenho em palpites encerrados</p></div></article>
-        <article className="surface account-metric"><span><Flame size={19} /></span><div><small>Sequência atual</small><strong>{insightsLoading ? "—" : `${points(dashboard?.streak)} acerto${safeMetric(dashboard?.streak) === 1 ? "" : "s"}`}</strong><p>melhor momento recente</p></div></article>
+        <article className="surface account-metric"><span><Flame size={19} /></span><div><small>Sequência atual</small><strong>{insightsLoading ? "—" : `${points(currentStreak)} acerto${currentStreak === 1 ? "" : "s"}`}</strong><p>Melhor sequência: {insightsLoading ? "—" : points(bestStreak)}</p></div></article>
         <article className="surface account-metric"><span><Trophy size={19} /></span><div><small>Ranking geral</small><strong>{insightsLoading ? "—" : dashboard?.rankingPosition ? `#${dashboard.rankingPosition}` : "Em formação"}</strong><p>posição na comunidade</p></div></article>
       </section>
       <div className="account-overview-grid">
@@ -253,11 +296,35 @@ export function ProfilePage() {
               <div><h2>Dados pessoais</h2><p>Essas informações identificam você na comunidade e nos rankings.</p></div>
               <label><span>Nome de exibição</span><input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} /></label>
               <label><span>E-mail</span><div className="field"><Mail size={17} /><input required readOnly type="email" value={email} aria-describedby="email-help" /></div><small id="email-help">O e-mail de acesso é protegido; a troca exige um fluxo de reautenticação.</small></label>
-              <label><span>Imagem do perfil (URL)</span><input type="url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." /></label>
+              <fieldset className="avatar-gallery" disabled={saving || avatarSaving} aria-describedby="avatar-gallery-help">
+                <legend>Avatar do perfil</legend>
+                <p id="avatar-gallery-help">Escolha um dos retratos visuais da ArenaPredict. A alteração é salva imediatamente.</p>
+                <div className="avatar-gallery__options" role="group" aria-label="Avatares disponíveis">
+                  {USER_AVATAR_OPTIONS.map((option) => {
+                    const selected = avatarUrl === option.src;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`avatar-gallery__option ${selected ? "selected" : ""}`}
+                        aria-label={`${selected ? "Avatar selecionado" : "Selecionar"}: ${option.label}`}
+                        aria-pressed={selected}
+                        disabled={saving || avatarSaving}
+                        onClick={() => void selectAvatar(option.src)}
+                      >
+                        <UserAvatar avatarUrl={option.src} name={option.label} size="lg" loading="lazy" />
+                        <span>{option.label}</span>
+                        {selected && <strong aria-hidden="true">Selecionado</strong>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="avatar-gallery__status" role="status" aria-live="polite">{avatarSaving ? "Atualizando avatar..." : "O avatar escolhido também aparece no header, na comunidade e nos rankings."}</p>
+              </fieldset>
               <label><span>Biografia</span><textarea maxLength={500} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Conte um pouco sobre sua trajetória na Arena." /></label>
               <label><span>Modalidades favoritas</span><input value={favoriteSports} onChange={(event) => setFavoriteSports(event.target.value)} placeholder="Futebol, CS2, Tênis" /><small>Separe até 12 modalidades por vírgulas.</small></label>
               <div className="virtual-disclaimer"><ShieldCheck size={16} /> Seu e-mail não é exibido publicamente.</div>
-              <div className="form-actions"><Button type="submit" loading={saving}><Save size={16} /> Salvar alterações</Button></div>
+              <div className="form-actions"><Button type="submit" loading={saving} disabled={avatarSaving}><Save size={16} /> Salvar alterações</Button></div>
             </form>
           )}
           {tab === "security" && (
@@ -265,7 +332,7 @@ export function ProfilePage() {
               <div><h2>Alterar senha</h2><p>Use uma senha exclusiva e evite reutilizar credenciais.</p></div>
               <label><span>Senha atual</span><input required type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></label>
               <label><span>Nova senha</span><input required minLength={8} type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></label>
-              <div className="form-actions"><Button type="submit" loading={saving}><KeyRound size={16} /> Atualizar senha</Button></div>
+              <div className="form-actions"><Button type="submit" loading={saving} disabled={avatarSaving}><KeyRound size={16} /> Atualizar senha</Button></div>
             </form>
           )}
           {tab === "preferences" && (
@@ -275,7 +342,7 @@ export function ProfilePage() {
               <ThemeSelector value={theme} onChange={setThemeState} />
               <label className="toggle-row"><span><Bell size={17} /><span><strong>Notificações da plataforma</strong><small>Resultados, convites, conquistas e avisos.</small></span></span><input type="checkbox" checked={notifications} onChange={(event) => setNotifications(event.target.checked)} /></label>
               <label className="toggle-row"><span><UserCircle size={17} /><span><strong>Perfil público</strong><small>Permite que outros participantes vejam suas estatísticas.</small></span></span><input type="checkbox" checked={publicProfile} onChange={(event) => setPublicProfile(event.target.checked)} /></label>
-              <div className="form-actions"><Button type="submit" loading={saving}><Save size={16} /> Salvar preferências</Button></div>
+              <div className="form-actions"><Button type="submit" loading={saving} disabled={avatarSaving}><Save size={16} /> Salvar preferências</Button></div>
             </form>
           )}
         </section>

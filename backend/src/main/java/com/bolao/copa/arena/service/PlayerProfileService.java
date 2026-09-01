@@ -67,7 +67,8 @@ public class PlayerProfileService {
         var wallet = walletService.wallet(profile.getUser());
         long xp = wallet.lifetimeEarned();
         return new ProfileResponse(profile.getUser().getId(), profile.getUser().getName(), profile.getUser().getEmail(),
-                profile.getUser().getRole().name(), profile.getAvatarUrl(), profile.getBio(), sports(profile.getFavoriteSports()),
+                profile.getUser().getRole().name(), profile.getUser().getCreatedAt(), profile.getAvatarUrl(),
+                profile.getBio(), sports(profile.getFavoriteSports()),
                 profile.getTheme(), profile.getLanguage(), profile.isNotificationsEnabled(), profile.isPublicProfile(),
                 Math.toIntExact(Math.min(Integer.MAX_VALUE, xp / 5_000 + 1)), xp, wallet.balance());
     }

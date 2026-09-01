@@ -52,8 +52,7 @@ public class ArenaDashboardService {
         long finished = mine.stream().filter(p -> p.getStatus() == PredictionStatus.WON || p.getStatus() == PredictionStatus.LOST).count();
         long won = mine.stream().filter(p -> p.getStatus() == PredictionStatus.WON).count();
         double accuracy = finished == 0 ? 0 : Math.round(won * 10_000.0 / finished) / 100.0;
-        int streak = 0;
-        for (ArenaPrediction p : mine) { if (p.getStatus() == PredictionStatus.WON) streak++; else if (p.getStatus() == PredictionStatus.LOST) break; }
+        StreakStats streaks = streaks(mine);
         List<RankingRow> ranking = pools.ranking(user, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null);
         Integer position = ranking.stream().filter(RankingRow::currentUser).map(RankingRow::position).findFirst().orElse(null);
         List<EventResponse> allEvents = catalog.listEvents(null, null, null);
@@ -68,7 +67,7 @@ public class ArenaDashboardService {
         List<EventResponse> upcoming = allEvents.stream().filter(e -> e.status() == EventStatus.OPEN_FOR_PREDICTIONS || e.status() == EventStatus.SCHEDULED).limit(8).toList();
         return new DashboardResponse(user.getName(), playerProgress.level(), playerProgress.title(),
                 playerProgress.xp(), playerProgress.nextLevelXp(), wallet.balance(), position, active, finished, won,
-                accuracy, streak, notifications.unread(user), featured, live, upcoming,
+                accuracy, streaks.current(), streaks.best(), notifications.unread(user), featured, live, upcoming,
                 mine.stream().limit(6).map(this::predictionResponse).toList(), pools.list(user).stream().filter(p -> p.status() == PoolStatus.OPEN || p.status() == PoolStatus.IN_PROGRESS).limit(4).toList(),
                 ranking.stream().limit(8).toList(), VIRTUAL_POINTS_NOTICE, demoMode, challenges, recentAchievements,
                 performance(mine));
@@ -97,6 +96,26 @@ public class ArenaDashboardService {
         String title = xp >= 20_000 ? "Elite" : xp >= 10_000 ? "Analista" : xp >= 5_000 ? "Competidor" : "Novato";
         return new PlayerProgress(level, title, xp, nextLevelXp);
     }
+    private StreakStats streaks(List<ArenaPrediction> predictions) {
+        List<ArenaPrediction> settled = predictions.stream()
+                .filter(value -> value.getStatus() == PredictionStatus.WON || value.getStatus() == PredictionStatus.LOST)
+                .sorted(Comparator.comparing(this::resolutionTime).thenComparing(ArenaPrediction::getId))
+                .toList();
+        int current = 0;
+        int best = 0;
+        for (ArenaPrediction prediction : settled) {
+            if (prediction.getStatus() == PredictionStatus.WON) {
+                current++;
+                best = Math.max(best, current);
+            } else {
+                current = 0;
+            }
+        }
+        return new StreakStats(current, best);
+    }
+    private Instant resolutionTime(ArenaPrediction prediction) {
+        return prediction.getResolvedAt() == null ? prediction.getPlacedAt() : prediction.getResolvedAt();
+    }
     private List<PerformancePoint> performance(List<ArenaPrediction> predictions) {
         List<ArenaPrediction> settled = predictions.stream()
                 .filter(value -> value.getStatus() == PredictionStatus.WON || value.getStatus() == PredictionStatus.LOST)
@@ -116,4 +135,5 @@ public class ArenaDashboardService {
         return points;
     }
     private record PlayerProgress(int level, String title, long xp, long nextLevelXp) { }
+    private record StreakStats(int current, int best) { }
 }

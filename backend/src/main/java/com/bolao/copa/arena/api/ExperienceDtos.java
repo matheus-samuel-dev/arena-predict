@@ -8,7 +8,7 @@ import java.util.List;
 public final class ExperienceDtos {
     private ExperienceDtos() { }
 
-    public record ProfileResponse(Long userId, String name, String email, String role, String avatarUrl,
+    public record ProfileResponse(Long userId, String name, String email, String role, Instant createdAt, String avatarUrl,
                                   String bio, List<String> favoriteSports, String theme, String language,
                                   boolean notifications, boolean publicProfile, int level, long xp, long points) { }
     public record ProfileUpdateRequest(@NotBlank @Size(min = 2, max = 100) String name,

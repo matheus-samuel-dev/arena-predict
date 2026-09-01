@@ -103,14 +103,15 @@ public final class ArenaDtos {
                                int virtualPrizePoints, String rules, PoolStatus status,
                                Instant startsAt, Instant endsAt, boolean joined, boolean owner,
                                PoolType poolType, boolean recurring) { }
-    public record RankingRow(int position, Long userId, String playerName, long points, long correctPredictions,
+    public record RankingRow(int position, Long userId, String playerName, String avatarUrl,
+                             long points, long correctPredictions,
                              long totalPredictions, double accuracy, long streak, boolean currentUser) { }
     public record NotificationResponse(Long id, NotificationType type, String title, String message,
                                        String targetUrl, Instant createdAt, boolean read) { }
     public record DashboardResponse(String playerName, int level, String levelTitle, long xp, long nextLevelXp,
                                     long points, Integer rankingPosition,
                                     long activePredictions, long finishedPredictions, long wonPredictions,
-                                    double accuracy, int streak, long unreadNotifications,
+                                    double accuracy, int streak, int bestStreak, long unreadNotifications,
                                     List<EventResponse> featuredEvents, List<EventResponse> liveEvents,
                                     List<EventResponse> upcomingEvents, List<PredictionResponse> recentPredictions,
                                     List<PoolResponse> activePools, List<RankingRow> weeklyRanking,

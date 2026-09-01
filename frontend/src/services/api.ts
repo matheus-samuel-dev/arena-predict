@@ -6,6 +6,8 @@ import type {
   AuthSession,
   Championship,
   Challenge,
+  CommunityComment,
+  CommunityPost,
   DashboardData,
   Notification,
   PageResponse,
@@ -408,13 +410,16 @@ export const challengesApi = {
 };
 
 export const communityApi = {
-  feed: (page = 0) => request<PageResponse<Record<string, unknown>> | Record<string, unknown>[]>(`/community/posts${query({ page })}`),
-  createPost: (content: string) => request<Record<string, unknown>>("/community/posts", { method: "POST", body: { content } }),
-  like: (id: number | string) => request<Record<string, unknown>>(`/community/posts/${id}/like`, { method: "POST" }),
+  feed: (page = 0) => request<PageResponse<CommunityPost> | CommunityPost[]>(`/community/posts${query({ page })}`),
+  createPost: (content: string, topic?: string) => request<CommunityPost>("/community/posts", {
+    method: "POST",
+    body: { content, ...(topic?.trim() ? { topic: topic.trim() } : {}) },
+  }),
+  like: (id: number | string) => request<CommunityPost>(`/community/posts/${id}/like`, { method: "POST" }),
   comments: (id: number | string) =>
-    request<Record<string, unknown>[]>(`/community/posts/${id}/comments`),
+    request<CommunityComment[]>(`/community/posts/${id}/comments`),
   comment: (id: number | string, content: string) =>
-    request<Record<string, unknown>>(`/community/posts/${id}/comments`, { method: "POST", body: { content } }),
+    request<CommunityComment>(`/community/posts/${id}/comments`, { method: "POST", body: { content } }),
   report: (id: number | string, reason: string) =>
     request<void>(`/community/posts/${id}/reports`, { method: "POST", body: { reason } }),
 };

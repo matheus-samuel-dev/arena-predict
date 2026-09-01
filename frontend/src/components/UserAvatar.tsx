@@ -14,6 +14,28 @@ export interface UserAvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "
 export const DEFAULT_USER_AVATAR_PATH = "/assets/avatars/avatar-default.webp";
 export const DEMO_PLAYER_AVATAR_PATH = "/assets/avatars/jogador-demo.webp";
 
+export interface UserAvatarOption {
+  id: string;
+  label: string;
+  src: string;
+}
+
+/**
+ * Curated local portraits available in the account picker. Keeping this list
+ * beside the avatar resolver gives account, header, ranking and community a
+ * single source of truth without accepting arbitrary remote images.
+ */
+export const USER_AVATAR_OPTIONS: readonly UserAvatarOption[] = [
+  { id: "arena-01", label: "Avatar Arena 1", src: DEMO_PLAYER_AVATAR_PATH },
+  { id: "arena-02", label: "Avatar Arena 2", src: "/assets/avatars/ana-ribeiro.webp" },
+  { id: "arena-03", label: "Avatar Arena 3", src: "/assets/avatars/beatriz-nunes.webp" },
+  { id: "arena-04", label: "Avatar Arena 4", src: "/assets/avatars/camila-rocha.webp" },
+  { id: "arena-05", label: "Avatar Arena 5", src: "/assets/avatars/diego-ferreira.webp" },
+  { id: "arena-06", label: "Avatar Arena 6", src: "/assets/avatars/lucas-almeida.webp" },
+  { id: "arena-07", label: "Avatar Arena 7", src: "/assets/avatars/marina-costa.webp" },
+  { id: "arena-08", label: "Avatar Arena 8", src: "/assets/avatars/rafael-lima.webp" },
+];
+
 /**
  * Demo identities are centralized here so ranking and administration responses
  * that only contain a display name still receive the same local visual avatar.

@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.bolao.copa.arena.domain.ArenaEnums.ChallengeMetric;
 import com.bolao.copa.arena.domain.ArenaEnums.EventStatus;
 import com.bolao.copa.arena.domain.ChallengeDefinition;
+import com.bolao.copa.arena.api.ArenaDtos.RankingRow;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.arena.repository.*;
@@ -83,10 +84,44 @@ class ArenaExperienceIntegrationTest {
         var preferences = profiles.preferences(user, new PreferenceUpdateRequest("light", "en-US", false, false));
 
         assertThat(updated.name()).isEqualTo("Jogador Arena");
+        assertThat(updated.createdAt()).isEqualTo(user.getCreatedAt());
         assertThat(updated.favoriteSports()).containsExactly("FOOTBALL", "CS2");
         assertThat(preferences.theme()).isEqualTo("light");
         assertThat(preferences.notifications()).isFalse();
         assertThat(profiles.get(user).publicProfile()).isFalse();
+    }
+
+    @Test
+    @Transactional
+    void selectedAvatarPropagatesToGlobalAndPoolRankings() {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        String selectedAvatar = "/assets/avatars/ana-ribeiro.webp";
+        profiles.update(user, new ProfileUpdateRequest(user.getName(), user.getEmail(), selectedAvatar,
+                "Perfil com avatar selecionado na galeria.", List.of("FOOTBALL", "CS2"), true));
+
+        assertThat(pools.globalRanking(user))
+                .filteredOn(row -> row.userId().equals(user.getId()))
+                .extracting(RankingRow::avatarUrl)
+                .containsExactly(selectedAvatar);
+
+        var pool = pools.create(new PoolRequest("Liga de avatar", "Validação da identidade no ranking interno.",
+                null, null, true, 20, 0, "Ranking por pontos virtuais.", null, null), user);
+        assertThat(pools.poolRanking(pool.id(), user))
+                .filteredOn(row -> row.userId().equals(user.getId()))
+                .extracting(RankingRow::avatarUrl)
+                .containsExactly(selectedAvatar);
+    }
+
+    @Test
+    @Transactional
+    void dashboardExposesCurrentAndBestStreakFromSettledPredictions() {
+        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+
+        var playerDashboard = dashboard.dashboard(user);
+
+        assertThat(playerDashboard.streak()).isZero();
+        assertThat(playerDashboard.bestStreak()).isEqualTo(3);
+        assertThat(playerDashboard.bestStreak()).isGreaterThanOrEqualTo(playerDashboard.streak());
     }
 
     @Test

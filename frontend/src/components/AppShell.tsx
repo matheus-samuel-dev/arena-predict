@@ -7,7 +7,6 @@ import {
   CalendarRange,
   ChevronDown,
   ChevronRight,
-  CircleHelp,
   ClipboardCheck,
   Cog,
   Compass,
@@ -90,9 +89,7 @@ const playerNavigation: NavGroup[] = [
     defaultOpen: false,
     items: [
       { label: "Comunidade", to: "/community", icon: MessageSquareText },
-      { label: "Notificações", to: "/notifications", icon: Bell },
-      { label: "Conta", to: "/account", icon: UserCircle },
-      { label: "Ajuda", to: "/help", icon: CircleHelp },
+      { label: "Minha conta", to: "/account", icon: UserCircle },
     ],
   },
 ];
@@ -161,8 +158,8 @@ const pageTitles: Record<string, string> = {
   "/achievements": "Conquistas",
   "/community": "Comunidade",
   "/notifications": "Notificações",
-  "/account": "Conta",
-  "/profile": "Perfil",
+  "/account": "Minha conta",
+  "/profile": "Minha conta",
   "/help": "Central de ajuda",
   "/points": "Pontos virtuais",
   "/admin": "Painel administrativo",
@@ -170,7 +167,6 @@ const pageTitles: Record<string, string> = {
 
 function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const { user } = useAuth();
-  const { unreadCount } = useAppData();
   const location = useLocation();
   const groups = useMemo(
     () => (user?.role === "ADMIN" ? [...playerNavigation.slice(0, 1), ...adminNavigation] : playerNavigation),
@@ -214,7 +210,6 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
                 >
                   <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
                   <span>{label}</span>
-                  {to === "/notifications" && unreadCount > 0 && <b className="nav-badge">{unreadCount > 99 ? "99+" : unreadCount}</b>}
                 </NavLink>
               ))}
             </div>
@@ -480,13 +475,13 @@ export function AppShell() {
             { label: "Eventos", to: "/admin/events", icon: CalendarRange },
             { label: "Mercados", to: "/admin/markets", icon: SlidersHorizontal },
             { label: "Resultados", to: "/admin/results", icon: ClipboardCheck },
-            { label: "Conta", to: "/account", icon: UserCircle },
+            { label: "Minha conta", to: "/account", icon: UserCircle },
           ] : [
             { label: "Início", to: "/app", icon: LayoutDashboard },
             { label: "Eventos", to: "/events", icon: Compass },
             { label: "Ao vivo", to: "/live", icon: Activity },
             { label: "Palpites", to: "/predictions", icon: Target },
-            { label: "Conta", to: "/account", icon: UserCircle },
+            { label: "Minha conta", to: "/account", icon: UserCircle },
           ]).map(({ label, to, icon: Icon }) => (
             <NavLink to={to} key={to} className={({ isActive }) => (isActive ? "active" : "")}>
               <Icon size={20} /><span>{label}</span>
