@@ -257,7 +257,11 @@ export function auditSummaryLabel(value: unknown) {
   // Older demo data may contain a status both in the event title and in the
   // audit sentence. Keep the immutable audit payload untouched and remove the
   // duplicated word only in the presentation layer.
-  return text.replace(/\s*·\s*(cancelad[oa]s?)\s+\1\b/giu, " $1");
+  return text
+    .replace(/\s*·\s*(cancelad[oa]s?)\s+\1\b/giu, " $1")
+    .replace(/\b1 vencedores\b/giu, "1 vencedor")
+    .replace(/\b1 pontos virtuais creditados\b/giu, "1 ponto virtual creditado")
+    .replace(/\b1 destinatário\(s\)/giu, "1 destinatário");
 }
 
 const PRESENTATIONS: Record<string, Omit<StatusPresentation, "label"> & { label?: string }> = {

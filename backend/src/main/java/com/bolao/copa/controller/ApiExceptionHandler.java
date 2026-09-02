@@ -1,6 +1,7 @@
 package com.bolao.copa.controller;
 
 import com.bolao.copa.config.CorrelationIdContext;
+import com.bolao.copa.service.DemoAuthService.DemoAccessUnavailableException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -36,6 +39,17 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<Map<String, Object>> handleUnreadableMessage(HttpMessageNotReadableException exception) {
+        return ResponseEntity.badRequest().body(error("Verifique os dados enviados e tente novamente."));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<Map<String, Object>> handleNotFound(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(error("O recurso solicitado não foi encontrado."));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error("E-mail ou senha inválidos."));
@@ -44,6 +58,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error("Você não tem permissão para realizar esta ação."));
+    }
+
+    @ExceptionHandler(DemoAccessUnavailableException.class)
+    ResponseEntity<Map<String, Object>> handleDemoUnavailable(DemoAccessUnavailableException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error(exception.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

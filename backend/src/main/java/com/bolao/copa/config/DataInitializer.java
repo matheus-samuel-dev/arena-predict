@@ -3,6 +3,8 @@ package com.bolao.copa.config;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
+import java.security.SecureRandom;
+import java.util.Base64;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -13,10 +15,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Configuration
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class DataInitializer {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     @Bean
     CommandLineRunner seed(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
-                           TransactionTemplate transactionTemplate) {
+                           TransactionTemplate transactionTemplate,
+                           DemoProperties demo) {
         return args -> transactionTemplate.executeWithoutResult(status -> {
             var legacyRoleUsers = userRepository.findAllByRole(UserRole.USER);
             legacyRoleUsers.forEach(user -> user.setRole(UserRole.PARTICIPANTE));
@@ -32,19 +37,21 @@ public class DataInitializer {
             ensureUser(
                     userRepository,
                     passwordEncoder,
-                    "admin@arenapredict.com",
+                    demo.adminEmail(),
                     "Administrador Demo",
-                    "Admin@123",
+                    demo.adminPassword(),
                     UserRole.ADMIN,
+                    true,
                     true
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
-                    "jogador@arenapredict.com",
+                    demo.participantEmail(),
                     "Jogador Demo",
-                    "Jogador@123",
+                    demo.participantPassword(),
                     UserRole.PARTICIPANTE,
+                    true,
                     true
             );
             ensureUser(
@@ -52,63 +59,70 @@ public class DataInitializer {
                     passwordEncoder,
                     "marina.costa@arenapredict.com",
                     "Marina Costa",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "rafael.lima@arenapredict.com",
                     "Rafael Lima",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "beatriz.nunes@arenapredict.com",
                     "Beatriz Nunes",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "camila.rocha@arenapredict.com",
                     "Camila Rocha",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "lucas.almeida@arenapredict.com",
                     "Lucas Almeida",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "ana.ribeiro@arenapredict.com",
                     "Ana Ribeiro",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
             ensureUser(
                     userRepository,
                     passwordEncoder,
                     "diego.ferreira@arenapredict.com",
                     "Diego Ferreira",
-                    "Jogador@123",
+                    "",
                     UserRole.PARTICIPANTE,
-                    true
+                    true,
+                    false
             );
 
         });
@@ -137,13 +151,16 @@ public class DataInitializer {
                             String name,
                             String password,
                             UserRole role,
-                            boolean enforceDemoIdentity) {
+                            boolean enforceDemoIdentity,
+                            boolean synchronizeConfiguredPassword) {
         var existing = userRepository.findByEmailIgnoreCase(email);
         if (existing.isEmpty()) {
             var created = new User();
             created.setName(name);
             created.setEmail(email);
-            created.setPasswordHash(passwordEncoder.encode(password));
+            created.setPasswordHash(passwordEncoder.encode(
+                    password == null || password.isBlank() ? randomBootstrapPassword() : password
+            ));
             created.setRole(role);
             return userRepository.save(created);
         }
@@ -158,9 +175,19 @@ public class DataInitializer {
             user.setName(name);
             changed = true;
         }
-        // Existing credentials belong to the persisted account. Demo startup
-        // may repair its presentation identity, but must never silently reset a
-        // password that the user or operator has already changed.
+        // A deployment can deliberately synchronize the two demo credentials
+        // from secrets. With an empty secret, persisted credentials are kept.
+        if (synchronizeConfiguredPassword && password != null && !password.isBlank()
+                && !passwordEncoder.matches(password, user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(password));
+            changed = true;
+        }
         return changed ? userRepository.save(user) : user;
+    }
+
+    private String randomBootstrapPassword() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.*;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,10 @@ public class ArenaExceptionHandler {
     ResponseEntity<Map<String, Object>> rule(ArenaProblem.RuleViolation exception) { return error(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage()); }
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     ResponseEntity<Map<String, Object>> concurrent() { return error(HttpStatus.CONFLICT, "Os dados foram atualizados por outra operação. Recarregue e tente novamente."); }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Map<String, Object>> duplicateOrInvalidRelation() {
+        return error(HttpStatus.CONFLICT, "Já existe um registro com os mesmos identificadores ou vínculos.");
+    }
     private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
         var body = new LinkedHashMap<String, Object>();
         body.put("timestamp", Instant.now()); body.put("status", status.value()); body.put("error", message);

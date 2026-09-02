@@ -300,6 +300,14 @@ export const authApi = {
     const result = await request<AuthSession>("/auth/register", { method: "POST", body: payload, auth: false });
     return normalizeSession(result);
   },
+  async demo(profile: "PARTICIPANT" | "ADMIN") {
+    const result = await request<AuthSession>("/auth/demo", {
+      method: "POST",
+      body: { profile },
+      auth: false,
+    });
+    return normalizeSession(result);
+  },
   async me(): Promise<User> {
     const result = await request<User & { id?: number }>("/auth/me");
     return {

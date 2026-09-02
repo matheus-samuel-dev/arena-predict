@@ -78,17 +78,21 @@ describe("ArenaPredict frontend", () => {
     ]);
   });
 
-  it("envia as credenciais demo sem alterar a distinção de perfis", async () => {
+  it("solicita acesso demo por perfil sem enviar credenciais ao navegador", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ token: "admin-token", userId: 1, name: "Admin", email: "admin@arenapredict.com", role: "ADMIN" }))
       .mockResolvedValueOnce(jsonResponse({ token: "player-token", userId: 2, name: "Jogador", email: "jogador@arenapredict.com", role: "PARTICIPANTE" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(authApi.login("admin@arenapredict.com", "Admin@123")).resolves.toMatchObject({ role: "ADMIN" });
-    await expect(authApi.login("jogador@arenapredict.com", "Jogador@123")).resolves.toMatchObject({ role: "PARTICIPANTE" });
+    await expect(authApi.demo("ADMIN")).resolves.toMatchObject({ role: "ADMIN" });
+    await expect(authApi.demo("PARTICIPANT")).resolves.toMatchObject({ role: "PARTICIPANTE" });
+    expect(fetchMock.mock.calls.map(([url]) => String(url).replace(/^https?:\/\/[^/]+/, ""))).toEqual([
+      "/api/auth/demo",
+      "/api/auth/demo",
+    ]);
     expect(fetchMock.mock.calls.map((call) => JSON.parse(String(call[1]?.body)))).toEqual([
-      { email: "admin@arenapredict.com", password: "Admin@123" },
-      { email: "jogador@arenapredict.com", password: "Jogador@123" },
+      { profile: "ADMIN" },
+      { profile: "PARTICIPANT" },
     ]);
   });
 

@@ -5,6 +5,7 @@ import static com.bolao.copa.arena.api.ArenaDtos.*;
 import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -49,12 +50,14 @@ public class ArenaCatalogService {
     public SportResponse saveSport(Long id, SportRequest request) {
         Sport sport = id == null ? new Sport() : sport(id);
         String code = normalizeCode(request.code());
+        if (code.isBlank())
+            throw new ArenaProblem.RuleViolation("O código da modalidade precisa conter letras ou números.");
         sports.findByCodeIgnoreCase(code).filter(existing -> !Objects.equals(existing.getId(), id))
                 .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe uma modalidade com este código."); });
         sport.setCode(code);
         sport.setName(request.name().trim());
         sport.setCategory(request.category());
-        sport.setIcon(request.icon());
+        sport.setIcon(optionalText(request.icon()));
         if (request.active() != null) sport.setActive(request.active());
         if (request.displayOrder() != null) sport.setDisplayOrder(request.displayOrder());
         sport = sports.save(sport);
@@ -74,12 +77,25 @@ public class ArenaCatalogService {
     @Transactional
     public ChampionshipResponse saveChampionship(Long id, ChampionshipRequest request) {
         Championship championship = id == null ? new Championship() : championship(id);
-        championship.setSport(sport(request.sportId()));
+        Sport selectedSport = sport(request.sportId());
+        String normalizedSlug = slug(request.slug());
+        String season = request.season().trim();
+        if (normalizedSlug.isBlank())
+            throw new ArenaProblem.RuleViolation("O identificador do campeonato precisa conter letras ou números.");
+        if (request.startsAt() != null && request.endsAt() != null && !request.endsAt().isAfter(request.startsAt()))
+            throw new ArenaProblem.RuleViolation("O fim do campeonato deve ser posterior ao início.");
+        championships.findBySportAndSlugAndSeason(selectedSport, normalizedSlug, season)
+                .filter(existing -> !Objects.equals(existing.getId(), id))
+                .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe este campeonato na mesma modalidade e temporada."); });
+        if (id != null && !championship.getSport().getId().equals(selectedSport.getId())
+                && events.existsByChampionship(championship))
+            throw new ArenaProblem.Conflict("A modalidade do campeonato não pode mudar enquanto houver eventos vinculados.");
+        championship.setSport(selectedSport);
         championship.setName(request.name().trim());
-        championship.setSlug(slug(request.slug()));
-        championship.setSeason(request.season().trim());
+        championship.setSlug(normalizedSlug);
+        championship.setSeason(season);
         championship.setStatus(request.status() == null ? ChampionshipStatus.ACTIVE : request.status());
-        championship.setImageUrl(request.imageUrl());
+        championship.setImageUrl(optionalText(request.imageUrl()));
         championship.setStartsAt(request.startsAt());
         championship.setEndsAt(request.endsAt());
         championship = championships.save(championship);
@@ -97,11 +113,22 @@ public class ArenaCatalogService {
     @Transactional
     public CompetitorResponse saveCompetitor(Long id, CompetitorRequest request) {
         Competitor competitor = id == null ? new Competitor() : competitor(id);
-        competitor.setSport(sport(request.sportId()));
+        Sport selectedSport = sport(request.sportId());
+        String code = normalizeCode(request.code());
+        if (code.isBlank())
+            throw new ArenaProblem.RuleViolation("O código da equipe ou participante precisa conter letras ou números.");
+        competitors.findBySportAndCodeIgnoreCase(selectedSport, code)
+                .filter(existing -> !Objects.equals(existing.getId(), id))
+                .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe uma equipe ou participante com este código na modalidade."); });
+        if (id != null && !competitor.getSport().getId().equals(selectedSport.getId())
+                && (events.existsByHomeCompetitorOrAwayCompetitor(competitor, competitor)
+                    || eventParticipants.existsByCompetitor(competitor)))
+            throw new ArenaProblem.Conflict("A modalidade não pode mudar enquanto a equipe ou participante estiver vinculada a eventos.");
+        competitor.setSport(selectedSport);
         competitor.setName(request.name().trim());
-        competitor.setCode(normalizeCode(request.code()));
-        competitor.setImageUrl(request.imageUrl());
-        competitor.setCountry(request.country());
+        competitor.setCode(code);
+        competitor.setImageUrl(optionalText(request.imageUrl()));
+        competitor.setCountry(optionalText(request.country()));
         if (request.active() != null) competitor.setActive(request.active());
         competitor = competitors.save(competitor);
         audit.record(id == null ? "COMPETITOR_CREATED" : "COMPETITOR_UPDATED", "COMPETITOR",
@@ -131,6 +158,12 @@ public class ArenaCatalogService {
     @Transactional
     public EventResponse saveEvent(Long id, EventRequest request) {
         ArenaEvent event = id == null ? new ArenaEvent() : eventForUpdate(id);
+        Long previousHomeId = event.getHomeCompetitor() == null ? null : event.getHomeCompetitor().getId();
+        Long previousAwayId = event.getAwayCompetitor() == null ? null : event.getAwayCompetitor().getId();
+        EventFormat previousFormat = event.getFormat();
+        String externalKey = request.externalKey().trim();
+        events.findByExternalKey(externalKey).filter(existing -> !Objects.equals(existing.getId(), id))
+                .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe um evento com esta chave externa."); });
         EventStatus requestedStatus = request.status() == null
                 ? (id == null ? EventStatus.SCHEDULED : event.getStatus())
                 : request.status();
@@ -142,30 +175,36 @@ public class ArenaCatalogService {
             throw new ArenaProblem.RuleViolation("Use a ação de resultado para finalizar o evento.");
         if (id != null) validateEventTransition(event.getStatus(), requestedStatus);
         Championship championship = championship(request.championshipId());
-        event.setExternalKey(request.externalKey().trim());
+        event.setExternalKey(externalKey);
         event.setChampionship(championship);
         event.setHomeCompetitor(request.homeCompetitorId() == null ? null : competitor(request.homeCompetitorId()));
         event.setAwayCompetitor(request.awayCompetitorId() == null ? null : competitor(request.awayCompetitorId()));
         validateCompetitorSport(event.getHomeCompetitor(), championship);
         validateCompetitorSport(event.getAwayCompetitor(), championship);
+        EventFormat format = request.format() == null ? EventFormat.STANDARD : request.format();
+        boolean participantIdentityChanged = id != null
+                && (!Objects.equals(previousHomeId, request.homeCompetitorId())
+                || !Objects.equals(previousAwayId, request.awayCompetitorId())
+                || previousFormat != format);
+        validateEventCompetitors(format, event.getHomeCompetitor(), event.getAwayCompetitor(), request.participants());
         if (!request.predictionClosesAt().isAfter(Instant.now().minusSeconds(365L * 24 * 3600))) {
             throw new ArenaProblem.RuleViolation("A data limite de palpites é inválida.");
         }
-        if (request.predictionClosesAt().isAfter(request.startsAt())) {
-            throw new ArenaProblem.RuleViolation("O prazo de palpites não pode ser posterior ao início do evento.");
+        if (!request.predictionClosesAt().isBefore(request.startsAt())) {
+            throw new ArenaProblem.RuleViolation("O prazo de palpites deve ser anterior ao início do evento.");
         }
         if (requestedStatus == EventStatus.OPEN_FOR_PREDICTIONS
                 && !Instant.now().isBefore(request.predictionClosesAt()))
             throw new ArenaProblem.RuleViolation("Um evento aberto precisa ter prazo futuro para palpites.");
         event.setTitle(request.title().trim());
-        event.setStage(request.stage());
-        event.setVenue(request.venue());
-        event.setBroadcast(request.broadcast());
-        event.setImageUrl(request.imageUrl());
+        event.setStage(optionalText(request.stage()));
+        event.setVenue(optionalText(request.venue()));
+        event.setBroadcast(optionalText(request.broadcast()));
+        event.setImageUrl(optionalText(request.imageUrl()));
         event.setStartsAt(request.startsAt());
         event.setPredictionClosesAt(request.predictionClosesAt());
         event.setStatus(requestedStatus);
-        event.setFormat(request.format() == null ? EventFormat.STANDARD : request.format());
+        event.setFormat(format);
         int bestOf = request.bestOf() == null ? 1 : request.bestOf();
         if (bestOf != 1 && bestOf != 3 && bestOf != 5)
             throw new ArenaProblem.RuleViolation("A série deve usar melhor de 1, 3 ou 5.");
@@ -173,8 +212,8 @@ public class ArenaCatalogService {
         event.setFeatured(Boolean.TRUE.equals(request.featured()));
         event.setDemo(Boolean.TRUE.equals(request.demo()));
         event = events.save(event);
-        if (request.participants() != null) syncParticipants(event, request.participants());
-        else if (id == null) {
+        if (request.participants() != null && !request.participants().isEmpty()) syncParticipants(event, request.participants());
+        else if (id == null || (isHeadToHead(format) && participantIdentityChanged)) {
             List<EventParticipantRequest> defaults = new ArrayList<>();
             if (request.homeCompetitorId() != null) defaults.add(new EventParticipantRequest(request.homeCompetitorId(), 0, null, null));
             if (request.awayCompetitorId() != null) defaults.add(new EventParticipantRequest(request.awayCompetitorId(), 1, null, null));
@@ -234,6 +273,10 @@ public class ArenaCatalogService {
         if (id != null && isTerminal(market.getStatus()))
             throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser alterado.");
         ArenaEvent event = event(request.eventId());
+        String code = normalizeCode(request.code());
+        if (code.isBlank()) throw new ArenaProblem.RuleViolation("O código do mercado precisa conter letras ou números.");
+        markets.findByEventAndCode(event, code).filter(existing -> !Objects.equals(existing.getId(), id))
+                .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe um mercado com este código no evento."); });
         MarketStatus requestedStatus = request.status() == null
                 ? (id == null ? MarketStatus.OPEN : market.getStatus())
                 : request.status();
@@ -244,7 +287,7 @@ public class ArenaCatalogService {
         if (id != null && predictions.existsByMarket(market))
             validateFrozenMarketStructure(market, event, request, existingOptions);
         market.setEvent(event);
-        market.setCode(normalizeCode(request.code()));
+        market.setCode(code);
         market.setName(request.name().trim());
         market.setStatus(requestedStatus);
         market.setMinimumPoints(request.minimumPoints() == null ? 10 : request.minimumPoints());
@@ -349,6 +392,28 @@ public class ArenaCatalogService {
         if (competitor != null && !competitor.getSport().getId().equals(championship.getSport().getId()))
             throw new ArenaProblem.RuleViolation("A equipe ou participante não pertence à modalidade do campeonato.");
     }
+    private void validateEventCompetitors(EventFormat format, Competitor home, Competitor away,
+                                          List<EventParticipantRequest> participants) {
+        if (home != null && away != null && home.getId().equals(away.getId()))
+            throw new ArenaProblem.RuleViolation("Selecione participantes diferentes para o evento.");
+        if (isHeadToHead(format)) {
+            if (home == null || away == null)
+                throw new ArenaProblem.RuleViolation("Eventos frente a frente exigem dois participantes.");
+            if (participants != null && !participants.isEmpty()) {
+                Set<Long> ids = participants.stream().map(EventParticipantRequest::competitorId)
+                        .collect(java.util.stream.Collectors.toSet());
+                if (participants.size() != 2 || !ids.contains(home.getId()) || !ids.contains(away.getId()))
+                    throw new ArenaProblem.RuleViolation("A lista do evento deve conter exatamente os dois participantes selecionados.");
+            }
+            return;
+        }
+        if (participants == null || participants.size() < 2)
+            throw new ArenaProblem.RuleViolation("Eventos individuais ou de corrida exigem ao menos dois participantes.");
+    }
+    private boolean isHeadToHead(EventFormat format) {
+        return format == EventFormat.STANDARD || format == EventFormat.BO1
+                || format == EventFormat.BO3 || format == EventFormat.BO5;
+    }
     private void ensureResultMutable(ArenaEvent event) {
         if (event.getStatus() == EventStatus.CANCELLED)
             throw new ArenaProblem.Conflict("Eventos cancelados não podem receber resultados.");
@@ -431,6 +496,13 @@ public class ArenaCatalogService {
             throw new ArenaProblem.RuleViolation("Transição de status do mercado não permitida: "
                     + current + " → " + target + ".");
     }
-    private String normalizeCode(String value) { return value.trim().toUpperCase(Locale.ROOT).replace(' ', '_'); }
-    private String slug(String value) { return value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""); }
+    private String normalizeCode(String value) {
+        return Normalizer.normalize(value.trim(), Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
+                .toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("(^_+|_+$)", "");
+    }
+    private String slug(String value) {
+        return Normalizer.normalize(value.trim(), Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-+|-+$)", "");
+    }
+    private String optionalText(String value) { return value == null || value.isBlank() ? null : value.trim(); }
 }

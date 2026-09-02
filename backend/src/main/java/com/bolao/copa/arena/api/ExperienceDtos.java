@@ -14,7 +14,7 @@ public final class ExperienceDtos {
     public record ProfileUpdateRequest(@NotBlank @Size(min = 2, max = 100) String name,
                                        @NotBlank @Email @Size(max = 180) String email,
                                        @Size(max = 300) String avatarUrl, @Size(max = 500) String bio,
-                                       @Size(max = 12) List<@Size(max = 40) String> favoriteSports,
+                                       @Size(max = 12) List<@NotBlank @Size(max = 40) String> favoriteSports,
                                        Boolean publicProfile) { }
     public record PasswordUpdateRequest(@NotBlank @Size(max = 72) String currentPassword,
                                         @NotBlank @Size(min = 8, max = 72) String newPassword) { }

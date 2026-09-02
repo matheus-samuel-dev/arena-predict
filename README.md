@@ -128,16 +128,9 @@ O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria um conju
 
 O provider ao vivo incluído é interno e simulado. O projeto não afirma integração com ESPN, Sportradar, FIFA, Riot, Steam ou provedores de odds.
 
-O seed pode ser executado novamente sem duplicar os registros conhecidos e não redefine a senha de uma conta demo que já existe no banco persistido.
+O seed pode ser executado novamente sem duplicar os registros conhecidos. O acesso rápido da tela de login é resolvido pelo backend somente quando o modo demo está habilitado; nenhuma senha é enviada ao navegador ou incorporada ao bundle.
 
-Credenciais destinadas somente ao ambiente local:
-
-| Perfil | E-mail | Senha |
-|---|---|---|
-| Administrador | `admin@arenapredict.com` | `Admin@123` |
-| Participante | `jogador@arenapredict.com` | `Jogador@123` |
-
-Nunca publique uma instância com credenciais demo, segredo JWT ou senha de banco padrão.
+Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique uma instância com credenciais demo, segredo JWT ou senha de banco padrão.
 
 ## Execução com Docker
 
@@ -149,10 +142,14 @@ Pré-requisitos:
 Na raiz do repositório:
 
 ```bash
+cp .env.example .env
+# Preencha POSTGRES_PASSWORD e JWT_SECRET com valores exclusivos antes de continuar.
 docker compose config
 docker compose up -d --build
 docker compose ps
 ```
+
+No PowerShell, use `Copy-Item .env.example .env` no primeiro comando. O arquivo `.env` é ignorado pelo Git. As senhas das duas contas demonstrativas são opcionais para o acesso rápido; quando definidas somente no ambiente, o seed sincroniza os hashes BCrypt sem expor os valores ao navegador.
 
 Serviços:
 
@@ -216,7 +213,7 @@ Use `.env.example` como referência. O arquivo `.env` local não deve ser versio
 | Grupo | Variáveis principais |
 |---|---|
 | Produto | `APP_BRAND_NAME`, `VITE_APP_NAME`, `VITE_APP_SHORT_NAME`, `VITE_APP_TAGLINE`, `VITE_APP_DESCRIPTION`, `VITE_APP_STORAGE_NAMESPACE`, `VITE_SUPPORT_EMAIL` |
-| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
+| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_ADMIN_EMAIL`, `APP_DEMO_ADMIN_PASSWORD`, `APP_DEMO_PARTICIPANT_EMAIL`, `APP_DEMO_PARTICIPANT_PASSWORD`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
 | Segurança | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES`, `CORS_ALLOWED_ORIGINS` |
 | Banco | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_VOLUME_NAME`, `POSTGRES_HOST_PORT` |
 | Rede/frontend | `APP_BIND_ADDRESS`, `FRONTEND_PORT`, `BACKEND_PORT`, `VITE_API_URL`, `VITE_BACKEND_PROXY`, `VITE_API_TIMEOUT_MS` |
@@ -224,6 +221,8 @@ Use `.env.example` como referência. O arquivo `.env` local não deve ser versio
 `VITE_*` é incorporada ao bundle no build; alterá-la exige reconstruir o frontend. `VITE_BACKEND_PROXY` é usado apenas pelo servidor de desenvolvimento, enquanto o Compose encaminha `/api` pelo Nginx.
 
 `VITE_SUPPORT_EMAIL` define apenas o endereço exibido e copiado pela central de ajuda; não existe integração externa de atendimento. Em uma implantação real, substitua o valor demonstrativo por uma caixa monitorada.
+
+Em produção, mantenha as quatro variáveis de identidade/credencial demo no serviço de segredos ou no `.env` privado da instância. `APP_DEMO_ENABLED=false` remove o endpoint de acesso rápido do contexto Spring; `VITE_DEMO_MODE=false` remove os respectivos controles da interface. Altere as duas flags em conjunto e reconstrua o frontend quando mudar `VITE_DEMO_MODE`.
 
 ## Segurança
 
@@ -241,6 +240,8 @@ Use `.env.example` como referência. O arquivo `.env` local não deve ser versio
 - registro append-only de operações administrativas críticas, com ator, recurso e ID de correlação, sem senha ou token;
 - headers de segurança no Nginx;
 - mensagens inesperadas não expõem stack trace ao cliente.
+
+O endpoint `POST /api/auth/demo` só existe quando `APP_DEMO_ENABLED=true`. Ele aceita exclusivamente o perfil demonstrativo permitido, resolve no servidor uma das duas identidades configuradas e emite o mesmo JWT/RBAC do login convencional; não recebe e-mail, senha, papel arbitrário ou autoridade do navegador.
 
 Para uma implantação pública ainda são necessários gestão externa e rotação de segredos, TLS no proxy de borda, rate limiting distribuído, política de backup e monitoramento centralizado.
 
@@ -282,6 +283,21 @@ npm run build
 Os testes existentes exercitam autenticação, claims JWT, 401/403, permissões, seed, carteira, saldo insuficiente, débito, cancelamento, idempotência, resultados por placar e classificação, liquidação, recompensa única, progressão recorrente, comunidade e formatos seguros dos recursos administrativos.
 
 O workflow `.github/workflows/ci.yml` executa backend e frontend em jobs independentes, com Java 21 e Node.js 22. O pipeline apenas valida o código; não publica artefatos nem realiza deploy.
+
+## Atualização de uma implantação Docker/AWS
+
+Depois de atualizar no gerenciador de segredos ou no `.env` privado da instância as variáveis necessárias, reconstrua somente os serviços sem remover o volume PostgreSQL:
+
+```bash
+git pull --ff-only
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+curl --fail http://127.0.0.1:8080/actuator/health
+curl --fail http://127.0.0.1:5173/health
+```
+
+Para disponibilizar o acesso rápido do portfólio, configure `APP_DEMO_ENABLED=true`, `VITE_DEMO_MODE=true` e injete `APP_DEMO_ADMIN_PASSWORD` e `APP_DEMO_PARTICIPANT_PASSWORD` apenas pelo mecanismo privado do ambiente. Não use `docker compose down -v`: esse comando apagaria o banco persistido.
 
 ## API
 

@@ -159,8 +159,9 @@ public class ArenaPredictionService {
         market.setSettledAt(Instant.now());
         affectedUsers.forEach(progression::refresh);
         audit.record("MARKET_SETTLED", "MARKET", market.getId(),
-                "Mercado " + market.getName() + " liquidado: " + winners + " vencedores e " + rewards
-                        + " pontos virtuais creditados");
+                "Mercado " + market.getName() + " liquidado: "
+                        + quantity(winners, "vencedor", "vencedores") + " e "
+                        + quantity(rewards, "ponto virtual creditado", "pontos virtuais creditados"));
         return new SettlementResponse(marketId, correct.getKey(), winners, losers, rewards, false);
     }
 
@@ -256,6 +257,9 @@ public class ArenaPredictionService {
     private String refundAuditSummary(String resource, String name, int refunds) {
         String predictionLabel = refunds == 1 ? "palpite reembolsado" : "palpites reembolsados";
         return "Cancelamento do " + resource + " “" + name + "”: " + refunds + " " + predictionLabel + ".";
+    }
+    private String quantity(long value, String singular, String plural) {
+        return value + " " + (value == 1 ? singular : plural);
     }
     private void validatePool(ArenaPool pool, ArenaEvent event) {
         if (pool.getStatus() != PoolStatus.OPEN && pool.getStatus() != PoolStatus.IN_PROGRESS)

@@ -38,7 +38,7 @@ public final class ArenaDtos {
 
     public record SportRequest(@NotBlank @Size(max = 40) String code, @NotBlank @Size(max = 100) String name,
                                @NotNull SportCategory category, @Size(max = 80) String icon,
-                               Boolean active, Integer displayOrder) { }
+                               Boolean active, @PositiveOrZero Integer displayOrder) { }
     public record ChampionshipRequest(@NotNull Long sportId, @NotBlank @Size(max = 120) String name,
                                       @NotBlank @Size(max = 120) String slug, @NotBlank @Size(max = 40) String season,
                                       ChampionshipStatus status, @Size(max = 300) String imageUrl,
@@ -53,7 +53,7 @@ public final class ArenaDtos {
                                @NotNull Instant startsAt, @NotNull Instant predictionClosesAt,
                                EventStatus status, EventFormat format, @Min(1) @Max(5) Integer bestOf,
                                Boolean featured, Boolean demo,
-                               List<@Valid EventParticipantRequest> participants) { }
+                               @Size(max = 100) List<@NotNull @Valid EventParticipantRequest> participants) { }
     public record EventParticipantRequest(@NotNull Long competitorId, @PositiveOrZero Integer displayOrder,
                                           @Positive Integer position, @Size(max = 80) String scoreLabel) { }
     public record MarketOptionRequest(@NotBlank @Size(max = 80) String key,
@@ -62,12 +62,13 @@ public final class ArenaDtos {
                                       Boolean active) { }
     public record MarketRequest(@NotNull Long eventId, @NotBlank @Size(max = 80) String code,
                                 @NotBlank @Size(max = 140) String name, MarketStatus status,
-                                @Min(1) Integer minimumPoints, @NotEmpty List<@NotNull MarketOptionRequest> options) { }
+                                @Min(1) Integer minimumPoints,
+                                @NotNull @Size(min = 2, max = 20) List<@NotNull @Valid MarketOptionRequest> options) { }
     public record MarketStatusRequest(@NotNull MarketStatus status) { }
     public record SettleMarketRequest(@NotBlank @Size(max = 80) String correctOptionKey) { }
     public record EventResultRequest(@NotNull @PositiveOrZero Integer homeScore,
                                      @NotNull @PositiveOrZero Integer awayScore, Boolean finishEvent) { }
-    public record EventClassificationRequest(@NotEmpty List<@Valid EventParticipantRequest> participants,
+    public record EventClassificationRequest(@NotEmpty @Size(max = 100) List<@NotNull @Valid EventParticipantRequest> participants,
                                              Boolean finishEvent) { }
 
     public record PlacePredictionRequest(@NotNull Long eventId, @NotNull Long marketId, @NotNull Long optionId,
@@ -86,7 +87,8 @@ public final class ArenaDtos {
 
     public record PoolRequest(@NotBlank @Size(max = 120) String name, @Size(max = 1000) String description,
                               Long sportId, Long championshipId, Boolean publicPool,
-                              @Min(2) @Max(500) Integer maxParticipants, @PositiveOrZero Integer virtualPrizePoints,
+                              @Min(2) @Max(500) Integer maxParticipants,
+                              @PositiveOrZero @Max(1_000_000) Integer virtualPrizePoints,
                               @NotBlank @Size(max = 1200) String rules, Instant startsAt, Instant endsAt,
                               PoolType poolType, Boolean recurring) {
         public PoolRequest(String name, String description, Long sportId, Long championshipId,

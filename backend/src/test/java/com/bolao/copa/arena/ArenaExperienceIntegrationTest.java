@@ -80,7 +80,7 @@ class ArenaExperienceIntegrationTest {
     void profileAndPreferencesArePersistedWithoutExposingPassword() {
         var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
         var updated = profiles.update(user, new ProfileUpdateRequest("Jogador Arena", user.getEmail(),
-                "https://example.test/avatar.png", "Perfil público de demonstração", List.of("FOOTBALL", "CS2"), true));
+                "/assets/avatars/jogador-demo.webp", "Perfil público de demonstração", List.of("FOOTBALL", "CS2"), true));
         var preferences = profiles.preferences(user, new PreferenceUpdateRequest("light", "en-US", false, false));
 
         assertThat(updated.name()).isEqualTo("Jogador Arena");

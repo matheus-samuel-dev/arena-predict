@@ -807,18 +807,20 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const savingRequestRef = useRef(false);
   const [confirmingCancellation, setConfirmingCancellation] = useState(false);
   const { notify } = useToast();
 
   useEffect(() => {
     setForm(initialForm(resource, config, record));
     setFieldErrors({});
+    savingRequestRef.current = false;
     setConfirmingCancellation(false);
   }, [resource, config, record]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (savingRequestRef.current) return;
     const validation = validateResourceForm(resource, config, form);
     setFieldErrors(validation);
     const firstError = Object.values(validation)[0];
@@ -829,6 +831,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
       return;
     }
 
+    savingRequestRef.current = true;
     setSaving(true);
     try {
       const payload = Object.fromEntries((config.fields || [])
@@ -851,6 +854,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
         && String(record.status).toUpperCase() !== "CANCELLED";
       if (cancellingEvent && !confirmingCancellation) {
         setConfirmingCancellation(true);
+        savingRequestRef.current = false;
         setSaving(false);
         return;
       }
@@ -875,6 +879,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
       }
       notify(error instanceof SyntaxError ? "Revise as opções ou os participantes informados." : error instanceof Error ? error.message : "Não foi possível salvar.", "error");
     } finally {
+      savingRequestRef.current = false;
       setSaving(false);
     }
   }
@@ -941,7 +946,7 @@ function isMissing(value: unknown) {
   return value === undefined || value === null || value === "" || (typeof value === "string" && !value.trim());
 }
 
-function validateResourceForm(resource: string, config: ResourceConfig, form: Record<string, unknown>) {
+export function validateResourceForm(resource: string, config: ResourceConfig, form: Record<string, unknown>) {
   const errors: Record<string, string> = {};
   for (const field of config.fields || []) {
     const value = form[field.key];
@@ -961,8 +966,16 @@ function validateResourceForm(resource: string, config: ResourceConfig, form: Re
   for (const [firstKey, secondKey, message] of chronologicalPairs) {
     const first = form[firstKey] ? new Date(String(form[firstKey])).getTime() : Number.NaN;
     const second = form[secondKey] ? new Date(String(form[secondKey])).getTime() : Number.NaN;
-    const invalid = resource === "events" ? first > second : first >= second;
-    if (Number.isFinite(first) && Number.isFinite(second) && invalid) errors[secondKey] = message;
+    const invalid = first >= second;
+    if (Number.isFinite(first) && Number.isFinite(second) && invalid) errors[resource === "events" ? firstKey : secondKey] = message;
+  }
+
+  if (resource === "events" && !isMissing(form.homeCompetitorId) && String(form.homeCompetitorId) === String(form.awayCompetitorId)) {
+    errors.awayCompetitorId = "Selecione participantes diferentes para o evento.";
+  }
+  if (resource === "notifications" && !isMissing(form.targetUrl)) {
+    const targetUrl = String(form.targetUrl).trim();
+    if (!targetUrl.startsWith("/") || targetUrl.startsWith("//")) errors.targetUrl = "Informe um destino interno iniciado por /, como /notifications.";
   }
 
   for (const key of ["optionsJson", "participantsJson"]) {

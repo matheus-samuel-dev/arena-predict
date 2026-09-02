@@ -10,4 +10,5 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     List<EventParticipant> findByEventOrderByDisplayOrderAsc(ArenaEvent event);
     @EntityGraph(attributePaths = "competitor")
     List<EventParticipant> findByEventInOrderByEventIdAscDisplayOrderAsc(Collection<ArenaEvent> events);
+    boolean existsByCompetitor(Competitor competitor);
 }

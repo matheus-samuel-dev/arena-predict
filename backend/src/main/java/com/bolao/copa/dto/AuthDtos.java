@@ -1,10 +1,12 @@
 package com.bolao.copa.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.bolao.copa.entity.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.Locale;
 
 public final class AuthDtos {
     private AuthDtos() {
@@ -40,6 +42,37 @@ public final class AuthDtos {
             @Size(max = 200, message = "A senha informada é inválida.")
             String password
     ) {
+    }
+
+    public record DemoAccessRequest(
+            @NotNull(message = "Escolha um perfil de demonstração.")
+            DemoProfile profile
+    ) {
+    }
+
+    public enum DemoProfile {
+        PARTICIPANT(UserRole.PARTICIPANTE),
+        ADMIN(UserRole.ADMIN);
+
+        private final UserRole userRole;
+
+        DemoProfile(UserRole userRole) {
+            this.userRole = userRole;
+        }
+
+        public UserRole userRole() {
+            return userRole;
+        }
+
+        @JsonCreator
+        public static DemoProfile fromJson(String value) {
+            if (value == null) return null;
+            return switch (value.trim().toUpperCase(Locale.ROOT)) {
+                case "PARTICIPANT", "PARTICIPANTE" -> PARTICIPANT;
+                case "ADMIN" -> ADMIN;
+                default -> throw new IllegalArgumentException("Perfil de demonstração inválido.");
+            };
+        }
     }
 
     public record AuthResponse(

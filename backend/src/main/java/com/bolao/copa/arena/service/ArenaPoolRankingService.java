@@ -56,13 +56,16 @@ public class ArenaPoolRankingService {
     public PoolResponse create(PoolRequest request, User owner) {
         ArenaPool pool = new ArenaPool();
         pool.setName(request.name().trim());
-        pool.setDescription(request.description());
+        pool.setDescription(optionalText(request.description()));
         Sport sport = request.sportId() == null ? null : sports.findById(request.sportId())
                 .orElseThrow(() -> new ArenaProblem.NotFound("Modalidade não encontrada."));
         Championship championship = request.championshipId() == null ? null : championships.findById(request.championshipId())
                 .orElseThrow(() -> new ArenaProblem.NotFound("Campeonato não encontrado."));
         if (sport != null && championship != null && !championship.getSport().getId().equals(sport.getId()))
             throw new ArenaProblem.RuleViolation("O campeonato não pertence à modalidade selecionada.");
+        if (championship != null && sport == null) sport = championship.getSport();
+        if (request.startsAt() != null && request.endsAt() != null && !request.endsAt().isAfter(request.startsAt()))
+            throw new ArenaProblem.RuleViolation("O fim do bolão deve ser posterior ao início.");
         pool.setSport(sport);
         pool.setChampionship(championship);
         pool.setOwner(owner);
@@ -226,6 +229,7 @@ public class ArenaPoolRankingService {
         while (pools.existsByInviteCode(code));
         return code;
     }
+    private String optionalText(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     private long currentStreak(List<ArenaPrediction> values) {
         long streak = 0;
         List<ArenaPrediction> settled = values.stream()

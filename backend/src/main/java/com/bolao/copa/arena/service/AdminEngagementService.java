@@ -104,10 +104,12 @@ public class AdminEngagementService {
     public NotificationDispatchResponse dispatch(AdminNotificationRequest request) {
         List<User> recipients = request.userId() == null ? users.findAll() : List.of(users.findById(request.userId())
                 .orElseThrow(() -> new ArenaProblem.NotFound("Usuário não encontrado.")));
+        String targetUrl = internalTarget(request.targetUrl());
         recipients.forEach(user -> notificationService.create(user, request.type(), request.title().trim(),
-                request.message().trim(), request.targetUrl()));
+                request.message().trim(), targetUrl));
         audit.record("NOTIFICATION_DISPATCHED", "NOTIFICATION", request.userId(),
-                "Notificação administrativa enviada para " + recipients.size() + " destinatário(s)");
+                "Notificação administrativa enviada para " + recipients.size()
+                        + (recipients.size() == 1 ? " destinatário" : " destinatários"));
         return new NotificationDispatchResponse(recipients.size(), request.userId() == null ? "ALL_USERS" : "USER");
     }
 
@@ -130,5 +132,18 @@ public class AdminEngagementService {
         return new AdminNotificationResponse(value.getId(), value.getUser().getId(), value.getUser().getName(), value.getType(),
                 value.getTitle(), value.getMessage(), value.getTargetUrl(), value.getCreatedAt(), value.getReadAt() != null);
     }
-    private String code(String value) { return value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_"); }
+    private String code(String value) {
+        String normalized = value.trim().toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]+", "_").replaceAll("(^_+|_+$)", "");
+        if (normalized.isBlank())
+            throw new ArenaProblem.RuleViolation("O código precisa conter letras ou números.");
+        return normalized;
+    }
+    private String optionalText(String value) { return value == null || value.isBlank() ? null : value.trim(); }
+    private String internalTarget(String value) {
+        String target = optionalText(value);
+        if (target != null && (!target.startsWith("/") || target.startsWith("//")))
+            throw new ArenaProblem.RuleViolation("O destino da notificação deve ser uma rota interna do ArenaPredict.");
+        return target;
+    }
 }

@@ -60,7 +60,7 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(user));
         when(jwtService.generate(user)).thenReturn("signed-token");
 
-        var response = authService.login(new LoginRequest("  JOGADOR@ArenaPredict.com ", "Jogador@123"));
+        var response = authService.login(new LoginRequest("  JOGADOR@ArenaPredict.com ", "unit-test-password"));
 
         assertThat(response.token()).isEqualTo("signed-token");
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);

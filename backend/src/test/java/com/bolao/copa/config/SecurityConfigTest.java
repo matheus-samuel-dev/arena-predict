@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bolao.copa.controller.AuthController;
+import com.bolao.copa.controller.DemoAuthController;
 import com.bolao.copa.dto.AuthDtos.AuthResponse;
 import com.bolao.copa.dto.AuthDtos.UserResponse;
 import com.bolao.copa.entity.User;
@@ -18,6 +19,7 @@ import com.bolao.copa.security.JwtService;
 import com.bolao.copa.security.RestAccessDeniedHandler;
 import com.bolao.copa.security.RestAuthenticationEntryPoint;
 import com.bolao.copa.service.AuthService;
+import com.bolao.copa.service.DemoAuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest(controllers = {AuthController.class, RbacProbeController.class})
+@WebMvcTest(controllers = {AuthController.class, DemoAuthController.class, RbacProbeController.class})
 @Import({
         SecurityConfig.class,
         JwtService.class,
@@ -41,7 +43,8 @@ import org.springframework.web.bind.annotation.RestController;
 })
 @TestPropertySource(properties = {
         "app.jwt.secret=test-secret-with-at-least-thirty-two-bytes-123456",
-        "app.jwt.expiration-minutes=60"
+        "app.jwt.expiration-minutes=60",
+        "app.demo.enabled=true"
 })
 class SecurityConfigTest {
     static {
@@ -52,6 +55,7 @@ class SecurityConfigTest {
     @Autowired MockMvc mockMvc;
     @Autowired JwtService jwtService;
     @MockBean AuthService authService;
+    @MockBean DemoAuthService demoAuthService;
     @MockBean CustomUserDetailsService userDetailsService;
 
     @Test
@@ -59,13 +63,34 @@ class SecurityConfigTest {
         when(authService.login(any())).thenReturn(new AuthResponse(
                 "token", null, "Admin", "admin@arenapredict.com", UserRole.ADMIN
         ));
-        var body = "{\"email\":\"admin@arenapredict.com\",\"password\":\"Admin@123\"}";
+        var body = "{\"email\":\"admin@arenapredict.com\",\"password\":\"unit-test-password\"}";
 
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("ADMIN"));
         mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void demoAccessIsPublicButAcceptsOnlyAProfile() throws Exception {
+        when(demoAuthService.access(any())).thenReturn(new AuthResponse(
+                "regular-jwt", null, "Jogador Demo", "jogador@arenapredict.com", UserRole.PARTICIPANTE
+        ));
+
+        mockMvc.perform(post("/api/auth/demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"profile\":\"PARTICIPANT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("regular-jwt"))
+                .andExpect(jsonPath("$.role").value("PARTICIPANTE"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+
+        mockMvc.perform(post("/api/auth/demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"profile\":\"SUPER_ADMIN\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Verifique os dados enviados e tente novamente."));
     }
 
     @Test

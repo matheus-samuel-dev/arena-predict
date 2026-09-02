@@ -12,7 +12,7 @@ services:
       TZ: America/Sao_Paulo
       POSTGRES_DB: ${POSTGRES_DB:-bolao_copa}
       POSTGRES_USER: ${POSTGRES_USER:-bolao}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bolao123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD em um .env não versionado}
     ports:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
@@ -37,14 +37,18 @@ services:
       SERVER_PORT: 8080
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bolao_copa}
       DB_USERNAME: ${POSTGRES_USER:-bolao}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-bolao123}
-      JWT_SECRET: ${JWT_SECRET:-arena-predict-demo-secret-change-before-production-2026}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD em um .env não versionado}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET em um .env não versionado}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-120}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       APP_BRAND_NAME: ${APP_BRAND_NAME:-ArenaPredict}
-      APP_DEMO_ENABLED: ${APP_DEMO_ENABLED:-true}
-      APP_DEMO_LIVE_PROVIDER_ENABLED: ${APP_DEMO_LIVE_PROVIDER_ENABLED:-true}
-      APP_DEMO_LIVE_SCHEDULER_ENABLED: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:-true}
+      APP_DEMO_ENABLED: ${APP_DEMO_ENABLED:-false}
+      APP_DEMO_ADMIN_EMAIL: ${APP_DEMO_ADMIN_EMAIL:-admin@arenapredict.com}
+      APP_DEMO_ADMIN_PASSWORD: ${APP_DEMO_ADMIN_PASSWORD:-}
+      APP_DEMO_PARTICIPANT_EMAIL: ${APP_DEMO_PARTICIPANT_EMAIL:-jogador@arenapredict.com}
+      APP_DEMO_PARTICIPANT_PASSWORD: ${APP_DEMO_PARTICIPANT_PASSWORD:-}
+      APP_DEMO_LIVE_PROVIDER_ENABLED: ${APP_DEMO_LIVE_PROVIDER_ENABLED:-false}
+      APP_DEMO_LIVE_SCHEDULER_ENABLED: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:-false}
       APP_DEMO_LIVE_REFRESH_MS: ${APP_DEMO_LIVE_REFRESH_MS:-30000}
       APP_DEMO_LIVE_INITIAL_DELAY_MS: ${APP_DEMO_LIVE_INITIAL_DELAY_MS:-30000}
     depends_on:
@@ -73,7 +77,7 @@ services:
         VITE_APP_DESCRIPTION: ${VITE_APP_DESCRIPTION:-Previsões esportivas, bolões e ligas com pontos exclusivamente virtuais.}
         VITE_APP_STORAGE_NAMESPACE: ${VITE_APP_STORAGE_NAMESPACE:-arena-predict}
         VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-suporte@arenapredict.com}
-        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-false}
         VITE_API_TIMEOUT_MS: ${VITE_API_TIMEOUT_MS:-12000}
     container_name: arenapredict-web
     restart: unless-stopped

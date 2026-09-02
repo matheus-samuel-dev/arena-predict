@@ -31,6 +31,8 @@ public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
     List<ArenaEvent> findByStatusOrderByStartsAtAsc(EventStatus status);
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     List<ArenaEvent> findTop12ByStartsAtAfterAndStatusInOrderByStartsAtAsc(Instant startsAt, Collection<EventStatus> statuses);
+    boolean existsByChampionship(Championship championship);
+    boolean existsByHomeCompetitorOrAwayCompetitor(Competitor homeCompetitor, Competitor awayCompetitor);
     long countByStatus(EventStatus status);
     @Query("select count(distinct event) from ArenaEvent event join PredictionMarket market on market.event = event " +
             "where event.status = :eventStatus and market.status <> :settledStatus")

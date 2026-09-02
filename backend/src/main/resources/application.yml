@@ -9,7 +9,7 @@ spring:
   datasource:
     url: ${DB_URL:${DATABASE_URL:jdbc:postgresql://localhost:5433/bolao_copa}}
     username: ${DB_USERNAME:${DATABASE_USERNAME:bolao}}
-    password: ${DB_PASSWORD:${DATABASE_PASSWORD:bolao123}}
+    password: ${DB_PASSWORD:${DATABASE_PASSWORD:}}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -40,6 +40,10 @@ app:
     name: ${APP_BRAND_NAME:ArenaPredict}
   demo:
     enabled: ${APP_DEMO_ENABLED:false}
+    admin-email: ${APP_DEMO_ADMIN_EMAIL:admin@arenapredict.com}
+    admin-password: ${APP_DEMO_ADMIN_PASSWORD:}
+    participant-email: ${APP_DEMO_PARTICIPANT_EMAIL:jogador@arenapredict.com}
+    participant-password: ${APP_DEMO_PARTICIPANT_PASSWORD:}
     live-provider-enabled: ${APP_DEMO_LIVE_PROVIDER_ENABLED:false}
     live-scheduler-enabled: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:false}
     live-refresh-ms: ${APP_DEMO_LIVE_REFRESH_MS:30000}

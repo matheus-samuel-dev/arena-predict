@@ -1,13 +1,13 @@
 package com.bolao.copa.arena.api;
 
 import static com.bolao.copa.arena.api.ExperienceDtos.*;
+import static com.bolao.copa.arena.api.AdminOperationsDtos.AdminPageResponse;
 
 import com.bolao.copa.arena.service.*;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.service.CurrentUserService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,10 +33,10 @@ public class ExperienceController {
     @GetMapping("/achievements") public List<AchievementResponse> achievements(@AuthenticationPrincipal UserDetails details) { return progression.achievements(user(details)); }
     @GetMapping("/challenges") public List<ChallengeResponse> challenges(@AuthenticationPrincipal UserDetails details) { return progression.challenges(user(details)); }
 
-    @GetMapping("/community/posts") public Page<PostResponse> feed(@RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "20") int size,
-                                                                    @AuthenticationPrincipal UserDetails details) {
-        return community.feed(page, size, user(details));
+    @GetMapping("/community/posts") public AdminPageResponse<PostResponse> feed(@RequestParam(defaultValue = "0") int page,
+                                                                                  @RequestParam(defaultValue = "20") int size,
+                                                                                  @AuthenticationPrincipal UserDetails details) {
+        return AdminPageResponse.from(community.feed(page, size, user(details)));
     }
     @PostMapping("/community/posts") @ResponseStatus(HttpStatus.CREATED)
     public PostResponse post(@Valid @RequestBody PostRequest request, @AuthenticationPrincipal UserDetails details) { return community.create(request, user(details)); }

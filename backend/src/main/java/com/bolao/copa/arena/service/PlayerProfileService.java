@@ -7,12 +7,15 @@ import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PlayerProfileService {
+    private static final Pattern CURATED_AVATAR_PATH = Pattern.compile(
+            "^/assets/avatars/[a-z0-9]+(?:-[a-z0-9]+)*\\.webp$");
     private final PlayerProfileRepository profiles;
     private final PointWalletService walletService;
     private final UserRepository users;
@@ -32,7 +35,7 @@ public class PlayerProfileService {
             throw new ArenaProblem.RuleViolation("A alteração de e-mail exige nova autenticação e ainda não está disponível neste perfil.");
         user.setName(request.name().trim());
         PlayerProfile profile = ensure(user);
-        profile.setAvatarUrl(blankToNull(request.avatarUrl())); profile.setBio(blankToNull(request.bio()));
+        profile.setAvatarUrl(curatedAvatar(request.avatarUrl())); profile.setBio(blankToNull(request.bio()));
         profile.setFavoriteSports(request.favoriteSports() == null ? null : String.join(",", request.favoriteSports().stream().map(String::trim).filter(v -> !v.isBlank()).distinct().toList()));
         if (request.publicProfile() != null) profile.setPublicProfile(request.publicProfile());
         profile.touch(); users.save(user);
@@ -73,5 +76,11 @@ public class PlayerProfileService {
                 Math.toIntExact(Math.min(Integer.MAX_VALUE, xp / 5_000 + 1)), xp, wallet.balance());
     }
     private List<String> sports(String value) { return value == null || value.isBlank() ? List.of() : Arrays.asList(value.split(",")); }
+    private String curatedAvatar(String value) {
+        String avatar = blankToNull(value);
+        if (avatar != null && !CURATED_AVATAR_PATH.matcher(avatar).matches())
+            throw new ArenaProblem.RuleViolation("Escolha um avatar disponível na galeria do ArenaPredict.");
+        return avatar;
+    }
     private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
 }

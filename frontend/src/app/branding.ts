@@ -9,17 +9,8 @@ export const brand = {
   supportEmail: import.meta.env.VITE_SUPPORT_EMAIL || "suporte@arenapredict.com",
 } as const;
 
+/**
+ * Controla apenas a exibição da entrada rápida. A autorização efetiva é feita
+ * pelo backend, que só disponibiliza o endpoint quando APP_DEMO_ENABLED=true.
+ */
 export const isExplicitDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
-
-export const demoCredentials = {
-  admin: {
-    name: "Admin Arena",
-    email: "admin@arenapredict.com",
-    password: "Admin@123",
-  },
-  participant: {
-    name: "Jogador Demo",
-    email: "jogador@arenapredict.com",
-    password: "Jogador@123",
-  },
-} as const;

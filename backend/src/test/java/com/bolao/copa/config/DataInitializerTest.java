@@ -23,7 +23,7 @@ class DataInitializerTest {
     @Mock TransactionTemplate transactions;
 
     @Test
-    void startupNeverResetsPasswordOfExistingDemoAccount() throws Exception {
+    void startupPreservesPasswordWhenDeploymentSecretIsEmpty() throws Exception {
         User admin = user("admin@arenapredict.com", "Administrador Demo", "custom-bcrypt-hash", UserRole.ADMIN);
         when(users.findAllByRole(UserRole.USER)).thenReturn(List.of());
         when(users.findByEmailIgnoreCase(anyString())).thenAnswer(invocation -> {
@@ -38,10 +38,52 @@ class DataInitializerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
 
-        new DataInitializer().seed(users, passwords, transactions).run();
+        var properties = new DemoProperties(
+                true,
+                "admin@arenapredict.com",
+                "",
+                "jogador@arenapredict.com",
+                ""
+        );
+
+        new DataInitializer().seed(users, passwords, transactions, properties).run();
 
         assertThat(admin.getPasswordHash()).isEqualTo("custom-bcrypt-hash");
-        verify(passwords, never()).encode("Admin@123");
+        verify(passwords, never()).matches(anyString(), eq("custom-bcrypt-hash"));
+    }
+
+    @Test
+    void explicitDeploymentSecretSynchronizesExistingDemoAccount() throws Exception {
+        User admin = user("admin@arenapredict.com", "Administrador Demo", "previous-hash", UserRole.ADMIN);
+        when(users.findAllByRole(UserRole.USER)).thenReturn(List.of());
+        when(users.findByEmailIgnoreCase(anyString())).thenAnswer(invocation -> {
+            String email = invocation.getArgument(0);
+            return email.equalsIgnoreCase(admin.getEmail()) ? Optional.of(admin) : Optional.empty();
+        });
+        when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(passwords.matches("deployment-secret-used-only-in-test", "previous-hash")).thenReturn(false);
+        when(passwords.encode(anyString())).thenAnswer(invocation ->
+                "deployment-secret-used-only-in-test".equals(invocation.getArgument(0))
+                        ? "synchronized-hash"
+                        : "generated-bootstrap-hash");
+        doAnswer(invocation -> {
+            Consumer<TransactionStatus> callback = invocation.getArgument(0);
+            callback.accept(mock(TransactionStatus.class));
+            return null;
+        }).when(transactions).executeWithoutResult(any());
+
+        var properties = new DemoProperties(
+                true,
+                "admin@arenapredict.com",
+                "deployment-secret-used-only-in-test",
+                "jogador@arenapredict.com",
+                ""
+        );
+
+        new DataInitializer().seed(users, passwords, transactions, properties).run();
+
+        assertThat(admin.getPasswordHash()).isEqualTo("synchronized-hash");
+        verify(passwords).matches("deployment-secret-used-only-in-test", "previous-hash");
     }
 
     private User user(String email, String name, String passwordHash, UserRole role) {

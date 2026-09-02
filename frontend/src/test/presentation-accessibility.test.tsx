@@ -52,6 +52,10 @@ describe("apresentação de estados", () => {
       .toBe("Evento Palmeiras x Flamengo cancelado com 4 reembolsos");
     expect(auditSummaryLabel("Mercado vencedor cancelado com 1 reembolso"))
       .toBe("Mercado vencedor cancelado com 1 reembolso");
+    expect(auditSummaryLabel("Mercado Vencedor do confronto liquidado: 1 vencedores e 1 pontos virtuais creditados"))
+      .toBe("Mercado Vencedor do confronto liquidado: 1 vencedor e 1 ponto virtual creditado");
+    expect(auditSummaryLabel("Notificação administrativa enviada para 1 destinatário(s)"))
+      .toBe("Notificação administrativa enviada para 1 destinatário");
   });
 
   it("centraliza rótulo, tom, ícone e ajuda contextual", () => {

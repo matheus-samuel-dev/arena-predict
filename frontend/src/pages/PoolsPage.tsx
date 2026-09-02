@@ -144,6 +144,24 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
   );
 }
 
+export function validatePoolCreationDraft(values: {
+  name: string;
+  rules: string;
+  limit: number;
+  virtualPrizePoints: number;
+  startsAt: string;
+  endsAt: string;
+}) {
+  if (values.name.trim().length < 3) return "Informe um nome com pelo menos 3 caracteres.";
+  if (!values.rules.trim()) return "Defina as regras do grupo.";
+  if (!Number.isInteger(values.limit) || values.limit < 2 || values.limit > 500) return "O limite deve ser um número inteiro entre 2 e 500 participantes.";
+  if (!Number.isInteger(values.virtualPrizePoints) || values.virtualPrizePoints < 0 || values.virtualPrizePoints > 1_000_000) return "A premiação deve ser um número inteiro entre 0 e 1.000.000 pontos virtuais.";
+  if (values.startsAt && Number.isNaN(new Date(values.startsAt).getTime())) return "Informe uma data de início válida.";
+  if (values.endsAt && Number.isNaN(new Date(values.endsAt).getTime())) return "Informe uma data de encerramento válida.";
+  if (values.startsAt && values.endsAt && new Date(values.endsAt) <= new Date(values.startsAt)) return "O encerramento deve ocorrer depois do início.";
+  return null;
+}
+
 function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; onClose: () => void; onCreated: () => void; league: boolean }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -156,6 +174,9 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const submitRequestRef = useRef(false);
+  const nameRef = useRef<HTMLInputElement>(null);
   const { notify } = useToast();
   const { data: catalog, loading: catalogLoading, error: catalogError } = useApiResource(async () => {
     const [sports, championships] = await Promise.all([catalogApi.sports(), catalogApi.championships()]);
@@ -164,10 +185,16 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
   const championships = (catalog?.championships || []).filter((item: Championship) => !sportId || String(item.sportId || "") === sportId);
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (submitting) return;
-    if (name.trim().length < 3) { notify("Informe um nome com pelo menos 3 caracteres.", "error"); return; }
-    if (!rules.trim()) { notify("Defina as regras do grupo.", "error"); return; }
-    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) { notify("O encerramento deve ocorrer depois do início.", "error"); return; }
+    if (submitRequestRef.current) return;
+    const validationError = validatePoolCreationDraft({ name, rules, limit, virtualPrizePoints, startsAt, endsAt });
+    if (validationError) {
+      setFormError(validationError);
+      notify(validationError, "error");
+      if (name.trim().length < 3) window.requestAnimationFrame(() => nameRef.current?.focus());
+      return;
+    }
+    submitRequestRef.current = true;
+    setFormError("");
     setSubmitting(true);
     try {
       await poolsApi.create({
@@ -180,9 +207,42 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
       } as Partial<Pool> & { sportId?: number; championshipId?: number });
       notify(`${league ? "Liga" : "Bolão"} criado com sucesso.`, "success");
       setName(""); setDescription(""); setSportId(""); setChampionshipId(""); setVirtualPrizePoints(0); setStartsAt(""); setEndsAt(""); onClose(); onCreated();
-    } catch (error) { notify(error instanceof Error ? error.message : "Não foi possível criar.", "error"); } finally { setSubmitting(false); }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível criar.";
+      setFormError(message);
+      notify(message, "error");
+    } finally {
+      submitRequestRef.current = false;
+      setSubmitting(false);
+    }
   }
-  return <Modal open={open} onClose={onClose} title={league ? "Criar liga" : "Criar bolão"}><form className="stack-form" onSubmit={submit}><label><span>Nome</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder={league ? "Ex.: Liga dos Analistas" : "Ex.: Clássicos entre amigos"} /></label><label><span>Descrição</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Explique a proposta do grupo." /></label><div className="form-columns"><label><span>Modalidade</span><select value={sportId} onChange={(event) => { setSportId(event.target.value); setChampionshipId(""); }} disabled={catalogLoading}><option value="">Todas as modalidades</option>{(catalog?.sports || []).map((item: Sport) => <option value={String(item.id)} key={item.id}>{item.name}</option>)}</select></label><label><span>Campeonato</span><select value={championshipId} onChange={(event) => setChampionshipId(event.target.value)} disabled={catalogLoading}><option value="">Todos os campeonatos</option>{championships.map((item: Championship) => <option value={String(item.id)} key={item.id}>{item.name} {item.season ? `· ${item.season}` : ""}</option>)}</select></label></div>{catalogError && <p className="field-error">Não foi possível carregar modalidades e campeonatos.</p>}<label><span>Regras</span><textarea required value={rules} onChange={(event) => setRules(event.target.value)} /></label><div className="form-columns"><label><span>Visibilidade</span><select value={privacy} onChange={(event) => setPrivacy(event.target.value)}><option value="PRIVATE">Privado, por convite</option><option value="PUBLIC">Público</option></select></label><label><span>Limite de participantes</span><input type="number" min="2" max="500" value={limit} onChange={(event) => setLimit(Number(event.target.value))} /></label></div><div className="form-columns"><label><span>Início</span><input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Encerramento</span><input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label></div><label><span>Premiação virtual</span><input type="number" min="0" max="1000000" value={virtualPrizePoints} onChange={(event) => setVirtualPrizePoints(Number(event.target.value))} /><small>Somente pontos internos, sem valor financeiro.</small></label><div className="virtual-disclaimer"><ShieldCheck size={16} /> Premiações e pontuações não possuem valor financeiro.</div><div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" loading={submitting}>Criar {league ? "liga" : "bolão"}</Button></div></form></Modal>;
+  const clearError = () => setFormError("");
+  return (
+    <Modal open={open} onClose={() => !submitting && onClose()} title={league ? "Criar liga" : "Criar bolão"}>
+      <form className="stack-form" onSubmit={submit} noValidate aria-busy={submitting} aria-describedby={formError ? "pool-create-error" : undefined}>
+        <label><span>Nome *</span><input ref={nameRef} required minLength={3} maxLength={100} value={name} disabled={submitting} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder={league ? "Ex.: Liga dos Analistas" : "Ex.: Clássicos entre amigos"} /></label>
+        <label><span>Descrição</span><textarea maxLength={500} value={description} disabled={submitting} onChange={(event) => setDescription(event.target.value)} placeholder="Explique a proposta do grupo." /></label>
+        <div className="form-columns">
+          <label><span>Modalidade</span><select value={sportId} onChange={(event) => { setSportId(event.target.value); setChampionshipId(""); }} disabled={catalogLoading || submitting}><option value="">Todas as modalidades</option>{(catalog?.sports || []).map((item: Sport) => <option value={String(item.id)} key={item.id}>{item.name}</option>)}</select></label>
+          <label><span>Campeonato</span><select value={championshipId} onChange={(event) => setChampionshipId(event.target.value)} disabled={catalogLoading || submitting}><option value="">Todos os campeonatos</option>{championships.map((item: Championship) => <option value={String(item.id)} key={item.id}>{item.name} {item.season ? `· ${item.season}` : ""}</option>)}</select></label>
+        </div>
+        {catalogError && <p className="field-error">Não foi possível carregar modalidades e campeonatos.</p>}
+        <label><span>Regras *</span><textarea required maxLength={1_500} value={rules} disabled={submitting} onChange={(event) => { setRules(event.target.value); clearError(); }} /></label>
+        <div className="form-columns">
+          <label><span>Visibilidade</span><select value={privacy} disabled={submitting} onChange={(event) => setPrivacy(event.target.value)}><option value="PRIVATE">Privado, por convite</option><option value="PUBLIC">Público</option></select></label>
+          <label><span>Limite de participantes</span><input type="number" min="2" max="500" step="1" value={limit} disabled={submitting} onChange={(event) => { setLimit(Number(event.target.value)); clearError(); }} /></label>
+        </div>
+        <div className="form-columns">
+          <label><span>Início</span><input type="datetime-local" value={startsAt} disabled={submitting} onChange={(event) => { setStartsAt(event.target.value); clearError(); }} /></label>
+          <label><span>Encerramento</span><input type="datetime-local" value={endsAt} disabled={submitting} onChange={(event) => { setEndsAt(event.target.value); clearError(); }} /></label>
+        </div>
+        <label><span>Premiação virtual</span><input type="number" min="0" max="1000000" step="1" value={virtualPrizePoints} disabled={submitting} onChange={(event) => { setVirtualPrizePoints(Number(event.target.value)); clearError(); }} /><small>Somente pontos internos, sem valor financeiro.</small></label>
+        {formError && <p className="field-error" role="alert" id="pool-create-error">{formError}</p>}
+        <div className="virtual-disclaimer"><ShieldCheck size={16} /> Premiações e pontuações não possuem valor financeiro.</div>
+        <div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancelar</Button><Button type="submit" loading={submitting}>Criar {league ? "liga" : "bolão"}</Button></div>
+      </form>
+    </Modal>
+  );
 }
 
 function JoinPoolModal({ open, onClose, onJoined }: { open: boolean; onClose: () => void; onJoined: () => void }) {

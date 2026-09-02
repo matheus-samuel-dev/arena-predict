@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { authApi, sessionStorage } from "../services/api";
 import type { AuthSession, User } from "../types";
 import { useToast } from "./ToastContext";
@@ -9,6 +9,7 @@ interface AuthContextValue {
   initializing: boolean;
   authenticating: boolean;
   login: (email: string, password: string) => Promise<AuthSession>;
+  demoLogin: (profile: "PARTICIPANT" | "ADMIN") => Promise<AuthSession>;
   register: (payload: { name: string; email: string; password: string }) => Promise<AuthSession>;
   logout: (silent?: boolean) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => sessionStorage.read());
   const [initializing, setInitializing] = useState(Boolean(sessionStorage.read()));
   const [authenticating, setAuthenticating] = useState(false);
+  const pendingAuthentication = useRef<Promise<AuthSession> | null>(null);
   const { notify } = useToast();
 
   const applySession = useCallback((next: AuthSession) => {
@@ -79,36 +81,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearSession, notify]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setAuthenticating(true);
-      try {
-        const authenticated = await authApi.login(email.trim().toLowerCase(), password);
+  const authenticate = useCallback((operation: () => Promise<AuthSession>) => {
+    if (pendingAuthentication.current) return pendingAuthentication.current;
+    setAuthenticating(true);
+    const request = operation()
+      .then((authenticated) => {
         applySession(authenticated);
         return authenticated;
-      } finally {
-        setAuthenticating(false);
-      }
-    },
-    [applySession],
+      })
+      .finally(() => {
+        if (pendingAuthentication.current === request) {
+          pendingAuthentication.current = null;
+          setAuthenticating(false);
+        }
+      });
+    pendingAuthentication.current = request;
+    return request;
+  }, [applySession]);
+
+  const login = useCallback(
+    (email: string, password: string) => authenticate(() => authApi.login(email.trim().toLowerCase(), password)),
+    [authenticate],
   );
 
   const register = useCallback(
-    async (payload: { name: string; email: string; password: string }) => {
-      setAuthenticating(true);
-      try {
-        const authenticated = await authApi.register({
+    (payload: { name: string; email: string; password: string }) => authenticate(() => authApi.register({
           ...payload,
           name: payload.name.trim(),
           email: payload.email.trim().toLowerCase(),
-        });
-        applySession(authenticated);
+        })),
+    [authenticate],
+  );
+
+  const demoLogin = useCallback(
+    (profile: "PARTICIPANT" | "ADMIN") => authenticate(async () => {
+        const authenticated = await authApi.demo(profile);
+        const expectedRole = profile === "ADMIN" ? "ADMIN" : "PARTICIPANTE";
+        if (authenticated.role !== expectedRole) {
+          throw new Error("O perfil demonstrativo retornado não corresponde ao acesso solicitado.");
+        }
         return authenticated;
-      } finally {
-        setAuthenticating(false);
-      }
-    },
-    [applySession],
+      }),
+    [authenticate],
   );
 
   const logout = useCallback(
@@ -135,8 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ session, user, initializing, authenticating, login, register, logout, refreshUser, updateLocalUser }),
-    [session, user, initializing, authenticating, login, register, logout, refreshUser, updateLocalUser],
+    () => ({ session, user, initializing, authenticating, login, demoLogin, register, logout, refreshUser, updateLocalUser }),
+    [session, user, initializing, authenticating, login, demoLogin, register, logout, refreshUser, updateLocalUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

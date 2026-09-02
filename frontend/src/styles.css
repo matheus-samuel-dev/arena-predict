@@ -22,6 +22,18 @@
   --color-text-secondary: #3f4c66;
   --color-text-muted: #67748b;
   --color-text-subtle: #8a94a6;
+  --toast-success-background: #edf8f1;
+  --toast-success-border: #79bd94;
+  --toast-success-text: #174b30;
+  --toast-error-background: #fff0f2;
+  --toast-error-border: #df8995;
+  --toast-error-text: #762334;
+  --toast-warning-background: #fff8e8;
+  --toast-warning-border: #d9b25e;
+  --toast-warning-text: #684600;
+  --toast-info-background: #edf6ff;
+  --toast-info-border: #78aeda;
+  --toast-info-text: #184f7d;
 
   /* Spacing and sizing */
   --space-1: 0.25rem;
@@ -131,6 +143,18 @@ html[data-theme="dark"] {
   --color-text-secondary: #c5ccda;
   --color-text-muted: #98a4b7;
   --color-text-subtle: #78869c;
+  --toast-success-background: #172a21;
+  --toast-success-border: #4f9e70;
+  --toast-success-text: #ddf8e8;
+  --toast-error-background: #321d23;
+  --toast-error-border: #b45969;
+  --toast-error-text: #ffe4e9;
+  --toast-warning-background: #302817;
+  --toast-warning-border: #a8843e;
+  --toast-warning-text: #fff1c9;
+  --toast-info-background: #172735;
+  --toast-info-border: #4d86b4;
+  --toast-info-text: #e1f1ff;
   --color-surface-soft: rgba(255, 255, 255, 0.045);
   --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.16);
   --shadow-raised: 0 18px 48px rgba(0, 0, 0, 0.26);
@@ -1230,11 +1254,13 @@ select:focus {
 
 .toast {
   min-height: 55px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--line-strong);
+  padding: 12px 12px 12px 13px;
+  border: 1px solid var(--toast-info-border);
+  border-inline-start-width: 4px;
   border-radius: 13px;
-  background: rgba(15, 20, 34, 0.98);
-  box-shadow: var(--shadow);
+  background: var(--toast-info-background);
+  color: var(--toast-info-text);
+  box-shadow: 0 12px 34px rgba(22, 35, 61, 0.16);
   display: grid;
   grid-template-columns: 20px 1fr 28px;
   align-items: center;
@@ -1246,6 +1272,9 @@ select:focus {
 .toast span {
   font-size: 11px;
   line-height: 1.4;
+  color: inherit;
+  font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
 .toast > button {
@@ -1255,14 +1284,20 @@ select:focus {
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: var(--muted);
+  color: inherit;
   display: grid;
   place-items: center;
 }
 
-.toast--success > svg { color: var(--green); }
-.toast--error > svg { color: var(--red); }
-.toast--info > svg { color: var(--blue); }
+.toast > button:hover { background: rgba(127, 127, 127, 0.12); }
+.toast--success { background: var(--toast-success-background); border-color: var(--toast-success-border); color: var(--toast-success-text); }
+.toast--error { background: var(--toast-error-background); border-color: var(--toast-error-border); color: var(--toast-error-text); }
+.toast--warning { background: var(--toast-warning-background); border-color: var(--toast-warning-border); color: var(--toast-warning-text); }
+.toast--info { background: var(--toast-info-background); border-color: var(--toast-info-border); color: var(--toast-info-text); }
+.toast--success > svg,
+.toast--error > svg,
+.toast--warning > svg,
+.toast--info > svg { color: currentColor; }
 
 .skeleton {
   display: block;

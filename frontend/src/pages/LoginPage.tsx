@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { brand, demoCredentials, isExplicitDemoMode } from "../app/branding";
+import { brand, isExplicitDemoMode } from "../app/branding";
 import { Brand } from "../components/Brand";
 import { Button } from "../components/UI";
 import { useAuth } from "../contexts/AuthContext";
@@ -38,7 +38,7 @@ export function LoginPage() {
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  const { session, login, register, authenticating } = useAuth();
+  const { session, login, demoLogin, register, authenticating } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,18 +109,15 @@ export function LoginPage() {
 
   async function quickLogin(profile: "admin" | "participant") {
     if (authenticating || !isExplicitDemoMode) return;
-    const credential = demoCredentials[profile];
     setMode("login");
-    setEmail(credential.email);
-    setPassword(credential.password);
     setFormError(null);
     setErrorField(null);
     try {
-      const authenticated = await login(credential.email, credential.password);
+      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
       notify(`Acesso demonstrativo como ${profile === "admin" ? "administrador" : "participante"} iniciado.`, "success");
       navigate(postLoginDestination(authenticated.role, "/app"), { replace: true });
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Não foi possível entrar.");
+      setFormError(error instanceof Error ? error.message : "Não foi possível iniciar o acesso demonstrativo.");
     }
   }
 
@@ -188,10 +185,10 @@ export function LoginPage() {
             <div className="demo-access">
               <div className="divider"><span>Acesso rápido de demonstração</span></div>
               <div className="demo-access__buttons">
-                <Button variant="secondary" onClick={() => quickLogin("participant")} disabled={authenticating}><Users size={17} /> Participante</Button>
-                <Button variant="secondary" onClick={() => quickLogin("admin")} disabled={authenticating}><ShieldCheck size={17} /> Administrador</Button>
+                <Button variant="secondary" onClick={() => quickLogin("participant")} disabled={authenticating} aria-label="Entrar na demonstração como participante"><Users size={17} /> Participante</Button>
+                <Button variant="secondary" onClick={() => quickLogin("admin")} disabled={authenticating} aria-label="Entrar na demonstração como administrador"><ShieldCheck size={17} /> Administrador</Button>
               </div>
-              <p><Check size={14} /> Credenciais demonstrativas verificadas pela plataforma</p>
+              <p><Check size={14} /> Acesso controlado pelo ambiente demonstrativo, sem exibir credenciais</p>
             </div>
           )}
 
