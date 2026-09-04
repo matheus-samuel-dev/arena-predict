@@ -18,7 +18,7 @@ public class WebConfig {
                 .filter(origin -> !origin.isBlank())
                 .distinct()
                 .toList();
-        if (origins.isEmpty() || origins.contains("*")) {
+        if (origins.isEmpty() || origins.stream().anyMatch(origin -> origin.contains("*"))) {
             throw new IllegalArgumentException(
                     "app.cors.allowed-origins deve listar origens explícitas quando credenciais estão habilitadas."
             );

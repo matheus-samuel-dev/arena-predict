@@ -45,19 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const current = await authApi.me();
+    if (sessionStorage.read()?.token !== stored.token) return;
     const updated: AuthSession = { ...stored, ...current };
     applySession(updated);
   }, [applySession, clearSession]);
 
   useEffect(() => {
     let active = true;
-    if (!sessionStorage.read()) {
+    const initializingToken = sessionStorage.read()?.token;
+    if (!initializingToken) {
       setInitializing(false);
       return undefined;
     }
     refreshUser()
       .catch(() => {
-        if (active) clearSession();
+        if (active && sessionStorage.read()?.token === initializingToken) clearSession();
       })
       .finally(() => {
         if (active) setInitializing(false);
@@ -68,7 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession, refreshUser]);
 
   useEffect(() => {
-    const onUnauthorized = () => {
+    const onUnauthorized = (event: Event) => {
+      const detail = "detail" in event
+        ? (event as CustomEvent<{ sessionToken?: string | null }>).detail
+        : undefined;
+      if (detail?.sessionToken !== undefined
+        && detail.sessionToken !== (sessionStorage.read()?.token ?? null)) return;
       clearSession();
       notify("Sua sessão expirou. Entre novamente para continuar.", "error");
     };
@@ -115,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const demoLogin = useCallback(
     (profile: "PARTICIPANT" | "ADMIN") => authenticate(async () => {
+        clearSession();
         const authenticated = await authApi.demo(profile);
         const expectedRole = profile === "ADMIN" ? "ADMIN" : "PARTICIPANTE";
         if (authenticated.role !== expectedRole) {
@@ -122,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return authenticated;
       }),
-    [authenticate],
+    [authenticate, clearSession],
   );
 
   const logout = useCallback(

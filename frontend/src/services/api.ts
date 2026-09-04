@@ -46,8 +46,11 @@ export class ApiError extends Error {
 }
 
 function normalizeRole(role?: string): UserRole {
-  const normalized = role?.replace(/^ROLE_/, "").toUpperCase();
-  return normalized === "ADMIN" ? "ADMIN" : "PARTICIPANTE";
+  const normalized = typeof role === "string"
+    ? role.trim().toUpperCase().replace(/^ROLE_/, "")
+    : undefined;
+  if (normalized === "ADMIN" || normalized === "PARTICIPANTE") return normalized;
+  throw new ApiError("O servidor retornou um perfil de acesso inválido.", 502, "INVALID_AUTH_ROLE");
 }
 
 function normalizeSession(payload: Partial<AuthSession> & { id?: number }): AuthSession {
@@ -173,10 +176,16 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
           ? body.error
           : undefined;
       const message = friendlyMessage(response.status, path, serverMessage);
-      if (response.status === 401 && !path.includes("/auth/login")) {
-        window.dispatchEvent(new CustomEvent("arena:unauthorized"));
+      if (options.auth !== false && response.status === 401) {
+        window.dispatchEvent(new CustomEvent("arena:unauthorized", {
+          detail: { sessionToken: session?.token ?? null },
+        }));
       }
-      if (response.status === 403) window.dispatchEvent(new CustomEvent("arena:forbidden"));
+      if (options.auth !== false && response.status === 403) {
+        window.dispatchEvent(new CustomEvent("arena:forbidden", {
+          detail: { sessionToken: session?.token ?? null },
+        }));
+      }
       throw new ApiError(
         message,
         response.status,

@@ -30,6 +30,8 @@ spring:
 
 app:
   cors:
+    # O fallback é exclusivo para desenvolvimento local. Implantações devem
+    # fornecer cada origin público explicitamente por CORS_ALLOWED_ORIGINS.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   jwt:
     # No shared fallback: direct executions must provide a secret explicitly.

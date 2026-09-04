@@ -78,7 +78,14 @@ describe("ArenaPredict frontend", () => {
     ]);
   });
 
-  it("solicita acesso demo por perfil sem enviar credenciais ao navegador", async () => {
+  it("solicita acesso demo por perfil sem enviar credenciais ou o token antigo", async () => {
+    sessionStorage.save({
+      token: "old-session-token",
+      userId: 99,
+      name: "Sessão anterior",
+      email: "anterior@arenapredict.com",
+      role: "PARTICIPANTE",
+    });
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ token: "admin-token", userId: 1, name: "Admin", email: "admin@arenapredict.com", role: "ADMIN" }))
       .mockResolvedValueOnce(jsonResponse({ token: "player-token", userId: 2, name: "Jogador", email: "jogador@arenapredict.com", role: "PARTICIPANTE" }));
@@ -94,6 +101,36 @@ describe("ArenaPredict frontend", () => {
       { profile: "ADMIN" },
       { profile: "PARTICIPANT" },
     ]);
+    expect(fetchMock.mock.calls.every((call) => !(call[1]?.headers as Headers).has("Authorization"))).toBe(true);
+  });
+
+  it("mantém falha 403 do endpoint demo local ao formulário", async () => {
+    const forbidden = vi.fn();
+    window.addEventListener("arena:forbidden", forbidden);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "negado" }, 403)));
+
+    try {
+      await expect(authApi.demo("ADMIN")).rejects.toMatchObject({ status: 403 } satisfies Partial<ApiError>);
+      expect(forbidden).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("arena:forbidden", forbidden);
+    }
+  });
+
+  it("rejeita perfil inesperado retornado pela autenticação", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+      token: "unexpected-token",
+      userId: 3,
+      name: "Perfil inválido",
+      email: "invalido@arenapredict.com",
+      role: "SUPER_ADMIN",
+    })));
+
+    await expect(authApi.demo("ADMIN")).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_AUTH_ROLE",
+      message: "O servidor retornou um perfil de acesso inválido.",
+    } satisfies Partial<ApiError>);
   });
 
   it("distingue sessão inválida de falta de permissão", async () => {
