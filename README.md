@@ -124,7 +124,7 @@ XP, nível, sequência, precisão, desafios e conquistas são calculados a parti
 
 ## Modo demonstração
 
-O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria um conjunto pequeno de modalidades, campeonatos, participantes, eventos, mercados, palpites, liga, notificações e conteúdo comunitário. O runtime do backend mantém o modo demo desativado por padrão; o `docker-compose.yml` o ativa deliberadamente para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
+O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria um conjunto pequeno de modalidades, campeonatos, participantes, eventos, mercados, palpites, liga, notificações e conteúdo comunitário. O runtime do backend e o `docker-compose.yml` mantêm o modo demo desativado por padrão; o `.env.example` o ativa deliberadamente como referência para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
 
 O provider ao vivo incluído é interno e simulado. O projeto não afirma integração com ESPN, Sportradar, FIFA, Riot, Steam ou provedores de odds.
 
