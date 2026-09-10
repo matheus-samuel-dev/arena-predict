@@ -10,6 +10,10 @@ import { Button, Modal } from "./UI";
 
 const MINIMUM_POINTS = 10;
 export const MAXIMUM_STAKE_POINTS = 20_000;
+export function calculatePotentialPoints(stake: number, coefficient: number) {
+  // The API supports three multiplier decimals. Integer arithmetic matches BigDecimal flooring.
+  return Math.floor(stake * Math.round(coefficient * 1000) / 1000);
+}
 
 export function resolveMarketMinimumPoints(value: unknown) {
   const parsed = Number(value);
@@ -35,29 +39,37 @@ export function validatePredictionStake(stake: number, minimumPoints: number, ba
 
 export function PredictionComposer({
   draft,
+  currentEvent,
   onClose,
   onCreated,
 }: {
   draft: PredictionDraft | null;
+  currentEvent?: ArenaEvent | null;
   onClose: () => void;
   onCreated?: (prediction: Prediction) => void;
 }) {
   const [stake, setStake] = useState(MINIMUM_POINTS);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [submitError, setSubmitError] = useState("");
   const [confirmed, setConfirmed] = useState<Prediction | null>(null);
   const [availablePools, setAvailablePools] = useState<Pool[]>([]);
   const [poolId, setPoolId] = useState("");
   const [poolsLoading, setPoolsLoading] = useState(false);
   const [poolsError, setPoolsError] = useState("");
   const idempotencyKey = useRef(createIdempotencyKey());
+  const selectionKey = draft ? `${draft.event.id}:${draft.market.id}:${draft.option.id}` : "";
+  const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
+  const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
+  const selectionAllowed = currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
   const { wallet, refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
   const balance = getWalletBalance(wallet);
-  const minimumPoints = resolveMarketMinimumPoints(draft?.market.minimumPoints);
+  const minimumPoints = resolveMarketMinimumPoints(currentMarket?.minimumPoints);
   const maximumSelectable = Math.min(Math.max(0, balance), MAXIMUM_STAKE_POINTS);
-  const rawCoefficient = Number(draft?.option.multiplier || 0);
+  const rawCoefficient = Number(currentOption?.multiplier || 0);
   const coefficient = Number.isFinite(rawCoefficient) ? rawCoefficient : 0;
-  const potential = Math.floor(stake * coefficient);
+  const potential = calculatePotentialPoints(stake, coefficient);
   const [home, away] = draft ? eventTeams(draft.event) : [{ name: "" }, { name: "" }];
   const matchupLabel = draft && isMultiParticipantEvent(draft.event)
     ? draft.event.title || `${eventParticipantViews(draft.event).length} participantes`
@@ -67,9 +79,11 @@ export function PredictionComposer({
     if (draft) {
       setConfirmed(null);
       setPoolId("");
+      setSubmitError("");
+      submittingRef.current = false;
       idempotencyKey.current = createIdempotencyKey();
     }
-  }, [draft]);
+  }, [selectionKey]);
 
   useEffect(() => {
     if (!draft) {
@@ -82,7 +96,7 @@ export function PredictionComposer({
     setPoolsError("");
     poolsApi.list()
       .then((values) => {
-        if (active) setAvailablePools(values.filter((pool) => pool.joined && poolAcceptsEvent(pool, draft.event)));
+        if (active) setAvailablePools(values.filter((pool) => pool.poolType !== "LEAGUE" && pool.joined && poolAcceptsEvent(pool, draft.event)));
       })
       .catch(() => {
         if (active) {
@@ -98,7 +112,7 @@ export function PredictionComposer({
     if (draft && !confirmed) {
       setStake(Math.min(Math.max(minimumPoints, Math.floor(balance * 0.05)), Math.max(maximumSelectable, minimumPoints)));
     }
-  }, [draft, balance, minimumPoints, maximumSelectable, confirmed]);
+  }, [selectionKey, balance, minimumPoints, maximumSelectable, confirmed]);
 
   const validation = useMemo(
     () => validatePredictionStake(stake, minimumPoints, balance),
@@ -106,7 +120,7 @@ export function PredictionComposer({
   );
 
   function closeComposer() {
-    if (submitting) return;
+    if (submittingRef.current) return;
     const created = confirmed;
     onClose();
     // Refresh the parent only after the success receipt has been acknowledged.
@@ -117,8 +131,10 @@ export function PredictionComposer({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!draft || validation || submitting) return;
+    if (!draft || validation || submittingRef.current || !selectionAllowed) return;
+    submittingRef.current = true;
     setSubmitting(true);
+    setSubmitError("");
     try {
       const created = await predictionsApi.create({
         eventId: draft.event.id,
@@ -134,8 +150,11 @@ export function PredictionComposer({
       await Promise.allSettled([refreshWallet(), refreshNotifications()]);
       notify("Palpite confirmado e pontos debitados com segurança.", "success");
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Não foi possível confirmar o palpite.", "error");
+      const message = error instanceof Error ? error.message : "Não foi possível confirmar o palpite.";
+      setSubmitError(message);
+      notify(message, "error");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -151,27 +170,30 @@ export function PredictionComposer({
           <div className="selection-summary">
             <span><Target size={18} /></span>
             <div><small>{draft.market.name}</small><strong>{draft.option.label || draft.option.name}</strong></div>
-            <b>{multiplier(draft.option.multiplier)}</b>
+            <b title="Multiplicador demonstrativo">{multiplier(coefficient)}</b>
           </div>
-          <label className="stake-field">
+          <p className="prediction-multiplier-note">Multiplicador demonstrativo · registrado junto ao seu palpite</p>
+          <label className="stake-field" htmlFor="prediction-stake">
             <span>Pontos virtuais</span>
-            <div><Coins size={18} /><input type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
+            <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
             <small>Mínimo do mercado: <strong>{points(minimumPoints)} pts</strong></small>
             <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
-            <small>Saldo disponível: <strong>{points(balance)} pts</strong></small>
+            <small id="prediction-stake-help">Saldo disponível: <strong>{points(balance)} pts</strong></small>
           </label>
           <label className="prediction-pool-field">
-            <span>Vincular a um bolão ou liga <small>(opcional)</small></span>
-            <div><Trophy size={17} /><select value={poolId} onChange={(event) => setPoolId(event.target.value)} disabled={poolsLoading}><option value="">Palpite individual</option>{availablePools.map((pool) => <option value={String(pool.id)} key={pool.id}>{pool.name}</option>)}</select></div>
+            <span>Vincular a um bolão <small>(opcional)</small></span>
+            <div><Trophy size={17} /><select value={poolId} onChange={(event) => setPoolId(event.target.value)} disabled={poolsLoading || submitting}><option value="">Palpite individual</option>{availablePools.map((pool) => <option value={String(pool.id)} key={pool.id}>{pool.name}</option>)}</select></div>
             {poolsLoading && <small>Carregando seus grupos...</small>}
             {poolsError && <small className="field-error">{poolsError}</small>}
             {!poolsLoading && !poolsError && availablePools.length === 0 && <small>Entre em um bolão compatível para pontuar no ranking do grupo.</small>}
           </label>
           <div className="quick-stakes" aria-label="Valores rápidos">
-            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={balance < value || value > MAXIMUM_STAKE_POINTS}>+{points(value)}</button>)}
-            <button type="button" onClick={() => setStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={balance < minimumPoints}>25%</button>
+            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={submitting || balance < value || value > MAXIMUM_STAKE_POINTS}>{points(value)} pts</button>)}
+            <button type="button" onClick={() => setStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={submitting || balance < minimumPoints}>25%</button>
           </div>
-          {validation && <p className="field-error" role="alert">{validation}</p>}
+          <div id="prediction-stake-error">{validation && <p className="field-error" role="alert">{validation}</p>}</div>
+          {!selectionAllowed && <p className="field-error" role="alert">{currentOption?.active === false ? "Esta opção está temporariamente suspensa." : !currentOption ? "A seleção não aparece na leitura atual. Atualize o evento e escolha uma opção." : currentMarket?.availability?.reason || currentMarket?.availability?.label || "Atualize os mercados para conferir a disponibilidade."}</p>}
+          {submitError && <p className="field-error" role="alert">{submitError}</p>}
           <div className="potential-card">
             <span><Sparkles size={17} /> Potencial de pontos</span>
             <strong>{points(potential)} pts</strong>
@@ -180,7 +202,7 @@ export function PredictionComposer({
           <div className="virtual-disclaimer"><ShieldCheck size={16} /> Pontos sem valor financeiro. Nenhum dinheiro real é utilizado.</div>
           <div className="modal-actions">
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancelar</Button>
-            <Button type="submit" loading={submitting} disabled={Boolean(validation)}>Confirmar palpite</Button>
+            <Button type="submit" loading={submitting} disabled={Boolean(validation) || !selectionAllowed}>Confirmar palpite</Button>
           </div>
         </form>
       )}
@@ -189,6 +211,7 @@ export function PredictionComposer({
           <span><CheckCircle2 size={34} /></span>
           <h3>Sua leitura está registrada</h3>
           <p>Acompanhe o evento e o processamento da recompensa em “Meus palpites”.</p>
+          <dl className="prediction-receipt"><div><dt>Pontos debitados</dt><dd>{points(confirmed.stakePoints ?? confirmed.points ?? stake)} pts</dd></div><div><dt>Multiplicador registrado</dt><dd>{multiplier(confirmed.multiplier ?? coefficient)}</dd></div><div><dt>Palpite</dt><dd>#{confirmed.id}</dd></div></dl>
           <div><small>Potencial</small><strong>{points(confirmed.potentialPoints ?? potential)} pts</strong></div>
           <Button onClick={closeComposer}>Continuar na Arena</Button>
         </div>

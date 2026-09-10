@@ -5,6 +5,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface ChampionshipRepository extends JpaRepository<Championship, Long> {
+    boolean existsBySport(Sport sport);
     @Override @EntityGraph(attributePaths = "sport") Page<Championship> findAll(Pageable pageable);
     @EntityGraph(attributePaths = "sport") List<Championship> findAllByOrderByNameAsc();
     @EntityGraph(attributePaths = "sport") List<Championship> findBySportOrderByNameAsc(Sport sport);

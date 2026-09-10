@@ -18,13 +18,19 @@ public class ArenaAdminController {
     private final ArenaPredictionService predictions;
     private final ArenaDashboardService dashboards;
     private final DemoLiveEventService live;
+    private final MarketTemplateService templates;
     public ArenaAdminController(ArenaCatalogService catalog, AdminEventResultService eventResults,
                                 ArenaPredictionService predictions,
-                                ArenaDashboardService dashboards, DemoLiveEventService live) {
+                                ArenaDashboardService dashboards, DemoLiveEventService live, MarketTemplateService templates) {
         this.catalog = catalog; this.eventResults = eventResults; this.predictions = predictions;
         this.dashboards = dashboards; this.live = live;
+        this.templates = templates;
     }
     @GetMapping("/dashboard") public AdminDashboardResponse dashboard() { return dashboards.adminDashboard(); }
+    @GetMapping("/events/{id}/market-templates")
+    public List<MarketDefinitionCatalog.Definition> templates(@PathVariable Long id) { return templates.templates(id); }
+    @PostMapping("/events/{id}/markets/generate")
+    public EventResponse generate(@PathVariable Long id) { templates.generate(id); return catalog.eventResponse(id); }
     @GetMapping("/sports") public List<SportResponse> sports() { return catalog.listSports(true); }
     @PostMapping("/sports") @ResponseStatus(HttpStatus.CREATED) public SportResponse createSport(@Valid @RequestBody SportRequest request) { return catalog.saveSport(null, request); }
     @PutMapping("/sports/{id}") public SportResponse updateSport(@PathVariable Long id, @Valid @RequestBody SportRequest request) { return catalog.saveSport(id, request); }

@@ -1,0 +1,540 @@
+{
+  "startedAt": "2026-09-09T16:38:42.307Z",
+  "baseURL": "http://localhost:5174",
+  "fixtures": [
+    {
+      "sourceKey": "football-open",
+      "id": 24,
+      "title": "Validação E2E · Futebol",
+      "markets": 9
+    },
+    {
+      "sourceKey": "cs2-open",
+      "id": 25,
+      "title": "Validação E2E · Counter-Strike 2",
+      "markets": 10
+    },
+    {
+      "sourceKey": "nba-open",
+      "id": 26,
+      "title": "Validação E2E · Basquete",
+      "markets": 8
+    },
+    {
+      "sourceKey": "tennis-open",
+      "id": 27,
+      "title": "Validação E2E · Tênis",
+      "markets": 8
+    },
+    {
+      "sourceKey": "f1-open",
+      "id": 28,
+      "title": "Validação E2E · Automobilismo",
+      "markets": 7
+    }
+  ],
+  "predictions": [
+    {
+      "id": 105,
+      "eventId": 24,
+      "eventTitle": "Validação E2E · Futebol",
+      "marketId": 116,
+      "marketName": "Total de gols · 2,5",
+      "optionId": 344,
+      "optionLabel": "Acima",
+      "stakePoints": 40,
+      "multiplier": 1.9,
+      "potentialPoints": 76,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:39:57.650800434Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "football-open",
+      "type": "TOTAL_GOALS",
+      "expectedKey": "OVER",
+      "walletBefore": 7018,
+      "walletAfter": 6978,
+      "debitVerified": true
+    },
+    {
+      "id": 106,
+      "eventId": 24,
+      "eventTitle": "Validação E2E · Futebol",
+      "marketId": 116,
+      "marketName": "Total de gols · 2,5",
+      "optionId": 345,
+      "optionLabel": "Abaixo",
+      "stakePoints": 30,
+      "multiplier": 1.85,
+      "potentialPoints": 55,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:39:59.547035547Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "football-open",
+      "type": "TOTAL_GOALS",
+      "expectedKey": "UNDER",
+      "walletBefore": 6978,
+      "walletAfter": 6948,
+      "debitVerified": true
+    },
+    {
+      "id": 107,
+      "eventId": 25,
+      "eventTitle": "Validação E2E · Counter-Strike 2",
+      "marketId": 127,
+      "marketName": "Total de rounds · primeiro mapa · 21,5",
+      "optionId": 393,
+      "optionLabel": "Acima",
+      "stakePoints": 40,
+      "multiplier": 1.9,
+      "potentialPoints": 76,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:40:10.568857727Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "cs2-open",
+      "type": "MAP1_TOTAL_ROUNDS",
+      "expectedKey": "OVER",
+      "walletBefore": 6948,
+      "walletAfter": 6908,
+      "debitVerified": true
+    },
+    {
+      "id": 108,
+      "eventId": 26,
+      "eventTitle": "Validação E2E · Basquete",
+      "marketId": 137,
+      "marketName": "Boston Celtics · total de pontos 108,5",
+      "optionId": 417,
+      "optionLabel": "Acima",
+      "stakePoints": 40,
+      "multiplier": 1.9,
+      "potentialPoints": 76,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:40:12.831829400Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "nba-open",
+      "type": "HOME_TOTAL",
+      "expectedKey": "OVER",
+      "walletBefore": 6908,
+      "walletAfter": 6868,
+      "debitVerified": true
+    },
+    {
+      "id": 109,
+      "eventId": 27,
+      "eventTitle": "Validação E2E · Tênis",
+      "marketId": 145,
+      "marketName": "Total de games · 22,5",
+      "optionId": 437,
+      "optionLabel": "Acima",
+      "stakePoints": 40,
+      "multiplier": 1.9,
+      "potentialPoints": 76,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:40:14.821710486Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "tennis-open",
+      "type": "TOTAL_GAMES",
+      "expectedKey": "OVER",
+      "walletBefore": 6868,
+      "walletAfter": 6828,
+      "debitVerified": true
+    },
+    {
+      "id": 110,
+      "eventId": 28,
+      "eventTitle": "Validação E2E · Automobilismo",
+      "marketId": 149,
+      "marketName": "Terminar no Top 3",
+      "optionId": 450,
+      "optionLabel": "Lando Norris",
+      "stakePoints": 40,
+      "multiplier": 1.65,
+      "potentialPoints": 66,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-09T16:40:17.226065052Z",
+      "resolvedAt": null,
+      "canCancel": true,
+      "sport": "f1-open",
+      "type": "TOP3",
+      "expectedKey": "NOR",
+      "walletBefore": 6828,
+      "walletAfter": 6788,
+      "debitVerified": true
+    }
+  ],
+  "results": [
+    {
+      "eventId": 24,
+      "sport": "football-open",
+      "input": {
+        "home": 3,
+        "away": 1,
+        "data": {
+          "firstHalfHome": "1",
+          "firstHalfAway": "0",
+          "cornersHome": "7",
+          "cornersAway": "4",
+          "cardsHome": "3",
+          "cardsAway": "2"
+        }
+      },
+      "settled": 9,
+      "outcomes": [
+        {
+          "type": "WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "LIVE_RESULT",
+          "result": "HOME"
+        },
+        {
+          "type": "DOUBLE_CHANCE",
+          "result": "HOME_AWAY,HOME_DRAW"
+        },
+        {
+          "type": "TOTAL_GOALS",
+          "result": "OVER"
+        },
+        {
+          "type": "BOTH_SCORE",
+          "result": "YES"
+        },
+        {
+          "type": "CORRECT_SCORE",
+          "result": "3_1"
+        },
+        {
+          "type": "FIRST_HALF_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "TOTAL_CORNERS",
+          "result": "OVER"
+        },
+        {
+          "type": "TOTAL_CARDS",
+          "result": "OVER"
+        }
+      ],
+      "replayCredit": 0
+    },
+    {
+      "eventId": 25,
+      "sport": "cs2-open",
+      "input": {
+        "home": 2,
+        "away": 1,
+        "data": {
+          "map1Home": "13",
+          "map1Away": "10",
+          "map1Half1Home": "7",
+          "map1Half1Away": "5",
+          "map1Half2Home": "6",
+          "map1Half2Away": "5",
+          "pistol1": "HOME"
+        }
+      },
+      "settled": 10,
+      "outcomes": [
+        {
+          "type": "SERIES_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "MAP1_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "TOTAL_MAPS",
+          "result": "OVER"
+        },
+        {
+          "type": "MAP_HANDICAP",
+          "result": "AWAY"
+        },
+        {
+          "type": "SERIES_SCORE",
+          "result": "2_1"
+        },
+        {
+          "type": "MAP1_TOTAL_ROUNDS",
+          "result": "OVER"
+        },
+        {
+          "type": "MAP1_ROUND_HANDICAP",
+          "result": "HOME"
+        },
+        {
+          "type": "PISTOL1",
+          "result": "HOME"
+        },
+        {
+          "type": "MAP1_HALF1",
+          "result": "HOME"
+        },
+        {
+          "type": "MAP1_HALF2",
+          "result": "HOME"
+        }
+      ],
+      "replayCredit": 0
+    },
+    {
+      "eventId": 26,
+      "sport": "nba-open",
+      "input": {
+        "home": 115,
+        "away": 101,
+        "data": {
+          "firstHalfHome": "58",
+          "firstHalfAway": "50",
+          "quarter1Home": "28",
+          "quarter1Away": "25"
+        }
+      },
+      "settled": 8,
+      "outcomes": [
+        {
+          "type": "WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "POINT_HANDICAP",
+          "result": "HOME"
+        },
+        {
+          "type": "TOTAL_POINTS",
+          "result": "OVER"
+        },
+        {
+          "type": "FIRST_HALF_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "FIRST_QUARTER_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "HOME_TOTAL",
+          "result": "OVER"
+        },
+        {
+          "type": "WIN_MARGIN",
+          "result": "HOME_LARGE"
+        },
+        {
+          "type": "FIRST_HALF_TOTAL",
+          "result": "OVER"
+        }
+      ],
+      "replayCredit": 0
+    },
+    {
+      "eventId": 27,
+      "sport": "tennis-open",
+      "input": {
+        "home": 2,
+        "away": 1,
+        "data": {
+          "set1Home": "6",
+          "set1Away": "4",
+          "gamesHome": "17",
+          "gamesAway": "14",
+          "tieBreak": "NO"
+        }
+      },
+      "settled": 8,
+      "outcomes": [
+        {
+          "type": "MATCH_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "FIRST_SET_WINNER",
+          "result": "HOME"
+        },
+        {
+          "type": "TOTAL_SETS",
+          "result": "OVER"
+        },
+        {
+          "type": "SET_HANDICAP",
+          "result": "AWAY"
+        },
+        {
+          "type": "SET_SCORE",
+          "result": "2_1"
+        },
+        {
+          "type": "TOTAL_GAMES",
+          "result": "OVER"
+        },
+        {
+          "type": "GAME_HANDICAP",
+          "result": "HOME"
+        },
+        {
+          "type": "TIEBREAK",
+          "result": "NO"
+        }
+      ],
+      "replayCredit": 0
+    },
+    {
+      "eventId": 28,
+      "sport": "f1-open",
+      "input": {
+        "data": {
+          "fastestLap": "VER",
+          "safetyCar": "YES",
+          "driverClassified": "YES"
+        }
+      },
+      "settled": 7,
+      "outcomes": [
+        {
+          "type": "RACE_WINNER",
+          "result": "VER"
+        },
+        {
+          "type": "TOP3",
+          "result": "LEC,NOR,VER"
+        },
+        {
+          "type": "TOP5",
+          "result": "HAM,LEC,NOR,PIA,VER"
+        },
+        {
+          "type": "DRIVER_DUEL",
+          "result": "VER"
+        },
+        {
+          "type": "FASTEST_LAP",
+          "result": "VER"
+        },
+        {
+          "type": "SAFETY_CAR",
+          "result": "YES"
+        },
+        {
+          "type": "DRIVER_CLASSIFIED",
+          "result": "YES"
+        }
+      ],
+      "replayCredit": 0
+    }
+  ],
+  "pages": [],
+  "responsive": [],
+  "rankingBefore": {
+    "position": 3,
+    "userId": 2,
+    "playerName": "Jogador Demo",
+    "avatarUrl": "/assets/avatars/jogador-demo.webp",
+    "points": 1173,
+    "correctPredictions": 6,
+    "totalPredictions": 10,
+    "accuracy": 60,
+    "streak": 0,
+    "currentUser": true
+  },
+  "checked": [
+    {
+      "id": 105,
+      "sport": "football-open",
+      "status": "WON",
+      "stake": 40,
+      "multiplier": 1.9,
+      "potential": 76,
+      "reward": 76,
+      "credits": 1
+    },
+    {
+      "id": 106,
+      "sport": "football-open",
+      "status": "LOST",
+      "stake": 30,
+      "multiplier": 1.85,
+      "potential": 55,
+      "reward": 0,
+      "credits": 0
+    },
+    {
+      "id": 107,
+      "sport": "cs2-open",
+      "status": "WON",
+      "stake": 40,
+      "multiplier": 1.9,
+      "potential": 76,
+      "reward": 76,
+      "credits": 1
+    },
+    {
+      "id": 108,
+      "sport": "nba-open",
+      "status": "WON",
+      "stake": 40,
+      "multiplier": 1.9,
+      "potential": 76,
+      "reward": 76,
+      "credits": 1
+    },
+    {
+      "id": 109,
+      "sport": "tennis-open",
+      "status": "WON",
+      "stake": 40,
+      "multiplier": 1.9,
+      "potential": 76,
+      "reward": 76,
+      "credits": 1
+    },
+    {
+      "id": 110,
+      "sport": "f1-open",
+      "status": "WON",
+      "stake": 40,
+      "multiplier": 1.65,
+      "potential": 66,
+      "reward": 66,
+      "credits": 1
+    }
+  ],
+  "walletFinal": {
+    "balance": 7158,
+    "lifetimeEarned": 3573,
+    "lifetimeUsed": 1475,
+    "updatedAt": "2026-09-09T16:42:26.751786Z",
+    "virtualPointsNotice": "Pontos virtuais de entretenimento, sem valor financeiro e sem possibilidade de saque."
+  },
+  "rankingAfter": {
+    "position": 1,
+    "userId": 2,
+    "playerName": "Jogador Demo",
+    "avatarUrl": "/assets/avatars/jogador-demo.webp",
+    "points": 1543,
+    "correctPredictions": 11,
+    "totalPredictions": 16,
+    "accuracy": 68.75,
+    "streak": 4,
+    "currentUser": true
+  }
+}

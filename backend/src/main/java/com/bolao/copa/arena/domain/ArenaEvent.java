@@ -46,6 +46,8 @@ public class ArenaEvent {
     private String period;
     @Column(length = 4000)
     private String liveData;
+    @Column(length = 16000)
+    private String resultData;
     @Column(nullable = false)
     private boolean featured;
     @Column(nullable = false)
@@ -91,6 +93,8 @@ public class ArenaEvent {
     public String getPeriod() { return period; }
     public void setPeriod(String period) { this.period = period; }
     public String getLiveData() { return liveData; }
+    public String getResultData() { return resultData; }
+    public void setResultData(String value) { resultData = value; }
     public void setLiveData(String liveData) { this.liveData = liveData; }
     public boolean isFeatured() { return featured; }
     public void setFeatured(boolean featured) { this.featured = featured; }

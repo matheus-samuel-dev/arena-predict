@@ -9,6 +9,9 @@ import com.bolao.copa.arena.api.ArenaDtos.MarketOptionResponse;
 import com.bolao.copa.entity.UserRole;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import com.bolao.copa.arena.api.ArenaDtos.ResultField;
+import com.bolao.copa.arena.api.ArenaDtos.MarketAvailability;
 import org.springframework.data.domain.Page;
 
 /**
@@ -39,12 +42,16 @@ public final class AdminOperationsDtos {
                                      String stage, String venue, String broadcast, String imageUrl, String format,
                                      int bestOf, List<EventParticipantResponse> participants,
                                      Instant startsAt, Instant predictionClosesAt,
-                                     Integer homeScore, Integer awayScore, boolean featured, boolean demo) { }
+                                     Integer homeScore, Integer awayScore, boolean featured, boolean demo,
+                                     Map<String, String> resultData, List<ResultField> resultSchema) { }
 
     public record AdminMarketResponse(Long id, String name, String code, String status,
                                       Long eventId, String eventTitle, String eventStatus, int minimumPoints,
                                       int optionCount, List<MarketOptionResponse> options,
-                                      String resultOptionKey, Instant settledAt) { }
+                                      String resultOptionKey, Instant settledAt, String sport,
+                                      String category, String templateCode, String timingMode,
+                                      Instant opensAt, Instant closesAt, MarketAvailability availability,
+                                      String settlementDescription) { }
 
     public record ScoringRuleResponse(String id, String name, String description, String status,
                                       String calculation, String unit, Instant updatedAt) { }

@@ -22,12 +22,18 @@ public class ArenaCatalogService {
     private final EventParticipantRepository eventParticipants;
     private final ArenaPredictionRepository predictions;
     private final AdminAuditService audit;
+    private final MarketAvailabilityService availability;
+    private final MarketDefinitionCatalog definitions;
+    private final MarketSettlementEngine settlement;
+    private final ArenaPredictionService predictionService;
 
     public ArenaCatalogService(SportRepository sports, ChampionshipRepository championships,
                                CompetitorRepository competitors, ArenaEventRepository events,
                                PredictionMarketRepository markets, MarketOptionRepository options,
                                EventParticipantRepository eventParticipants,
-                               ArenaPredictionRepository predictions, AdminAuditService audit) {
+                               ArenaPredictionRepository predictions, AdminAuditService audit,
+                               MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
+                               MarketSettlementEngine settlement, ArenaPredictionService predictionService) {
         this.sports = sports;
         this.championships = championships;
         this.competitors = competitors;
@@ -37,6 +43,7 @@ public class ArenaCatalogService {
         this.eventParticipants = eventParticipants;
         this.predictions = predictions;
         this.audit = audit;
+        this.availability=availability; this.definitions=definitions; this.settlement=settlement; this.predictionService=predictionService;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +61,8 @@ public class ArenaCatalogService {
             throw new ArenaProblem.RuleViolation("O código da modalidade precisa conter letras ou números.");
         sports.findByCodeIgnoreCase(code).filter(existing -> !Objects.equals(existing.getId(), id))
                 .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe uma modalidade com este código."); });
+        if (id != null && !sport.getCode().equals(code) && championships.existsBySport(sport))
+            throw new ArenaProblem.Conflict("O código da modalidade identifica as regras dos mercados e não pode mudar após vincular campeonatos.");
         sport.setCode(code);
         sport.setName(request.name().trim());
         sport.setCategory(request.category());
@@ -120,6 +129,9 @@ public class ArenaCatalogService {
         competitors.findBySportAndCodeIgnoreCase(selectedSport, code)
                 .filter(existing -> !Objects.equals(existing.getId(), id))
                 .ifPresent(existing -> { throw new ArenaProblem.Conflict("Já existe uma equipe ou participante com este código na modalidade."); });
+        if (id != null && !competitor.getCode().equals(code)
+                && (events.existsByHomeCompetitorOrAwayCompetitor(competitor, competitor) || eventParticipants.existsByCompetitor(competitor)))
+            throw new ArenaProblem.Conflict("O código identifica o participante nos resultados e não pode mudar após vincular eventos.");
         if (id != null && !competitor.getSport().getId().equals(selectedSport.getId())
                 && (events.existsByHomeCompetitorOrAwayCompetitor(competitor, competitor)
                     || eventParticipants.existsByCompetitor(competitor)))
@@ -138,18 +150,26 @@ public class ArenaCatalogService {
 
     @Transactional(readOnly = true)
     public List<EventResponse> listEvents(EventStatus status, String sportCode, Boolean featured) {
-        return events.findAll().stream()
-                .filter(event -> status == null || event.getStatus() == status)
+        List<ArenaEvent> selected=events.findAll().stream()
+                .filter(event -> status == null || status==EventStatus.OPEN_FOR_PREDICTIONS || event.getStatus() == status)
                 .filter(event -> sportCode == null || sportCode.isBlank()
                         || event.getChampionship().getSport().getCode().equalsIgnoreCase(sportCode))
                 .filter(event -> featured == null || event.isFeatured() == featured)
-                .sorted(Comparator.comparing(ArenaEvent::getStartsAt))
-                .map(this::eventResponse).toList();
+                .sorted(Comparator.comparingInt((ArenaEvent event) -> switch (event.getStatus()) {
+                    case LIVE -> 0;
+                    case SCHEDULED, OPEN_FOR_PREDICTIONS -> 1;
+                    case POSTPONED -> 2;
+                    default -> 3;
+                }).thenComparing(event -> event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED
+                        ? -event.getStartsAt().getEpochSecond() : event.getStartsAt().getEpochSecond())
+                        .thenComparing(ArenaEvent::getId))
+                .toList();
+        return eventResponses(selected).stream().filter(e -> status!=EventStatus.OPEN_FOR_PREDICTIONS || e.availableMarketCount()>0).toList();
     }
 
     @Transactional(readOnly = true)
     public List<EventResponse> liveEvents() {
-        return events.findByStatusOrderByStartsAtAsc(EventStatus.LIVE).stream().map(this::eventResponse).toList();
+        return eventResponses(events.findByStatusOrderByStartsAtAsc(EventStatus.LIVE));
     }
 
     @Transactional(readOnly = true)
@@ -175,6 +195,16 @@ public class ArenaCatalogService {
             throw new ArenaProblem.RuleViolation("Use a ação de resultado para finalizar o evento.");
         if (id != null) validateEventTransition(event.getStatus(), requestedStatus);
         Championship championship = championship(request.championshipId());
+        if (id != null && !markets.findByEventOrderByIdAsc(event).isEmpty()) {
+            var currentParticipants = eventParticipants.findByEventOrderByDisplayOrderAsc(event).stream().map(p -> p.getCompetitor().getId()).toList();
+            boolean changedParticipants = request.participants() != null && !request.participants().isEmpty()
+                    && !currentParticipants.equals(request.participants().stream().map(EventParticipantRequest::competitorId).toList());
+            if (!Objects.equals(previousHomeId, request.homeCompetitorId()) || !Objects.equals(previousAwayId, request.awayCompetitorId())
+                    || !event.getChampionship().getId().equals(request.championshipId())
+                    || previousFormat != (request.format() == null ? EventFormat.STANDARD : request.format())
+                    || event.getBestOf() != (request.bestOf() == null ? 1 : request.bestOf()) || changedParticipants)
+                throw new ArenaProblem.Conflict("Participantes, modalidade e formato não podem mudar após a publicação de mercados. Cancele o evento e cadastre a nova disputa.");
+        }
         event.setExternalKey(externalKey);
         event.setChampionship(championship);
         event.setHomeCompetitor(request.homeCompetitorId() == null ? null : competitor(request.homeCompetitorId()));
@@ -228,9 +258,10 @@ public class ArenaCatalogService {
     public EventResponse recordResult(Long id, EventResultRequest request) {
         ArenaEvent event = eventForUpdate(id);
         ensureResultMutable(event);
+        if (!isHeadToHead(event.getFormat())) throw new ArenaProblem.RuleViolation("Use classificação para este evento.");
         event.setHomeScore(request.homeScore());
         event.setAwayScore(request.awayScore());
-        if (Boolean.TRUE.equals(request.finishEvent())) event.setStatus(EventStatus.FINISHED);
+        applyResultData(event,request.resultData(),request.finishEvent(),request.settleMarkets());
         audit.record("EVENT_RESULT_RECORDED", "EVENT", event.getId(),
                 "Resultado registrado para " + event.getTitle() + ": " + event.getHomeScore() + " x " + event.getAwayScore());
         return eventResponse(event);
@@ -261,7 +292,7 @@ public class ArenaCatalogService {
             participant.setPosition(input.position());
             participant.setScoreLabel(input.scoreLabel());
         }
-        if (Boolean.TRUE.equals(request.finishEvent())) event.setStatus(EventStatus.FINISHED);
+        applyResultData(event,request.resultData(),request.finishEvent(),request.settleMarkets());
         audit.record("EVENT_CLASSIFICATION_RECORDED", "EVENT", event.getId(),
                 "Classificação registrada para " + event.getTitle());
         return eventResponse(event);
@@ -269,6 +300,9 @@ public class ArenaCatalogService {
 
     @Transactional
     public MarketResponse saveMarket(Long id, MarketRequest request) {
+        if (id != null && !markets.eventIdForMarket(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado.")).equals(request.eventId()))
+            throw new ArenaProblem.Conflict("A estrutura do mercado não permite transferência para outro evento.");
+        eventForUpdate(request.eventId());
         PredictionMarket market = id == null ? new PredictionMarket() : marketForUpdate(id);
         if (id != null && isTerminal(market.getStatus()))
             throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser alterado.");
@@ -284,13 +318,20 @@ public class ArenaCatalogService {
         validateMarketEvent(event, requestedStatus, id == null);
         if (id != null) validateMarketTransition(market, requestedStatus);
         List<MarketOption> existingOptions = id == null ? List.of() : options.findByMarketOrderByIdAsc(market);
-        if (id != null && predictions.existsByMarket(market))
+        if (market.getTemplateCode() != null && request.timingMode() != null && request.timingMode() != market.getTimingMode())
+            throw new ArenaProblem.Conflict("O modo pré-jogo/ao vivo faz parte da regra publicada deste mercado e não pode ser alterado.");
+        if (id != null && (market.getTemplateCode() != null || predictions.existsByMarket(market)))
             validateFrozenMarketStructure(market, event, request, existingOptions);
         market.setEvent(event);
         market.setCode(code);
         market.setName(request.name().trim());
         market.setStatus(requestedStatus);
         market.setMinimumPoints(request.minimumPoints() == null ? 10 : request.minimumPoints());
+        if (request.timingMode()!=null) market.setTimingMode(request.timingMode());
+        if (request.opensAt()!=null) market.setOpensAt(request.opensAt());
+        if (request.closesAt()!=null) market.setClosesAt(request.closesAt());
+        if (market.getOpensAt()!=null && market.getClosesAt()!=null && !market.getClosesAt().isAfter(market.getOpensAt()))
+            throw new ArenaProblem.RuleViolation("O fechamento do mercado deve ser posterior à abertura.");
         market = markets.save(market);
         Set<String> receivedKeys = new HashSet<>();
         for (MarketOptionRequest input : request.options()) {
@@ -312,6 +353,7 @@ public class ArenaCatalogService {
 
     @Transactional
     public MarketResponse changeMarketStatus(Long id, MarketStatus status) {
+        eventForUpdate(markets.eventIdForMarket(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado.")));
         PredictionMarket market = marketForUpdate(id);
         if (isTerminal(market.getStatus()))
             throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser reaberto.");
@@ -348,17 +390,47 @@ public class ArenaCatalogService {
                 value.getCountry(), value.isActive());
     }
     public EventResponse eventResponse(ArenaEvent value) {
-        List<MarketResponse> eventMarkets = markets.findByEventOrderByIdAsc(value).stream().map(this::marketResponse).toList();
+        return eventResponses(List.of(value)).getFirst();
+    }
+    public List<EventResponse> eventResponses(List<ArenaEvent> values) {
+        if (values.isEmpty()) return List.of();
+        List<PredictionMarket> allMarkets=markets.findByEventInOrderByEventIdAscIdAsc(values);
+        Map<Long,List<PredictionMarket>> byEvent=allMarkets.stream().collect(java.util.stream.Collectors.groupingBy(m -> m.getEvent().getId()));
+        Map<Long,List<MarketOption>> byMarket=allMarkets.isEmpty()? Map.of() : options.findForMarkets(allMarkets).stream().collect(java.util.stream.Collectors.groupingBy(o -> o.getMarket().getId()));
+        Map<Long,List<EventParticipant>> byParticipant=eventParticipants.findByEventInOrderByEventIdAscDisplayOrderAsc(values).stream().collect(java.util.stream.Collectors.groupingBy(p -> p.getEvent().getId()));
+        return values.stream().map(value -> eventResponse(value,byEvent.getOrDefault(value.getId(),List.of()),byMarket,byParticipant.getOrDefault(value.getId(),List.of()))).toList();
+    }
+    private EventResponse eventResponse(ArenaEvent value,List<PredictionMarket> entities,Map<Long,List<MarketOption>> byMarket,List<EventParticipant> entries) {
+        List<MarketResponse> eventMarkets=entities.stream().map(m -> marketResponse(m,byMarket.getOrDefault(m.getId(),List.of()))).toList();
         return new EventResponse(value.getId(), value.getExternalKey(), value.getChampionship().getId(), value.getChampionship().getName(),
                 sportResponse(value.getChampionship().getSport()), value.getTitle(), value.getStage(), value.getVenue(), value.getBroadcast(),
                 value.getImageUrl(), competitorSummary(value.getHomeCompetitor()), competitorSummary(value.getAwayCompetitor()), value.getStartsAt(),
                 value.getPredictionClosesAt(), value.getStatus(), value.getFormat(), value.getBestOf(), value.getHomeScore(), value.getAwayScore(),
                 value.getClock(), value.getPeriod(), value.getLiveData(), value.isFeatured(), value.isDemo(),
-                eventParticipants.findByEventOrderByDisplayOrderAsc(value).stream().map(this::eventParticipantResponse).toList(), eventMarkets);
+                entries.stream().map(this::eventParticipantResponse).toList(), eventMarkets,
+                (int)eventMarkets.stream().filter(m -> m.availability().allowed()).count(),MarketAvailabilityService.eventLabel(eventMarkets),
+                settlement.data(value),definitions.resultSchema(value,entries,entities));
     }
     public MarketResponse marketResponse(PredictionMarket value) {
+        return marketResponse(value,options.findByMarketOrderByIdAsc(value));
+    }
+    public MarketResponse marketResponse(PredictionMarket value,List<MarketOption> selections) {
         return new MarketResponse(value.getId(), value.getCode(), value.getName(), value.getStatus(), value.getMinimumPoints(),
-                value.getResultOptionKey(), options.findByMarketOrderByIdAsc(value).stream().map(this::optionResponse).toList());
+                value.getResultOptionKey(), selections.stream().map(this::optionResponse).toList(),value.getCategory(),value.getTemplateCode(),
+                value.getTimingMode(),value.getOpensAt(),value.getClosesAt(),availability.withOptions(value,selections),
+                definitions.definition(value,List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Mercado personalizado: resultado conferido manualmente pela organização."));
+    }
+    private void applyResultData(ArenaEvent event,Map<String,String> data,Boolean finish,Boolean settle) {
+        var entries=eventParticipants.findByEventOrderByDisplayOrderAsc(event);
+        var eventMarkets=markets.findByEventForUpdate(event);
+        settlement.storeData(event,data,definitions.resultSchema(event,entries,eventMarkets));
+        if (eventMarkets.stream().anyMatch(m -> m.getTemplateCode()!=null)) settlement.validateEvent(event,entries,Boolean.TRUE.equals(finish));
+        if (Boolean.TRUE.equals(settle) && !Boolean.TRUE.equals(finish)) throw new ArenaProblem.RuleViolation("Finalize o evento para liquidar os mercados.");
+        if (Boolean.TRUE.equals(finish)) {
+            event.setStatus(EventStatus.FINISHED);
+            eventMarkets.stream().filter(m -> !isTerminal(m.getStatus())).forEach(m -> m.setStatus(MarketStatus.CLOSED));
+        }
+        if (Boolean.TRUE.equals(settle)) predictionService.settleDerived(event);
     }
     private MarketOptionResponse optionResponse(MarketOption value) {
         return new MarketOptionResponse(value.getId(), value.getKey(), value.getLabel(), value.getMultiplier(), value.isActive());
@@ -440,13 +512,10 @@ public class ArenaCatalogService {
                     + current + " → " + target + ".");
     }
     private void validateMarketEvent(ArenaEvent event, MarketStatus target, boolean creating) {
+        if (event.getStatus() == EventStatus.POSTPONED && target == MarketStatus.OPEN)
+            throw new ArenaProblem.RuleViolation("Um evento adiado não aceita palpites; confirme o calendário antes de abrir o mercado.");
         if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.FINISHED)
             throw new ArenaProblem.Conflict("Eventos encerrados ou cancelados não aceitam alterações de mercado.");
-        if (creating && event.getStatus() == EventStatus.LIVE)
-            throw new ArenaProblem.Conflict("Não é possível criar um mercado depois que o evento começou.");
-        if (target == MarketStatus.OPEN && (event.getStatus() != EventStatus.OPEN_FOR_PREDICTIONS
-                || !Instant.now().isBefore(event.getPredictionClosesAt())))
-            throw new ArenaProblem.RuleViolation("O mercado só pode abrir enquanto o evento aceita palpites.");
     }
     private void validateFrozenMarketStructure(PredictionMarket market, ArenaEvent event, MarketRequest request,
                                                List<MarketOption> existingOptions) {
@@ -487,9 +556,7 @@ public class ArenaCatalogService {
             case DRAFT -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
             case OPEN -> target == MarketStatus.SUSPENDED || target == MarketStatus.CLOSED;
             case SUSPENDED -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
-            case CLOSED -> target == MarketStatus.OPEN
-                    && market.getEvent().getStatus() == EventStatus.OPEN_FOR_PREDICTIONS
-                    && Instant.now().isBefore(market.getEvent().getPredictionClosesAt());
+            case CLOSED -> target == MarketStatus.OPEN;
             case SETTLED, CANCELLED -> false;
         };
         if (!allowed)

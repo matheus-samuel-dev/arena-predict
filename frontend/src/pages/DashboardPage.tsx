@@ -84,7 +84,7 @@ export function DashboardPage() {
   const featuredEvents = data.featuredEvents || content.upcoming.filter((event) => event.featured).slice(0, 2);
   const liveEvents = data.liveEvents || [];
   const predictions = data.recentPredictions || data.predictions || [];
-  const pools = Array.isArray(data.activePools) ? data.activePools : data.pools || [];
+  const pools = (Array.isArray(data.activePools) ? data.activePools : data.pools || []).filter((pool) => pool.poolType !== "LEAGUE");
   const ranking = data.weeklyRanking || data.ranking || [];
   const challenges = data.challenges || [];
   const achievements = data.recentAchievements || [];

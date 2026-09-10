@@ -37,7 +37,8 @@ import { TeamLogo } from "../components/TeamLogo";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { adminApi, ApiError, asList, createIdempotencyKey } from "../services/api";
-import type { PageResponse } from "../types";
+import type { MarketTemplate, PageResponse, ResultField } from "../types";
+import "../markets.css";
 
 const PAGE_SIZE = 25;
 
@@ -159,7 +160,7 @@ const resourceConfig: Record<string, ResourceConfig> = {
       { key: "imageUrl", label: "URL da imagem" },
       { key: "startsAt", label: "Data e hora", type: "datetime-local", required: true },
       { key: "predictionClosesAt", label: "Limite do palpite", type: "datetime-local", required: true },
-      { key: "status", label: "Status", type: "select", options: ["SCHEDULED", "OPEN_FOR_PREDICTIONS", "LIVE", "FINISHED", "CANCELLED", "POSTPONED"], defaultValue: "SCHEDULED" },
+      { key: "status", label: "Status", type: "select", options: ["SCHEDULED", "LIVE", "FINISHED", "CANCELLED", "POSTPONED"], defaultValue: "SCHEDULED" },
       { key: "format", label: "Formato", type: "select", options: ["STANDARD", "INDIVIDUAL", "RACE", "BO1", "BO3", "BO5"], defaultValue: "STANDARD" },
       { key: "bestOf", label: "Melhor de", type: "select", options: ["1", "3", "5"], defaultValue: 1, numeric: true },
       { key: "participantsJson", label: "Classificação e participantes", type: "textarea", defaultValue: "[]" },
@@ -170,7 +171,7 @@ const resourceConfig: Record<string, ResourceConfig> = {
   markets: {
     title: "Mercados de previsão",
     singular: "mercado",
-    description: "Opções e coeficientes simulados para pontos virtuais.",
+    description: "Mercados por modalidade, disponibilidade pré-jogo e ao vivo, regras de liquidação e multiplicadores demonstrativos.",
     icon: Layers3,
     creatable: true,
     editable: true,
@@ -180,6 +181,9 @@ const resourceConfig: Record<string, ResourceConfig> = {
       { key: "code", label: "Código", required: true },
       { key: "minimumPoints", label: "Mínimo de pontos", type: "number", required: true, defaultValue: 10 },
       { key: "status", label: "Status", type: "select", options: ["DRAFT", "OPEN", "SUSPENDED", "CLOSED", "CANCELLED"], defaultValue: "OPEN" },
+      { key: "timingMode", label: "Disponibilidade durante o evento", type: "select", options: ["PRE_MATCH_ONLY", "LIVE_ENABLED", "LIVE_ONLY"], defaultValue: "PRE_MATCH_ONLY" },
+      { key: "opensAt", label: "Abertura do mercado", type: "datetime-local" },
+      { key: "closesAt", label: "Fechamento do mercado", type: "datetime-local" },
       {
         key: "optionsJson",
         label: "Opções do mercado",
@@ -233,7 +237,7 @@ const resourceConfig: Record<string, ResourceConfig> = {
   reports: { title: "Relatórios", singular: "indicador", description: "Indicadores operacionais consolidados da plataforma.", icon: BarChart3 },
   audit: { title: "Auditoria", singular: "registro", description: "Histórico imutável das ações administrativas críticas.", icon: BookOpen },
   settings: { title: "Configurações", singular: "configuração", description: "Parâmetros públicos, segurança e estado do ambiente demonstrativo.", icon: Settings2 },
-  results: { title: "Resultados", singular: "evento", description: "Registre placares com segurança; a liquidação dos mercados permanece uma etapa explícita e idempotente.", icon: ClipboardCheck },
+  results: { title: "Resultados", singular: "evento", description: "Registre os dados da modalidade e liquide seus mercados com regras determinísticas, sem repetir créditos de pontos.", icon: ClipboardCheck },
 };
 
 const resourceLookups: Record<string, NonNullable<FieldConfig["reference"]>[]> = {
@@ -349,6 +353,7 @@ export function AdminResourcePage() {
   const [scoring, setScoring] = useState<AdminRecord | null>(null);
   const [settling, setSettling] = useState<AdminRecord | null>(null);
   const [moderating, setModerating] = useState<AdminRecord | null>(null);
+  const [generatingMarkets, setGeneratingMarkets] = useState(false);
   const { data, loading, error, reload } = useApiResource<AdminCollection>(
     async () => {
       const [response, lookups] = await Promise.all([
@@ -377,6 +382,7 @@ export function AdminResourcePage() {
     setScoring(null);
     setSettling(null);
     setModerating(null);
+    setGeneratingMarkets(false);
   }, [resource]);
 
   const rows = useMemo(() => {
@@ -407,7 +413,7 @@ export function AdminResourcePage() {
         eyebrow="ADMINISTRAÇÃO"
         title={config.title}
         description={config.description}
-        actions={config.creatable ? <Button onClick={() => setEditing("new")}><Plus size={17} /> Criar {config.singular}</Button> : undefined}
+        actions={config.creatable ? <div className="admin-market-actions">{resource === "markets" && <Button onClick={() => setGeneratingMarkets(true)}><Layers3 size={17} /> Catálogo da modalidade</Button>}<Button variant={resource === "markets" ? "secondary" : "primary"} onClick={() => setEditing("new")}><Plus size={17} /> Criar {config.singular}</Button></div> : undefined}
       />
       <section className="surface admin-list-panel">
         <div className="admin-list-toolbar">
@@ -442,7 +448,8 @@ export function AdminResourcePage() {
                 <span role="cell" data-label="Ações" className="admin-row-actions">
                   {resource === "results" && resultRegistrationAvailability(row).allowed && <Button size="sm" onClick={() => setScoring(row)}><ClipboardCheck size={15} /> {resultActionLabel(row)}</Button>}
                   {resource === "results" && !resultRegistrationAvailability(row).allowed && <small className="availability-note" tabIndex={0} title={resultRegistrationAvailability(row).reason} aria-label={`${resultRegistrationAvailability(row).label}. ${resultRegistrationAvailability(row).reason}`}>{resultRegistrationAvailability(row).label}</small>}
-                  {resource === "markets" && marketSettlementAvailability(row).allowed && <Button size="sm" variant="secondary" onClick={() => setSettling(row)}><CheckCircle2 size={15} /> Liquidar</Button>}
+                  {resource === "markets" && Boolean(row.templateCode) && !["SETTLED", "CANCELLED"].includes(String(row.status)) && <Link className="admin-result-link" to="/admin/results">Registrar resultado</Link>}
+                  {resource === "markets" && !row.templateCode && marketSettlementAvailability(row).allowed && <Button size="sm" variant="secondary" onClick={() => setSettling(row)}><CheckCircle2 size={15} /> Liquidar</Button>}
                   {resource === "markets" && !marketSettlementAvailability(row).allowed && <small className="availability-note" tabIndex={0} title={marketSettlementAvailability(row).reason} aria-label={`${marketSettlementAvailability(row).label}. ${marketSettlementAvailability(row).reason}`}>{marketSettlementAvailability(row).label}</small>}
                   {resource === "moderation" && <Button size="sm" variant="secondary" onClick={() => setModerating(row)}><ShieldCheck size={15} /> Revisar</Button>}
                   {config.editable && !(resource === "markets" && String(row.status).toUpperCase() === "SETTLED") && <button type="button" onClick={() => setEditing(row)} aria-label={`Editar ${recordLabel(row, config, index)}`}><Edit3 size={16} /></button>}
@@ -473,6 +480,7 @@ export function AdminResourcePage() {
       <ScoreModal record={scoring} onClose={() => setScoring(null)} onSaved={() => reload().catch(() => undefined)} />
       <SettlementModal record={settling} onClose={() => setSettling(null)} onSettled={() => reload().catch(() => undefined)} />
       <ModerationModal record={moderating} onClose={() => setModerating(null)} onSaved={() => reload().catch(() => undefined)} />
+      <GenerateMarketsModal open={generatingMarkets} events={data?.lookups.events || []} onClose={() => setGeneratingMarkets(false)} onSaved={() => reload().catch(() => undefined)} />
     </>
   );
 }
@@ -618,11 +626,14 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
     }
     case "markets": {
       const options = marketOptions(row);
+      const availability = row.availability as { label?: string; reason?: string } | undefined;
+      const resultKeys = String(row.resultOptionKey || "").split(",");
+      const resultLabel = options.filter((option) => resultKeys.includes(String(option.key))).map((option) => String(option.label)).join(", ");
       return [
-        <AdminIdentity icon={Layers3} title={String(row.name || "Mercado")} subtitle={`Tipo: ${enumLabel(row.code || row.type || "OTHER")}`} />,
-        <AdminDetail primary={eventTitle} secondary={options.length ? options.slice(0, 3).map((option) => `${String(option.label || option.key)} ${multiplier(option.multiplier)}`).join(" · ") : "Sem opções publicadas"} />,
-        statusBadge,
-        <AdminDetail primary={row.settledAt ? displayDate(row.settledAt) : `${points(row.optionCount || options.length)} opções`} secondary={row.resultOptionKey ? `Resultado: ${enumLabel(String(row.resultOptionKey))}` : enumLabel(String(row.eventStatus || "PENDING"))} />,
+        <AdminIdentity icon={Layers3} title={String(row.name || "Mercado")} subtitle={`${String(row.sportName || row.sport || "Modalidade do evento")} · ${String(row.category || "Principais")} · ${row.templateCode ? "Regra da modalidade" : "Regra manual"}`} />,
+        <div className="admin-market-meta"><strong>{eventTitle}</strong><details><summary>{options.length} opções · multiplicadores demonstrativos</summary><ul>{options.map((option) => <li key={String(option.key)}>{String(option.label || enumLabel(option.key))}<b>{multiplier(option.multiplier)}</b></li>)}</ul></details></div>,
+        <div className="admin-market-meta">{statusBadge}<small title={availability?.reason}>{availability?.label}</small><small>{enumLabel(row.timingMode || "PRE_MATCH_ONLY")}</small><small>Abertura: {row.opensAt ? displayDate(row.opensAt) : "Imediata"}</small><small>Fechamento: {row.closesAt ? displayDate(row.closesAt) : "Regra do evento"}</small></div>,
+        <AdminDetail primary={row.settledAt ? displayDate(row.settledAt) : String(row.settlementDescription || "Resultado manual após o encerramento")} secondary={row.resultOptionKey ? `Resultado: ${resultLabel || enumLabel(String(row.resultOptionKey))}` : enumLabel(String(row.eventStatus || "PENDING"))} />,
       ];
     }
     case "users":
@@ -742,6 +753,7 @@ export function marketSettlementAvailability(record: AdminRecord) {
   const hasOptions = marketOptions(record).some((option) => option.active !== false && String(option.key || "").trim());
   if (marketStatus === "SETTLED") return { allowed: false, label: "Finalizado", reason: "Este mercado já foi liquidado." };
   if (marketStatus === "CANCELLED") return { allowed: false, label: "Cancelado", reason: "Mercados cancelados não podem ser liquidados." };
+  if (record.templateCode) return { allowed: false, label: "Liquidação em Resultados", reason: "Registre os dados da modalidade em Resultados para calcular todas as seleções deste mercado." };
   if (marketStatus !== "CLOSED") return { allowed: false, label: "Aguardando fechamento", reason: "Feche o mercado antes de liquidá-lo." };
   if (eventStatus !== "FINISHED") return { allowed: false, label: "Evento em andamento", reason: "O evento precisa estar encerrado antes da liquidação." };
   if (!hasOptions) return { allowed: false, label: "Sem opções", reason: "Configure ao menos uma opção ativa." };
@@ -772,6 +784,7 @@ function initialForm(resource: string, config: ResourceConfig, record: AdminReco
     if (source && field.key === "homeCompetitorId") value = nestedId(source.homeCompetitor);
     if (source && field.key === "awayCompetitorId") value = nestedId(source.awayCompetitor);
     if (source && field.key === "optionsJson") value = JSON.stringify(source.options || [], null, 2);
+    if (resource === "events" && field.key === "status" && value === "OPEN_FOR_PREDICTIONS") value = "SCHEDULED";
     if (source && field.key === "participantsJson") value = JSON.stringify((source.participants as Array<Record<string, unknown>> || []).map((item) => ({
       competitorId: item.competitorId || nestedId(item.competitor),
       displayOrder: item.displayOrder,
@@ -849,19 +862,19 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
         if (!Array.isArray(parsed)) throw new Error("Revise os participantes do evento.");
       }
 
-      const cancellingEvent = resource === "events" && record !== "new" && record?.id != null
+      const cancellingResource = ["events", "markets"].includes(resource) && record !== "new" && record?.id != null
         && String(payload.status).toUpperCase() === "CANCELLED"
         && String(record.status).toUpperCase() !== "CANCELLED";
-      if (cancellingEvent && !confirmingCancellation) {
+      if (cancellingResource && !confirmingCancellation) {
         setConfirmingCancellation(true);
         savingRequestRef.current = false;
         setSaving(false);
         return;
       }
 
-      if (cancellingEvent && record?.id != null) {
-        const result = await adminApi.cancelEvent(record.id);
-        notify(`Evento cancelado; ${countLabel(result.refundedPredictions, "palpite reembolsado", "palpites reembolsados")}.`, "success");
+      if (cancellingResource && record?.id != null) {
+        const result = await (resource === "events" ? adminApi.cancelEvent(record.id) : adminApi.cancelMarket(record.id));
+        notify(`${resource === "events" ? "Evento" : "Mercado"} cancelado; ${countLabel(result.refundedPredictions, "palpite reembolsado", "palpites reembolsados")}.`, "success");
       } else if (record === "new") {
         await adminApi.create(resource, payload);
         notify(savedResourceMessage(resource, config, true), "success");
@@ -914,7 +927,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
                   {(lookups[field.reference] || []).map((option) => <option value={String(option.id)} key={String(option.id)}>{lookupLabel(field.reference!, option)}</option>)}
                 </select>
               ) : field.type === "select" ? (
-                <select {...commonProps} value={String(form[field.key] ?? "")} required={field.required} onChange={(event) => { const next = field.numeric ? Number(event.target.value) : event.target.value; setForm((value) => ({ ...value, [field.key]: next })); if (resource === "events" && field.key === "status" && next !== "CANCELLED") setConfirmingCancellation(false); }}>
+                <select {...commonProps} value={String(form[field.key] ?? "")} required={field.required} onChange={(event) => { const next = field.numeric ? Number(event.target.value) : event.target.value; setForm((value) => ({ ...value, [field.key]: next })); if (["events", "markets"].includes(resource) && field.key === "status" && next !== "CANCELLED") setConfirmingCancellation(false); }}>
                   {field.options?.map((option) => <option key={option} value={option}>{enumLabel(option)}</option>)}
                 </select>
               ) : field.type === "textarea" ? (
@@ -935,7 +948,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
             </label>
           );
         })}
-        {confirmingCancellation && <div className="virtual-disclaimer"><AlertTriangle size={16} /> Confirme novamente: o evento será cancelado, mercados ativos serão encerrados e todos os palpites ativos serão reembolsados em pontos.</div>}
+        {confirmingCancellation && <div className="virtual-disclaimer"><AlertTriangle size={16} /> Confirme novamente: {resource === "events" ? "o evento e seus mercados serão cancelados" : "este mercado será cancelado"} e os palpites ativos correspondentes serão reembolsados em pontos.</div>}
         <div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Voltar</Button><Button type="submit" loading={saving}>{confirmingCancellation ? "Confirmar cancelamento" : "Salvar"}</Button></div>
       </form>
     </Modal>
@@ -1097,7 +1110,68 @@ function classificationDraft(record: AdminRecord | null): ClassificationDraft[] 
   }).sort((left, right) => left.displayOrder - right.displayOrder);
 }
 
-function ScoreModal({ record, onClose, onSaved }: {
+function GenerateMarketsModal({ open, events, onClose, onSaved }: { open: boolean; events: AdminRecord[]; onClose: () => void; onSaved: () => void }) {
+  const [eventId, setEventId] = useState("");
+  const [templates, setTemplates] = useState<MarketTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const { notify } = useToast();
+  useEffect(() => { if (!open) { setEventId(""); setTemplates([]); setError(""); } }, [open]);
+  useEffect(() => {
+    if (!open || !eventId) return;
+    let active = true;
+    setLoading(true);
+    setTemplates([]);
+    setError("");
+    adminApi.marketTemplates(eventId).then((values) => { if (active) setTemplates(values); }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "Não foi possível carregar o catálogo."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [open, eventId]);
+  async function generate(event: FormEvent) {
+    event.preventDefault();
+    if (!eventId || saving || loading || !templates.length) return;
+    setSaving(true);
+    setError("");
+    try {
+      await adminApi.generateMarkets(eventId);
+      notify("Catálogo da modalidade aplicado. Mercados existentes foram preservados.", "success");
+      onClose();
+      onSaved();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível gerar os mercados."); }
+    finally { setSaving(false); }
+  }
+  return <Modal open={open} onClose={() => !saving && onClose()} title="Catálogo de mercados da modalidade">
+    <form className="stack-form" onSubmit={generate}>
+      <p>Selecione o evento para revisar os mercados com regras de resultado da modalidade e multiplicadores demonstrativos persistidos.</p>
+      <label><span>Evento *</span><select required value={eventId} disabled={saving} onChange={(event) => setEventId(event.target.value)}><option value="">Selecione um evento</option>{events.filter((event) => !["FINISHED", "CANCELLED"].includes(String(event.status))).map((event) => <option key={String(event.id)} value={String(event.id)}>{String(event.title || event.name)}</option>)}</select></label>
+      {loading && <p role="status">Carregando catálogo da modalidade...</p>}
+      <div className="admin-template-list">{templates.map((template) => <article key={template.code}><strong>{template.name}</strong><small>{template.category} · {enumLabel(template.timingMode)}</small>{template.settlementDescription && <p>{template.settlementDescription}</p>}</article>)}</div>
+      {error && <p role="alert" className="field-error">{error}</p>}
+      <div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Voltar</Button><Button type="submit" loading={saving} disabled={!eventId || loading || !templates.length}>Aplicar catálogo</Button></div>
+    </form>
+  </Modal>;
+}
+
+export function resultFieldsOf(value: unknown): ResultField[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((field): field is ResultField => Boolean(field) && typeof field === "object" && typeof field.key === "string" && typeof field.label === "string" && ["number", "select"].includes(field.type));
+}
+
+export function validateResultFields(schema: ResultField[], values: Record<string, string>, settling: boolean) {
+  const errors: Record<string, string> = {};
+  for (const field of schema) {
+    const value = String(values[field.key] ?? "").trim();
+    if (!value) {
+      if (settling && field.required) errors[field.key] = `Informe “${field.label}” para liquidar os mercados.`;
+      continue;
+    }
+    if (field.type === "number" && (!Number.isFinite(Number(value)) || Number(value) < 0 || Number(value) > 10_000 || !Number.isInteger(Number(value)))) errors[field.key] = `Informe um número inteiro de 0 a 10.000 em “${field.label}”.`;
+    if (field.type === "select" && !field.options?.some((option) => option.value === value)) errors[field.key] = `Selecione uma opção válida em “${field.label}”.`;
+  }
+  return errors;
+}
+
+export function ScoreModal({ record, onClose, onSaved }: {
   record: AdminRecord | null;
   onClose: () => void;
   onSaved: () => void;
@@ -1107,17 +1181,27 @@ function ScoreModal({ record, onClose, onSaved }: {
   const [awayScore, setAwayScore] = useState(0);
   const [classification, setClassification] = useState<ClassificationDraft[]>([]);
   const [finishEvent, setFinishEvent] = useState(true);
+  const [settleMarkets, setSettleMarkets] = useState(true);
+  const [resultData, setResultData] = useState<Record<string, string>>({});
+  const [resultErrors, setResultErrors] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [saving, setSaving] = useState(false);
   const operationKey = useRef(createIdempotencyKey());
+  const savingRef = useRef(false);
   const { notify } = useToast();
+  const resultSchema = resultFieldsOf(record?.resultSchema);
+  const resultGroups = Array.from(new Set(resultSchema.map((field) => field.group || "Dados do evento")));
 
   useEffect(() => {
     setHomeScore(Number(record?.homeScore ?? 0));
     setAwayScore(Number(record?.awayScore ?? 0));
     setClassification(classificationDraft(record));
     setFinishEvent(true);
+    setSettleMarkets(true);
+    setResultData(record?.resultData && typeof record.resultData === "object" ? record.resultData as Record<string, string> : {});
+    setResultErrors({});
+    savingRef.current = false;
     setConfirmed(false);
     setValidationError("");
     operationKey.current = createIdempotencyKey();
@@ -1125,7 +1209,16 @@ function ScoreModal({ record, onClose, onSaved }: {
 
   async function saveScore(event: FormEvent) {
     event.preventDefault();
-    if (record?.id == null || saving) return;
+    if (record?.id == null || savingRef.current) return;
+    const fieldErrors = validateResultFields(resultSchema, resultData, settleMarkets && finishEvent);
+    setResultErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length) {
+      setValidationError("Preencha os dados necessários para liquidar os mercados desta modalidade.");
+      const firstInput = document.getElementById(`result-${Object.keys(fieldErrors)[0]}`);
+      firstInput?.closest("details")?.setAttribute("open", "");
+      firstInput?.focus();
+      return;
+    }
     if (classificationMode && !classification.length) {
       setValidationError("Este evento não possui participantes disponíveis para classificação.");
       return;
@@ -1138,12 +1231,16 @@ function ScoreModal({ record, onClose, onSaved }: {
       setValidationError("Cada participante deve ocupar uma posição diferente.");
       return;
     }
+    if (classificationMode && finishEvent && classification.some((item) => Number(item.position) > classification.length)) {
+      setValidationError(`A classificação final deve ocupar todas as posições de 1 a ${classification.length}.`);
+      return;
+    }
     if (classificationMode && classification.some((item) => item.scoreLabel.trim().length > 80)) {
       setValidationError("A marca ou resultado deve ter no máximo 80 caracteres.");
       return;
     }
-    if (!classificationMode && (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0)) {
-      setValidationError("Informe placares inteiros e não negativos.");
+    if (!classificationMode && (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0 || homeScore > 1_000 || awayScore > 1_000)) {
+      setValidationError("Informe placares inteiros de 0 a 1.000.");
       return;
     }
     if (!confirmed) {
@@ -1151,6 +1248,7 @@ function ScoreModal({ record, onClose, onSaved }: {
       return;
     }
     setValidationError("");
+    savingRef.current = true;
     setSaving(true);
     try {
       if (classificationMode) {
@@ -1162,17 +1260,21 @@ function ScoreModal({ record, onClose, onSaved }: {
             scoreLabel: item.scoreLabel.trim() || null,
           })),
           finishEvent,
+          resultData,
+          settleMarkets: settleMarkets && finishEvent,
         }, operationKey.current);
-        notify("Classificação registrada. Os mercados não foram liquidados automaticamente.", "success");
       } else {
-        await adminApi.recordEventResult(record.id, { homeScore, awayScore, finishEvent }, operationKey.current);
-        notify("Placar registrado. Os mercados não foram liquidados automaticamente.", "success");
+        await adminApi.recordEventResult(record.id, { homeScore, awayScore, finishEvent, resultData, settleMarkets: settleMarkets && finishEvent }, operationKey.current);
       }
+      notify(settleMarkets && finishEvent ? "Resultado registrado e mercados processados. Os créditos não são repetidos." : "Resultado salvo. Complete os dados e liquide os mercados quando estiverem conferidos.", "success");
       onClose();
       onSaved();
     } catch (error) {
-      notify(error instanceof Error ? error.message : `Não foi possível registrar ${classificationMode ? "a classificação" : "o placar"}.`, "error");
+      const message = error instanceof Error ? error.message : `Não foi possível registrar ${classificationMode ? "a classificação" : "o placar"}.`;
+      setValidationError(message);
+      notify(message, "error");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -1180,11 +1282,12 @@ function ScoreModal({ record, onClose, onSaved }: {
   return (
     <Modal
       open={Boolean(record)}
-      onClose={() => !saving && onClose()}
-      title={classificationMode ? "Registrar classificação oficial" : "Registrar placar oficial"}
-      size={classificationMode ? "lg" : "sm"}
+      onClose={() => !savingRef.current && onClose()}
+      title={classificationMode ? "Registrar classificação oficial" : "Registrar resultado da modalidade"}
+      size={classificationMode || resultSchema.length ? "lg" : "sm"}
     >
       <form className="result-form" onSubmit={saveScore}>
+        <fieldset className="result-form__fields" disabled={saving}>
         <div className="result-form__event">
           <span className="eyebrow">{classificationMode ? "CLASSIFICAÇÃO DO EVENTO" : "RESULTADO DO EVENTO"}</span>
           <h2>{String(record?.title || "Evento selecionado")}</h2>
@@ -1208,11 +1311,20 @@ function ScoreModal({ record, onClose, onSaved }: {
             <span><label htmlFor="away-score">{nestedText(record?.awayCompetitor, "name") || "Participante 2"}</label><input id="away-score" aria-label={`Placar de ${nestedText(record?.awayCompetitor, "name") || "participante 2"}`} type="number" min="0" step="1" value={awayScore} onChange={(event) => { setAwayScore(Number(event.target.value)); setValidationError(""); }} /></span>
           </div>
         )}
+        {resultGroups.length > 0 && <div className="result-groups">{resultGroups.map((group, groupIndex) => <details key={group} open={groupIndex === 0 || undefined}>
+          <summary>{group}<span>{resultSchema.filter((field) => (field.group || "Dados do evento") === group).length} campos</span></summary>
+          <div className="result-schema-fields">{resultSchema.filter((field) => (field.group || "Dados do evento") === group).map((field) => <label key={field.key} htmlFor={`result-${field.key}`}><span>{field.label}{field.required && settleMarkets && finishEvent ? " *" : ""}</span>
+            {field.type === "select" ? <select id={`result-${field.key}`} value={resultData[field.key] ?? ""} disabled={saving} aria-invalid={Boolean(resultErrors[field.key])} aria-describedby={`result-help-${field.key}`} onChange={(event) => { setResultData((current) => ({ ...current, [field.key]: event.target.value })); setResultErrors((current) => ({ ...current, [field.key]: "" })); }}><option value="">Não informado</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input id={`result-${field.key}`} type="number" min="0" step="1" value={resultData[field.key] ?? ""} disabled={saving} aria-invalid={Boolean(resultErrors[field.key])} aria-describedby={`result-help-${field.key}`} onChange={(event) => { setResultData((current) => ({ ...current, [field.key]: event.target.value })); setResultErrors((current) => ({ ...current, [field.key]: "" })); }} />}
+            <small id={`result-help-${field.key}`} className={resultErrors[field.key] ? "field-error" : ""}>{resultErrors[field.key] || field.description || "Dado utilizado na liquidação dos mercados do evento."}</small>
+          </label>)}</div>
+        </details>)}</div>}
         <label className="toggle-row"><span>Marcar evento como encerrado</span><input type="checkbox" checked={finishEvent} onChange={(event) => setFinishEvent(event.target.checked)} /></label>
-        <p><AlertTriangle size={16} /> Esta etapa registra {classificationMode ? "a classificação" : "o placar"}. Para processar palpites, recompensas e notificações, feche e liquide cada mercado na área “Mercados”.</p>
+        <label className="toggle-row"><span>Liquidar mercados com este resultado</span><input type="checkbox" checked={settleMarkets && finishEvent} disabled={!finishEvent || saving} onChange={(event) => setSettleMarkets(event.target.checked)} /></label>
+        <p><AlertTriangle size={16} /> {settleMarkets && finishEvent ? "Todos os dados necessários devem estar preenchidos. O servidor calcula vencedores, perdedores e pontos em uma única operação, sem créditos duplicados." : "Você pode salvar os dados disponíveis e concluir a liquidação depois. Nenhum mercado será pago nesta etapa."}</p>
         <label className="result-confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => { setConfirmed(event.target.checked); setValidationError(""); }} /><span><strong>Revisei o evento e {classificationMode ? "a classificação" : "o placar"}</strong><small>Entendo que a ação será registrada na auditoria administrativa.</small></span></label>
         {validationError && <p className="field-error" role="alert">{validationError}</p>}
         <div className="modal-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button><Button type="submit" loading={saving} disabled={!confirmed}>Salvar {classificationMode ? "classificação" : "placar"}</Button></div>
+        </fieldset>
       </form>
     </Modal>
   );

@@ -80,10 +80,12 @@ export function EventCard({
   event,
   onPredict,
   compact = false,
+  showPreview = true,
 }: {
   event: ArenaEvent;
   onPredict?: (draft: PredictionDraft) => void;
   compact?: boolean;
+  showPreview?: boolean;
 }) {
   const [home, away] = eventTeams(event);
   const isLive = ["LIVE", "AO_VIVO"].includes(String(event.status).toUpperCase());
@@ -100,11 +102,11 @@ export function EventCard({
           {multiParticipant && event.title && <small>{event.title}</small>}
           {event.phase && <small>{enumLabel(event.phase)}</small>}
         </div>
-        <StatusBadge status={event.status} label={eventStatusLabel(event.status)} />
+        <StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} label={eventStatusLabel(event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status)} />
       </header>
 
       {multiParticipant ? (
-        <ParticipantList event={event} compact={compact} />
+        <ParticipantList event={event} compact limit={4} />
       ) : <div className="event-card__matchup">
         <div className="competitor competitor--home">
           <TeamLogo name={home.name || home.shortName || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="md" />
@@ -131,9 +133,9 @@ export function EventCard({
         </div>
       </div>}
 
-      {!compact && primaryMarket && (
+      {!compact && showPreview && primaryMarket && (
         <div className="market-preview">
-          <div className="market-preview__title"><span>{primaryMarket.name}</span><small>Multiplicador simulado</small></div>
+          <div className="market-preview__title"><span>{primaryMarket.name}</span><small>Multiplicador demonstrativo</small></div>
           <div className="market-options">
             {primaryMarket.options?.slice(0, 3).map((option) => (
               <button
@@ -151,8 +153,8 @@ export function EventCard({
       )}
 
       <footer className="event-card__foot">
-        <span><Clock3 size={14} /> Palpites até {dateTime(event.predictionDeadline || event.predictionClosesAt || event.startsAt)}</span>
-        <Link to={`/events/${event.id}`}>Detalhes <ChevronRight size={15} /></Link>
+        <span className={predictionOpen ? "event-availability event-availability--open" : "event-availability"}><Clock3 size={14} /> {event.predictionAvailabilityLabel || "Mercados ainda não publicados"}</span>
+        <Link to={`/events/${event.id}`}>{predictionOpen ? "Ver mercados" : "Detalhes"} <ChevronRight size={15} /></Link>
       </footer>
       {event.featured && <span className="featured-corner" title="Evento em destaque"><Sparkles size={13} /></span>}
       {isLive && (event.demoLiveData || event.demo) && <span className="demo-live-label"><ShieldCheck size={12} /> Simulação</span>}
@@ -168,7 +170,7 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
       <div className="featured-event__ambient" />
       <header>
         <span>{sportName(event.sport || event.sportName)}</span>
-        <StatusBadge status={event.status} label={eventStatusLabel(event.status)} />
+        <StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} label={eventStatusLabel(event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status)} />
       </header>
       <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{multiParticipant && event.title ? ` · ${event.title}` : event.phase ? ` · ${enumLabel(event.phase)}` : ""}</div>
       {multiParticipant ? <ParticipantList event={event} compact limit={4} /> : <div className="featured-event__teams">
@@ -196,17 +198,19 @@ export function MarketList({
   return (
     <div className="market-list">
       {markets.map((market) => {
-        const disabled = !isPredictionOpen(event) || !isMarketOpen(market);
+        const disabled = !isMarketOpen(market);
         return (
           <section className="surface market-block" key={market.id}>
             <div className="market-block__head">
-              <div><h3>{market.name}</h3><p>Escolha uma opção. O coeficiente calcula somente pontos virtuais.</p></div>
-              {disabled && <StatusBadge status="closed" label="Indisponível" />}
+              <div><h3>{market.name}</h3><p>{market.settlementDescription || "Escolha uma opção para seu palpite com pontos virtuais."}</p></div>
+              <StatusBadge status={disabled ? market.status || "CLOSED" : "OPEN"} label={market.availability?.label || "Aguardando publicação"} />
             </div>
+            <p className="market-availability-reason" role="status">{market.availability?.reason || "A organização ainda não publicou a disponibilidade deste mercado."}</p>
+            <div className="market-timing"><span>{enumLabel(market.timingMode || "PRE_MATCH_ONLY")}</span>{market.closesAt && <span>Fechamento: {dateTime(market.closesAt)}</span>}<span>Multiplicador demonstrativo</span></div>
             <div className="market-block__options">
               {market.options?.map((option) => (
                 <button type="button" key={option.id} disabled={disabled || !isOptionOpen(option)} onClick={() => onPredict({ event, market, option })}>
-                  <span>{option.label || option.name}</span><strong>{multiplier(option.multiplier)}</strong>
+                  <span>{option.label || option.name}{!isOptionOpen(option) && <small> · Opção suspensa</small>}</span><strong>{multiplier(option.multiplier)}</strong>
                 </button>
               ))}
             </div>
@@ -218,13 +222,13 @@ export function MarketList({
 }
 
 export function isPredictionOpen(event: ArenaEvent) {
-  if (String(event.status).toUpperCase() !== "OPEN_FOR_PREDICTIONS") return false;
-  const closesAt = new Date(event.predictionClosesAt || event.predictionDeadline || event.startsAt).getTime();
-  return Number.isFinite(closesAt) && closesAt > Date.now();
+  return event.availableMarketCount != null
+    ? event.availableMarketCount > 0
+    : Boolean(event.markets?.some(isMarketOpen));
 }
 
-function isMarketOpen(market: PredictionMarket) {
-  return String(market.status).toUpperCase() === "OPEN";
+export function isMarketOpen(market: PredictionMarket) {
+  return market.availability?.allowed === true;
 }
 
 function isOptionOpen(option: PredictionMarket["options"][number]) {

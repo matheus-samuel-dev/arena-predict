@@ -1,0 +1,220 @@
+{
+  "startedAt": "2026-09-09T17:13:21.137Z",
+  "followUp": {
+    "file": "final-ui-check.json",
+    "focusRestorationPassed": true,
+    "note": "A medição inicial de foco abaixo ocorreu imediatamente após Escape. A repetição aguardou o diálogo fechar e confirmou a devolução do foco ao botão de origem, tanto no boletim quanto no resultado F1."
+  },
+  "checks": [
+    {
+      "name": "Insufficient/excess points blocked before submit",
+      "passed": true
+    },
+    {
+      "name": "Keyboard focus remains in prediction modal",
+      "passed": true
+    },
+    {
+      "name": "Prediction slip 360 has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "Live debit and admin refund exactly once",
+      "passed": true
+    },
+    {
+      "name": "Suspended market explains reason and has no enabled option",
+      "passed": true
+    },
+    {
+      "name": "Resolved live goals market rejects selections",
+      "passed": true
+    },
+    {
+      "name": "F1 result modal 360: labels, scroll and Escape",
+      "passed": true
+    },
+    {
+      "name": "Admin result Escape returns focus to opener",
+      "passed": false
+    },
+    {
+      "name": "Football exact score 26 options: no overflow on 360",
+      "passed": true
+    }
+  ],
+  "livePrediction": {
+    "id": 111,
+    "eventId": 1,
+    "eventTitle": "Palmeiras x Flamengo",
+    "marketId": 19,
+    "marketName": "Resultado ao vivo · 90 minutos",
+    "optionId": 44,
+    "optionLabel": "Palmeiras",
+    "stakePoints": 10,
+    "multiplier": 1.8,
+    "potentialPoints": 18,
+    "rewardedPoints": 0,
+    "status": "ACTIVE",
+    "poolId": null,
+    "placedAt": "2026-09-09T17:13:27.722970049Z",
+    "resolvedAt": null,
+    "canCancel": false
+  },
+  "walletAfterLive": {
+    "balance": 7148,
+    "lifetimeEarned": 3573,
+    "lifetimeUsed": 1485,
+    "updatedAt": "2026-09-09T17:13:31.880574Z",
+    "virtualPointsNotice": "Pontos virtuais de entretenimento, sem valor financeiro e sem possibilidade de saque."
+  },
+  "cancellation": {
+    "refundedPredictions": 1
+  },
+  "walletAfterRefund": {
+    "balance": 7158,
+    "lifetimeEarned": 3573,
+    "lifetimeUsed": 1485,
+    "updatedAt": "2026-09-09T17:14:24.461652Z",
+    "virtualPointsNotice": "Pontos virtuais de entretenimento, sem valor financeiro e sem possibilidade de saque."
+  },
+  "refundedPrediction": {
+    "id": 111,
+    "eventId": 1,
+    "eventTitle": "Palmeiras x Flamengo",
+    "marketId": 19,
+    "marketName": "Resultado ao vivo · 90 minutos",
+    "optionId": 44,
+    "optionLabel": "Palmeiras",
+    "stakePoints": 10,
+    "multiplier": 1.8,
+    "potentialPoints": 18,
+    "rewardedPoints": 0,
+    "status": "REFUNDED",
+    "poolId": null,
+    "placedAt": "2026-09-09T17:13:27.722970Z",
+    "resolvedAt": "2026-09-09T17:14:24.377263Z",
+    "canCancel": false
+  },
+  "repeatedCancellation": {
+    "status": 200,
+    "body": {
+      "refundedPredictions": 0
+    }
+  },
+  "adminPages": [
+    {
+      "route": "sports",
+      "width": 1440,
+      "title": "Modalidades",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "championships",
+      "width": 1440,
+      "title": "Campeonatos",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "competitors",
+      "width": 1440,
+      "title": "Equipes e participantes",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "users",
+      "width": 1440,
+      "title": "Usuários",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "events",
+      "width": 1440,
+      "title": "Eventos",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "markets",
+      "width": 1440,
+      "title": "Mercados de previsão",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "results",
+      "width": 1440,
+      "title": "Resultados",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "scoring-rules",
+      "width": 1440,
+      "title": "Regras de pontuação",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "sports",
+      "width": 360,
+      "title": "Modalidades",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "championships",
+      "width": 360,
+      "title": "Campeonatos",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "competitors",
+      "width": 360,
+      "title": "Equipes e participantes",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "users",
+      "width": 360,
+      "title": "Usuários",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "events",
+      "width": 360,
+      "title": "Eventos",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "markets",
+      "width": 360,
+      "title": "Mercados de previsão",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "results",
+      "width": 360,
+      "title": "Resultados",
+      "overflow": false,
+      "labels": []
+    },
+    {
+      "route": "scoring-rules",
+      "width": 360,
+      "title": "Regras de pontuação",
+      "overflow": false,
+      "labels": []
+    }
+  ],
+  "adminErrors": []
+}

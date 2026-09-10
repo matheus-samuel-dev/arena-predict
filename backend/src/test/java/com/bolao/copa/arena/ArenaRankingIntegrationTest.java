@@ -40,6 +40,20 @@ class ArenaRankingIntegrationTest {
 
     @Test
     @Transactional
+    void racingHistoryUsesClassificationWithoutChangingSettledComparison() {
+        var event=events.findByExternalKey("demo-ranking-v2-motorsport-week").orElseThrow();
+        assertThat(event.getFormat()).isEqualTo(EventFormat.RACE);
+        assertThat(event.getHomeScore()).isNull();
+        assertThat(event.getAwayScore()).isNull();
+        assertThat(eventParticipants.findByEventOrderByDisplayOrderAsc(event)).extracting(EventParticipant::getPosition).containsExactly(1,2);
+        assertThat(markets.findByEventOrderByIdAsc(event)).singleElement().satisfies(market -> {
+            assertThat(market.getStatus()).isEqualTo(MarketStatus.SETTLED);
+            assertThat(market.getResultOptionKey()).isEqualTo("HOME");
+        });
+    }
+
+    @Test
+    @Transactional
     void demoRankingHasCoherentPeriodsOrderingAccuracyAndSportFilters() {
         User current = users.findByEmail("jogador@arenapredict.com").orElseThrow();
 

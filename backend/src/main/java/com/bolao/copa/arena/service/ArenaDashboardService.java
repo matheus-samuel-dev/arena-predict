@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ArenaDashboardService {
     private final PointWalletService walletService;
     private final ArenaPredictionRepository predictions;
+    private final ArenaPredictionService predictionService;
     private final ArenaCatalogService catalog;
     private final ArenaPoolRankingService pools;
     private final ArenaNotificationService notifications;
@@ -34,8 +35,10 @@ public class ArenaDashboardService {
                                  ArenaNotificationService notifications, ArenaEventRepository eventRepository,
                                  PredictionMarketRepository marketRepository, ArenaPoolRepository poolRepository,
                                  PointLedgerRepository ledger, UserRepository users, ProgressionService progression,
+                                 ArenaPredictionService predictionService,
                                  @Value("${app.demo.enabled:false}") boolean demoMode) {
         this.walletService = walletService; this.predictions = predictions; this.catalog = catalog; this.pools = pools;
+        this.predictionService = predictionService;
         this.notifications = notifications; this.eventRepository = eventRepository; this.marketRepository = marketRepository;
         this.poolRepository = poolRepository; this.ledger = ledger; this.users = users; this.progression = progression; this.demoMode = demoMode;
     }
@@ -68,7 +71,7 @@ public class ArenaDashboardService {
         return new DashboardResponse(user.getName(), playerProgress.level(), playerProgress.title(),
                 playerProgress.xp(), playerProgress.nextLevelXp(), wallet.balance(), position, active, finished, won,
                 accuracy, streaks.current(), streaks.best(), notifications.unread(user), featured, live, upcoming,
-                mine.stream().limit(6).map(this::predictionResponse).toList(), pools.list(user).stream().filter(p -> p.status() == PoolStatus.OPEN || p.status() == PoolStatus.IN_PROGRESS).limit(4).toList(),
+                mine.stream().limit(6).map(predictionService::response).toList(), pools.list(user).stream().filter(p -> p.status() == PoolStatus.OPEN || p.status() == PoolStatus.IN_PROGRESS).limit(4).toList(),
                 ranking.stream().limit(8).toList(), VIRTUAL_POINTS_NOTICE, demoMode, challenges, recentAchievements,
                 performance(mine));
     }
@@ -78,16 +81,9 @@ public class ArenaDashboardService {
         long pointsMoved = ledger.findAll().stream().mapToLong(entry -> Math.abs(entry.getAmount())).sum();
         return new AdminDashboardResponse(users.count(), eventRepository.countByStatus(EventStatus.LIVE),
                 eventRepository.countByStatus(EventStatus.SCHEDULED) + eventRepository.countByStatus(EventStatus.OPEN_FOR_PREDICTIONS),
-                predictions.countByStatus(PredictionStatus.ACTIVE), marketRepository.countByStatus(MarketStatus.OPEN),
+                predictions.countByStatus(PredictionStatus.ACTIVE), catalog.listEvents(null, null, null).stream().mapToLong(EventResponse::availableMarketCount).sum(),
                 poolRepository.findAll().stream().filter(pool -> pool.getStatus() == PoolStatus.OPEN || pool.getStatus() == PoolStatus.IN_PROGRESS).count(),
                 pointsMoved, eventRepository.countAwaitingMarketSettlement(EventStatus.FINISHED, MarketStatus.SETTLED), demoMode);
-    }
-    private PredictionResponse predictionResponse(ArenaPrediction value) {
-        return new PredictionResponse(value.getId(), value.getEvent().getId(), value.getEvent().getTitle(), value.getMarket().getId(),
-                value.getMarket().getName(), value.getOption().getId(), value.getOption().getLabel(), value.getStakePoints(), value.getMultiplier(),
-                value.getPotentialPoints(), value.getRewardedPoints(), value.getStatus(), value.getPool() == null ? null : value.getPool().getId(),
-                value.getPlacedAt(), value.getResolvedAt(),
-                value.getStatus() == PredictionStatus.ACTIVE && Instant.now().isBefore(value.getEvent().getPredictionClosesAt()));
     }
     private PlayerProgress playerProgress(long lifetimeEarned) {
         long xp = Math.max(0, lifetimeEarned);

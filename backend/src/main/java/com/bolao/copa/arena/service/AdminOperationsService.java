@@ -45,6 +45,9 @@ public class AdminOperationsService {
     private final ArenaDashboardService dashboards;
     private final CommunityService community;
     private final EventParticipantRepository eventParticipants;
+    private final ArenaCatalogService catalog;
+    private final MarketDefinitionCatalog definitions;
+    private final MarketAvailabilityService availability;
     private final String brandName;
     private final boolean demoMode;
     private final boolean demoLiveProvider;
@@ -55,6 +58,7 @@ public class AdminOperationsService {
                                   PredictionMarketRepository markets, MarketOptionRepository marketOptions,
                                   AdminAuditRepository audits, ArenaDashboardService dashboards,
                                   CommunityService community, EventParticipantRepository eventParticipants,
+                                  ArenaCatalogService catalog, MarketDefinitionCatalog definitions, MarketAvailabilityService availability,
                                   @Value("${app.brand.name:ArenaPredict}") String brandName,
                                   @Value("${app.demo.enabled:false}") boolean demoMode,
                                   @Value("${app.demo.live-provider-enabled:false}") boolean demoLiveProvider) {
@@ -70,6 +74,7 @@ public class AdminOperationsService {
         this.dashboards = dashboards;
         this.community = community;
         this.eventParticipants = eventParticipants;
+        this.catalog = catalog; this.definitions = definitions; this.availability = availability;
         this.brandName = brandName;
         this.demoMode = demoMode;
         this.demoLiveProvider = demoLiveProvider;
@@ -118,7 +123,8 @@ public class AdminOperationsService {
                         .collect(Collectors.groupingBy(value -> value.getEvent().getId(), LinkedHashMap::new,
                                 Collectors.mapping(value -> new EventParticipantResponse(value.getId(), competitorSummary(value.getCompetitor()),
                                         value.getDisplayOrder(), value.getPosition(), value.getScoreLabel()), Collectors.toList())));
-        return result.map(event -> eventResponse(event, participantsByEvent.getOrDefault(event.getId(), List.of())));
+        var details = catalog.eventResponses(result.getContent()).stream().collect(Collectors.toMap(com.bolao.copa.arena.api.ArenaDtos.EventResponse::id, Function.identity()));
+        return result.map(event -> eventResponse(event, participantsByEvent.getOrDefault(event.getId(), List.of()), details.get(event.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -224,20 +230,25 @@ public class AdminOperationsService {
                 championship.getSeason(), championship.getImageUrl(), championship.getStartsAt(), championship.getEndsAt());
     }
 
-    private AdminEventResponse eventResponse(ArenaEvent event, List<EventParticipantResponse> participants) {
+    private AdminEventResponse eventResponse(ArenaEvent event, List<EventParticipantResponse> participants, com.bolao.copa.arena.api.ArenaDtos.EventResponse detail) {
         Championship championship = event.getChampionship();
         return new AdminEventResponse(event.getId(), event.getTitle(), event.getExternalKey(), event.getStatus().name(),
                 championship.getId(), championship.getName(), championship.getSport().getName(),
                 competitorSummary(event.getHomeCompetitor()), competitorSummary(event.getAwayCompetitor()),
                 event.getStage(), event.getVenue(), event.getBroadcast(), event.getImageUrl(), event.getFormat().name(),
                 event.getBestOf(), participants, event.getStartsAt(),
-                event.getPredictionClosesAt(), event.getHomeScore(), event.getAwayScore(), event.isFeatured(), event.isDemo());
+                event.getPredictionClosesAt(), event.getHomeScore(), event.getAwayScore(), event.isFeatured(), event.isDemo(), detail.resultData(), detail.resultSchema());
     }
 
     private AdminMarketResponse marketResponse(PredictionMarket market, List<MarketOptionResponse> options) {
         return new AdminMarketResponse(market.getId(), market.getName(), market.getCode(), market.getStatus().name(),
                 market.getEvent().getId(), market.getEvent().getTitle(), market.getEvent().getStatus().name(),
-                market.getMinimumPoints(), options.size(), options, market.getResultOptionKey(), market.getSettledAt());
+                market.getMinimumPoints(), options.size(), options, market.getResultOptionKey(), market.getSettledAt(),
+                market.getEvent().getChampionship().getSport().getName(), market.getCategory(), market.getTemplateCode(),
+                market.getTimingMode().name(), market.getOpensAt(), market.getClosesAt(),
+                options.stream().anyMatch(MarketOptionResponse::active) ? availability.evaluate(market, Instant.now())
+                        : new com.bolao.copa.arena.api.ArenaDtos.MarketAvailability(false, "NO_OPTIONS", "Opções suspensas", "Nenhuma opção ativa neste mercado."),
+                definitions.definition(market, List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Liquidação manual por opção."));
     }
 
     private MarketOptionResponse marketOptionResponse(MarketOption option) {

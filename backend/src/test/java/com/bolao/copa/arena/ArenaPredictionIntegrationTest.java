@@ -104,7 +104,12 @@ class ArenaPredictionIntegrationTest {
     void settlingSameMarketTwiceDoesNotRewardTwice() {
         var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
-        var market = markets.findByEventOrderByIdAsc(event).getFirst();
+        // Legacy manual markets remain supported; typed markets are covered by result settlement tests.
+        var manual = catalogService.saveMarket(null, new MarketRequest(event.getId(), "LEGACY_" + UUID.randomUUID(),
+                "Mercado manual legado", MarketStatus.OPEN, 10, java.util.List.of(
+                new MarketOptionRequest("HOME", "Carlos Alcaraz", new java.math.BigDecimal("1.80"), true),
+                new MarketOptionRequest("AWAY", "Jannik Sinner", new java.math.BigDecimal("1.95"), true))));
+        var market = markets.findById(manual.id()).orElseThrow();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
         String key = "settle-" + UUID.randomUUID();
         predictionService.place(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), 50, null, key), key, user);

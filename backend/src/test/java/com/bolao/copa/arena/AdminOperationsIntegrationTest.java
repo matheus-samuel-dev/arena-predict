@@ -196,7 +196,7 @@ class AdminOperationsIntegrationTest {
         event.setStartsAt(Instant.now().minusSeconds(60));
         events.saveAndFlush(event);
         String key = "result-" + UUID.randomUUID();
-        int homeScore = 10_000 + Math.abs(key.hashCode() % 10_000);
+        int homeScore = 100 + Math.abs(key.hashCode() % 30);
         String payload = "{\"homeScore\":" + homeScore + ",\"awayScore\":1,\"finishEvent\":false}";
         long auditsBefore = resultAuditCount(event.getId());
 

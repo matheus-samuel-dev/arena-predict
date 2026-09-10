@@ -29,15 +29,18 @@ public class ArenaPoolRankingService {
     private final UserRepository users;
     private final ArenaCatalogService catalog;
     private final ProgressionService progression;
+    private final LeaguePredictionRepository leaguePredictions;
 
     public ArenaPoolRankingService(ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                    SportRepository sports, ChampionshipRepository championships,
                                    ArenaPredictionRepository predictions, PointWalletRepository wallets,
                                    PlayerProfileRepository profiles, UserRepository users,
-                                   ArenaCatalogService catalog, ProgressionService progression) {
+                                   ArenaCatalogService catalog, ProgressionService progression,
+                                   LeaguePredictionRepository leaguePredictions) {
         this.pools = pools; this.members = members; this.sports = sports; this.championships = championships;
         this.predictions = predictions; this.wallets = wallets; this.profiles = profiles; this.users = users;
         this.catalog = catalog; this.progression = progression;
+        this.leaguePredictions = leaguePredictions;
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +75,16 @@ public class ArenaPoolRankingService {
         pool.setInviteCode(inviteCode());
         pool.setPublicPool(Boolean.TRUE.equals(request.publicPool()));
         PoolType poolType = request.poolType() == null ? PoolType.POOL : request.poolType();
+        if (poolType == PoolType.LEAGUE) {
+            if (owner.getRole().canonical() != UserRole.ADMIN)
+                throw new ArenaProblem.RuleViolation("Ligas são competições organizadas pela plataforma. Crie um bolão para jogar com amigos.");
+            if (!Boolean.TRUE.equals(request.publicPool()))
+                throw new ArenaProblem.RuleViolation("Ligas da plataforma devem ser públicas.");
+            if (request.startsAt() == null || request.endsAt() == null)
+                throw new ArenaProblem.RuleViolation("Informe o início e o fim da temporada da liga.");
+            if (!request.endsAt().isAfter(Instant.now()))
+                throw new ArenaProblem.RuleViolation("A temporada da liga deve terminar no futuro.");
+        }
         if (Boolean.TRUE.equals(request.recurring()) && poolType != PoolType.LEAGUE)
             throw new ArenaProblem.RuleViolation("Somente ligas podem ser recorrentes.");
         pool.setPoolType(poolType);
@@ -82,8 +95,10 @@ public class ArenaPoolRankingService {
         pool.setStartsAt(request.startsAt());
         pool.setEndsAt(request.endsAt());
         pool = pools.save(pool);
-        addMember(pool, owner, true);
-        progression.refresh(owner);
+        if (poolType == PoolType.POOL) {
+            addMember(pool, owner, true);
+            progression.refresh(owner);
+        }
         return response(pool, owner);
     }
 
@@ -106,6 +121,10 @@ public class ArenaPoolRankingService {
         // Capacity checks and the unique membership insert therefore form one
         // atomic decision even when multiple participants join simultaneously.
         if (members.findByPoolAndUser(pool, user).isPresent()) return response(pool, user);
+        if (pool.getPoolType() == PoolType.LEAGUE && user.getRole().canonical() != UserRole.PARTICIPANTE)
+            throw new ArenaProblem.RuleViolation("A classificação da liga é exclusiva para participantes.");
+        if (pool.getEndsAt() != null && !Instant.now().isBefore(pool.getEndsAt()))
+            throw new ArenaProblem.RuleViolation("O período desta competição já foi encerrado.");
         if (members.countByPool(pool) >= pool.getMaxParticipants()) throw new ArenaProblem.Conflict("Este bolão atingiu o limite de participantes.");
         if (pool.getStatus() != ArenaEnums.PoolStatus.OPEN) throw new ArenaProblem.RuleViolation("Este bolão não está aberto para novos participantes.");
         addMember(pool, user, false);
@@ -160,7 +179,9 @@ public class ArenaPoolRankingService {
     public List<RankingRow> poolRanking(Long poolId, User current) {
         ArenaPool pool = pools.findById(poolId).filter(value -> canView(value, current))
                 .orElseThrow(() -> new ArenaProblem.NotFound("Bolão não encontrado."));
-        List<ArenaPrediction> poolPredictions = predictions.findByPool(pool);
+        List<ArenaPrediction> poolPredictions = pool.getPoolType() == PoolType.LEAGUE
+                ? leaguePredictions.findEligible(pool, List.of(PredictionStatus.WON, PredictionStatus.LOST))
+                : predictions.findByPool(pool);
         List<PlayerStats> stats = members.findByPool(pool).stream().map(member -> {
             List<ArenaPrediction> mine = poolPredictions.stream().filter(p -> p.getUser().getId().equals(member.getUser().getId())).toList();
             return predictionStats(member.getUser(), mine);
@@ -172,7 +193,8 @@ public class ArenaPoolRankingService {
         boolean owner = current != null && value.getOwner().getId().equals(current.getId());
         boolean joined = current != null && members.findByPoolAndUser(value, current).isPresent();
         return new PoolResponse(value.getId(), value.getName(), value.getDescription(), catalog.sportResponse(value.getSport()),
-                catalog.championshipResponse(value.getChampionship()), value.getOwner().getName(), joined || owner ? value.getInviteCode() : null,
+                catalog.championshipResponse(value.getChampionship()), value.getOwner().getName(),
+                value.getPoolType() == PoolType.POOL && (joined || owner) ? value.getInviteCode() : null,
                 value.isPublicPool(), value.getMaxParticipants(), (int) members.countByPool(value), value.getVirtualPrizePoints(),
                 value.getRules(), value.getStatus(), value.getStartsAt(), value.getEndsAt(), joined, owner,
                 value.getPoolType(), value.isRecurring());

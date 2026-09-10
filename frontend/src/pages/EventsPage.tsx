@@ -1,6 +1,6 @@
 import { Activity, CalendarDays, ChevronDown, Filter, Radio, RefreshCcw, Search, ShieldCheck, SlidersHorizontal, Trophy, Wifi } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList } from "../components/EventCard";
@@ -10,7 +10,8 @@ import { Button, EmptyState, ErrorState, NoResults, PageHeader, PageSkeleton, St
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { asList, catalogApi, eventsApi } from "../services/api";
-import type { ArenaEvent, PredictionDraft, Sport } from "../types";
+import type { ArenaEvent, PredictionDraft, PredictionMarket, Sport } from "../types";
+import "../markets.css";
 
 const statuses = [
   { value: "", label: "Todos" },
@@ -102,7 +103,7 @@ export function EventsPage() {
       {events.length ? <div className="events-grid">{events.map((event) => <EventCard event={event} onPredict={setDraft} key={event.id} />)}</div> : <NoResults onClear={clear} />}
 
       <div className="virtual-footer-note"><ShieldCheck size={15} /> Multiplicadores são coeficientes simulados para pontos virtuais, nunca cotações financeiras.</div>
-      <PredictionComposer draft={draft} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
+      <PredictionComposer draft={draft} currentEvent={data?.events.find((item) => item.id === draft?.event.id) ?? null} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
   );
 }
@@ -170,7 +171,7 @@ export function LiveEventsPage() {
       ) : (
         <EmptyState icon={Activity} title="A arena está em intervalo" description="Não há eventos ao vivo agora. A agenda continua disponível para seus próximos palpites." />
       )}
-      <PredictionComposer draft={draft} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
+      <PredictionComposer draft={draft} currentEvent={events.find((item) => item.id === draft?.event.id) ?? null} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
   );
 }
@@ -178,6 +179,7 @@ export function LiveEventsPage() {
 function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
   const [home, away] = eventTeams(event);
   const multiParticipant = isMultiParticipantEvent(event);
+  const previewMarkets = [...(event.markets || [])].sort((left, right) => Number(Boolean(right.availability?.allowed)) - Number(Boolean(left.availability?.allowed))).slice(0, 2);
   return (
     <article className="surface live-event-panel">
       <header><div><span className="sport-chip">{sportName(event.sport || event.sportName)}</span><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
@@ -188,7 +190,8 @@ function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (d
       </div>}
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
       {(event.demoLiveData || event.demo) && <div className="demo-data-note"><ShieldCheck size={14} /> Placar atualizado pelo serviço interno de demonstração.</div>}
-      {event.markets?.length ? <MarketList event={event} markets={event.markets.slice(0, 2)} onPredict={onPredict} /> : <StatusBadge status="suspended" label="Mercados temporariamente suspensos" />}
+      {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label="Mercados ainda não publicados" />}
+      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>Ver todos os mercados ({event.markets?.length || 0})</Link></footer>
     </article>
   );
 }
@@ -196,7 +199,8 @@ function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (d
 export function EventDetailsPage() {
   const { id = "" } = useParams();
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
-  const { data: event, loading, error, reload } = useApiResource(() => eventsApi.get(id), [id]);
+  const { data: event, loading, error, reload, refresh } = useApiResource(() => eventsApi.get(id), [id]);
+  useEffect(() => { const timer = window.setInterval(() => { if (!document.hidden) refresh().catch(() => undefined); }, 30000); return () => window.clearInterval(timer); }, [refresh]);
   if (loading) return <PageSkeleton cards={3} />;
   if (error || !event) return <ErrorState message={error || "Evento não encontrado."} onRetry={() => reload().catch(() => undefined)} />;
   const [home, away] = eventTeams(event);
@@ -207,13 +211,36 @@ export function EventDetailsPage() {
     : `${home.name || home.code} × ${away.name || away.code}`;
   return (
     <>
-      <PageHeader eyebrow={`${sportName(event.sport || event.sportName)} · ${championshipName(event.championship || event.championshipName)}`} title={eventTitle} description={multiParticipant ? "Acompanhe participantes, classificação e mercados disponíveis deste evento." : "Compare os mercados disponíveis e acompanhe todas as informações do evento."} actions={<StatusBadge status={event.status} />} />
-      <EventCard event={event} onPredict={setDraft} />
+      <PageHeader eyebrow={`${sportName(event.sport || event.sportName)} · ${championshipName(event.championship || event.championshipName)}`} title={eventTitle} description={multiParticipant ? "Acompanhe participantes, classificação e mercados disponíveis deste evento." : "Compare os mercados disponíveis e acompanhe todas as informações do evento."} actions={<StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} />} />
+      <EventCard event={event} compact />
       <section className="event-detail-grid">
-        <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <MarketList event={event} markets={event.markets} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title="Mercados ainda não publicados" description="A organização adicionará as opções antes do início do evento." />}</div>
+        <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <CategorizedMarkets event={event} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title="Mercados ainda não publicados" description="A organização adicionará as opções antes do início do evento." />}</div>
         <aside className="surface event-info"><h2>Informações</h2><dl><div><dt>Local</dt><dd>{event.venue || "A definir"}</dd></div><div><dt>Transmissão</dt><dd>{event.broadcast || "Consulte a programação oficial"}</dd></div><div><dt>Formato</dt><dd>{event.format ? enumLabel(event.format) : "Padrão da modalidade"}</dd></div>{multiParticipant && <div><dt>Participantes</dt><dd>{participantCount || "A definir"}</dd></div>}<div><dt>Fase</dt><dd>{event.phase ? enumLabel(event.phase) : "Fase regular"}</dd></div></dl><div className="virtual-disclaimer"><ShieldCheck size={16} /> Todos os coeficientes calculam somente recompensas em pontos.</div></aside>
       </section>
-      <PredictionComposer draft={draft} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
+      <PredictionComposer draft={draft} currentEvent={event} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
   );
+}
+
+export function groupEventMarkets(markets: PredictionMarket[]) {
+  return markets.reduce<Array<{ name: string; markets: PredictionMarket[] }>>((groups, market) => {
+    const name = market.category?.trim() || "Principais";
+    const group = groups.find((item) => item.name === name);
+    if (group) group.markets.push(market);
+    else groups.push({ name, markets: [market] });
+    return groups;
+  }, []);
+}
+
+export function CategorizedMarkets({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
+  const groups = groupEventMarkets(event.markets || []);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const selected = groups.find((group) => group.name === selectedCategory) || groups[0];
+  return <section className="event-markets" aria-label="Mercados por categoria">
+    <div className="market-availability-summary" aria-live="polite"><strong>{event.predictionAvailabilityLabel || "Consulte os estados dos mercados"}</strong><span>{event.availableMarketCount ?? 0} mercados abertos · Multiplicadores demonstrativos</span></div>
+    <div className="market-category-filters" role="group" aria-label="Selecionar categoria de mercado">
+      {groups.map((group) => <button type="button" key={group.name} aria-pressed={selected?.name === group.name} aria-controls="selected-market-category" onClick={() => setSelectedCategory(group.name)}>{group.name}<span>{group.markets.length}</span></button>)}
+    </div>
+    {selected && <div id="selected-market-category" role="region" aria-label={`Mercados: ${selected.name}`}><MarketList event={event} markets={selected.markets} onPredict={onPredict} /></div>}
+  </section>;
 }

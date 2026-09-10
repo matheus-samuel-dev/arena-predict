@@ -256,10 +256,10 @@ class ArenaCreationContractsIntegrationTest {
         var brasileirao = championships.findBySportOrderByNameAsc(football).getFirst();
         String suffix = suffix();
         Instant start = Instant.now().plusSeconds(3_600);
-        var poolRequest = new PoolRequest("Liga da comunidade " + suffix, "  Temporada entre amigos.  ",
+        var poolRequest = new PoolRequest("Bolão da comunidade " + suffix, "  Temporada entre amigos.  ",
                 null, brasileirao.getId(), true, 24, 250,
                 "Somente pontos virtuais, sem valor financeiro.", start, start.plusSeconds(604_800),
-                PoolType.LEAGUE, true);
+                PoolType.POOL, false);
         long poolId = responseId(mockMvc.perform(post("/api/pools")
                         .header("Authorization", bearer(player)).contentType(MediaType.APPLICATION_JSON)
                         .content(json(poolRequest)))

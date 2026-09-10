@@ -104,6 +104,9 @@ public class ArenaDemoInitializer {
         Championship wimbledon = championship(sport.get("TENNIS"), "Wimbledon", "wimbledon", "2026");
         Championship lck = championship(sport.get("LEAGUE_OF_LEGENDS"), "LCK Summer", "lck-summer", "2026");
         Championship formula1 = championship(sport.get("MOTORSPORT"), "Fórmula 1", "formula-1", "2026");
+        Championship superliga = championship(sport.get("VOLLEYBALL"), "Superliga Arena", "superliga-arena", "2026");
+        Championship gridiron = championship(sport.get("AMERICAN_FOOTBALL"), "Temporada Arena Football", "arena-football", "2026");
+        Championship dota = championship(sport.get("DOTA2"), "Arena Dota Series", "arena-dota-series", "2026");
 
         Competitor palmeiras = competitor(sport.get("FOOTBALL"), "Palmeiras", "PAL", "Brasil", PALMEIRAS_LOGO);
         Competitor flamengo = competitor(sport.get("FOOTBALL"), "Flamengo", "FLA", "Brasil", FLAMENGO_LOGO);
@@ -123,6 +126,14 @@ public class ArenaDemoInitializer {
         Competitor norris = competitor(sport.get("MOTORSPORT"), "Lando Norris", "NOR", "Reino Unido", NORRIS_IDENTITY);
         Competitor leclerc = competitor(sport.get("MOTORSPORT"), "Charles Leclerc", "LEC", "Mônaco", LECLERC_IDENTITY);
         Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália", PIASTRI_IDENTITY);
+        Competitor hamilton = competitor(sport.get("MOTORSPORT"), "Lewis Hamilton", "HAM", "Reino Unido", null);
+        Competitor russell = competitor(sport.get("MOTORSPORT"), "George Russell", "RUS", "Reino Unido", null);
+        Competitor minas = competitor(sport.get("VOLLEYBALL"), "Minas", "MIN", "Brasil", null);
+        Competitor cruzeiro = competitor(sport.get("VOLLEYBALL"), "Sada Cruzeiro", "CRU", "Brasil", null);
+        Competitor falcons = competitor(sport.get("AMERICAN_FOOTBALL"), "Aurora Falcons", "FAL", "Brasil", null);
+        Competitor bears = competitor(sport.get("AMERICAN_FOOTBALL"), "Horizonte Bears", "BEA", "Brasil", null);
+        Competitor spirit = competitor(sport.get("DOTA2"), "Team Spirit", "SPI", "Internacional", null);
+        Competitor liquid = competitor(sport.get("DOTA2"), "Team Liquid", "LIQ", "Internacional", null);
 
         Instant now = Instant.now();
         ArenaEvent footballLive = event("demo-football-live", brasileirao, palmeiras, flamengo, "Palmeiras x Flamengo",
@@ -139,13 +150,34 @@ public class ArenaDemoInitializer {
                 now.plusSeconds(172_800), now.plusSeconds(171_000), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.BO3, 3, false);
         ArenaEvent raceOpen = event("demo-f1-open", formula1, null, null, "Grande Prêmio da Arena",
                 now.plusSeconds(259_200), now.plusSeconds(255_600), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.RACE, 1, true);
+        ArenaEvent footballOpen = event("demo-football-open", brasileirao, palmeiras, flamengo, "Palmeiras x Flamengo · próxima rodada",
+                now.plusSeconds(21_600), now.plusSeconds(21_300), EventStatus.SCHEDULED, EventFormat.STANDARD, 1, true);
+        ArenaEvent csOpen = event("demo-cs2-open", blast, furia, navi, "FURIA x NAVI · próxima série",
+                now.plusSeconds(32_400), now.plusSeconds(32_100), EventStatus.SCHEDULED, EventFormat.BO3, 3, false);
+        ArenaEvent volleyballOpen = event("demo-volleyball-open", superliga, minas, cruzeiro, "Minas x Sada Cruzeiro",
+                now.plusSeconds(36_000), now.plusSeconds(35_700), EventStatus.SCHEDULED, EventFormat.BO5, 5, false);
+        ArenaEvent americanOpen = event("demo-american-football-open", gridiron, falcons, bears, "Aurora Falcons x Horizonte Bears",
+                now.plusSeconds(39_600), now.plusSeconds(39_300), EventStatus.SCHEDULED, EventFormat.STANDARD, 1, false);
+        ArenaEvent dotaOpen = event("demo-dota2-open", dota, spirit, liquid, "Team Spirit x Team Liquid",
+                now.plusSeconds(46_800), now.plusSeconds(46_500), EventStatus.SCHEDULED, EventFormat.BO3, 3, false);
+        seedEventParticipants(footballOpen, palmeiras, flamengo);
+        seedEventParticipants(csOpen, furia, navi);
+        seedEventParticipants(volleyballOpen, minas, cruzeiro);
+        seedEventParticipants(americanOpen, falcons, bears);
+        seedEventParticipants(dotaOpen, spirit, liquid);
         seedEventParticipants(footballLive, palmeiras, flamengo);
         seedEventParticipants(csLive, furia, navi);
         seedEventParticipants(basketballOpen, celtics, mavericks);
         seedEventParticipants(valorantOpen, leviatan, loud);
         seedEventParticipants(tennisOpen, alcaraz, sinner);
         seedEventParticipants(lolOpen, t1, geng);
-        seedEventParticipants(raceOpen, verstappen, norris, leclerc, piastri);
+        seedEventParticipants(raceOpen, verstappen, norris, leclerc, piastri, hamilton, russell);
+        if (tennisOpen.getBestOf() == 1 && tennisOpen.getStatus() != EventStatus.FINISHED
+                && tennisOpen.getStatus() != EventStatus.CANCELLED) {
+            tennisOpen.setBestOf(3);
+            tennisOpen.setFormat(EventFormat.BO3);
+            events.save(tennisOpen);
+        }
         boolean newHistoricalEvent = events.findByExternalKey("demo-football-settled").isEmpty();
         ArenaEvent settled = event("demo-football-settled", brasileirao, flamengo, palmeiras, "Flamengo x Palmeiras · histórico",
                 now.plusSeconds(7_200), now.plusSeconds(6_300), EventStatus.OPEN_FOR_PREDICTIONS, EventFormat.STANDARD, 1, false);
@@ -170,7 +202,8 @@ public class ArenaDemoInitializer {
                 choice("HOME", "T1", "1.78"), choice("AWAY", "Gen.G", "1.98"));
         market(raceOpen, "RACE_WINNER", "Vencedor da corrida", MarketStatus.OPEN, 20,
                 choice("VER", "Max Verstappen", "2.10"), choice("NOR", "Lando Norris", "2.35"),
-                choice("LEC", "Charles Leclerc", "3.10"), choice("PIA", "Oscar Piastri", "3.40"));
+                choice("LEC", "Charles Leclerc", "3.10"), choice("PIA", "Oscar Piastri", "3.40"),
+                choice("HAM", "Lewis Hamilton", "5.50"), choice("RUS", "George Russell", "6.00"));
         PredictionMarket historicalMarket = market(settled, "WINNER", "Vencedor da partida", MarketStatus.OPEN, 20,
                 choice("HOME", "Flamengo", "2.05"), choice("DRAW", "Empate", "3.10"), choice("AWAY", "Palmeiras", "1.75"));
         PredictionMarket cancelledMarket = market(cancelled, "WINNER", "Vencedor da partida", MarketStatus.OPEN, 20,
@@ -246,7 +279,15 @@ public class ArenaDemoInitializer {
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {
         ArenaEvent value = events.findByExternalKey(key).orElse(null);
         if (value != null) {
+            Instant previousStart = value.getStartsAt();
             if (refreshRollingDemoSchedule(value, status, starts, closes, Instant.now())) {
+                long shift = java.time.Duration.between(previousStart, value.getStartsAt()).getSeconds();
+                for (var market : markets.findByEventOrderByIdAsc(value)) {
+                    if (market.getStatus()==MarketStatus.SETTLED || market.getStatus()==MarketStatus.CANCELLED) continue;
+                    if (market.getOpensAt()!=null) market.setOpensAt(market.getOpensAt().plusSeconds(shift));
+                    if (market.getClosesAt()!=null) market.setClosesAt(market.getTimingMode()==MarketTimingMode.PRE_MATCH_ONLY
+                            ? value.getPredictionClosesAt() : market.getClosesAt().plusSeconds(shift));
+                }
                 events.save(value);
             }
             return value;
@@ -267,7 +308,7 @@ public class ArenaDemoInitializer {
     static boolean refreshRollingDemoSchedule(ArenaEvent event, EventStatus expectedStatus, Instant starts,
                                               Instant closes, Instant now) {
         if (!event.isDemo() || event.getStatus() != expectedStatus) return false;
-        boolean expiredPredictionWindow = expectedStatus == EventStatus.OPEN_FOR_PREDICTIONS
+        boolean expiredPredictionWindow = (expectedStatus == EventStatus.OPEN_FOR_PREDICTIONS || expectedStatus == EventStatus.SCHEDULED)
                 && !now.isBefore(event.getPredictionClosesAt());
         boolean staleLiveWindow = expectedStatus == EventStatus.LIVE
                 && event.getStartsAt().isBefore(now.minus(MAX_DEMO_LIVE_AGE));
@@ -298,9 +339,35 @@ public class ArenaDemoInitializer {
     }
     private ArenaPool seedPool(Championship championship, Sport sport, List<User> demoUsers) {
         if (demoUsers.isEmpty()) throw new IllegalStateException("Participantes demo não encontrados.");
-        ArenaPool pool = pools.findByInviteCodeIgnoreCase("ARENA26").orElseGet(() -> { ArenaPool value = new ArenaPool(); value.setName("Liga Arena 2026"); value.setDescription("Bolão demo entre amigos com recompensas exclusivamente virtuais."); value.setChampionship(championship); value.setSport(sport); value.setOwner(demoUsers.getFirst()); value.setInviteCode("ARENA26"); value.setPublicPool(true); value.setMaxParticipants(100); value.setVirtualPrizePoints(2500); value.setRules("Pontuação por acertos; sem entrada financeira e sem conversão dos pontos em dinheiro."); value.setPoolType(PoolType.LEAGUE); value.setRecurring(true); return pools.save(value); });
+        User platformAdmin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        ArenaPool pool = pools.findByInviteCodeIgnoreCase("ARENA26").orElseGet(ArenaPool::new);
+        pool.setName("Liga Arena 2026");
+        pool.setDescription("Competição pública da plataforma. Os palpites elegíveis dos inscritos contam automaticamente durante a temporada.");
+        pool.setChampionship(null); pool.setSport(null); pool.setOwner(platformAdmin);
+        pool.setInviteCode("ARENA26"); pool.setPublicPool(true); pool.setMaxParticipants(100);
+        pool.setVirtualPrizePoints(0); pool.setPoolType(PoolType.LEAGUE); pool.setRecurring(false);
+        pool.setRules("Classificação pelo retorno em pontos virtuais dos palpites vencedores registrados após a inscrição e dentro da temporada. Todas as modalidades. Desempate por acertos e nome. Os desafios da plataforma concedem suas próprias recompensas; esta liga não distribui prêmio automático. Sem valor financeiro.");
+        if (pool.getStartsAt() == null) pool.setStartsAt(LocalDate.now(ZoneOffset.UTC).withDayOfYear(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        if (pool.getEndsAt() == null) pool.setEndsAt(LocalDate.now(ZoneOffset.UTC).plusYears(1).withDayOfYear(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        pool = pools.save(pool);
         for (User user : demoUsers) if (members.findByPoolAndUser(pool, user).isEmpty()) { ArenaPoolMember member = new ArenaPoolMember(); member.setPool(pool); member.setUser(user); member.setModerator(user.getId().equals(pool.getOwner().getId())); members.save(member); }
+        seedSocialPool("AMIGOS26", "Arquibancada dos amigos", true, championship, sport, demoUsers);
+        seedSocialPool("TURMA26", "Turma da rodada", false, championship, sport, demoUsers.subList(0, Math.min(3, demoUsers.size())));
         return pool;
+    }
+    private void seedSocialPool(String code, String name, boolean visible, Championship championship, Sport sport, List<User> demoUsers) {
+        ArenaPool pool = pools.findByInviteCodeIgnoreCase(code).orElse(null);
+        if (pool == null) {
+            pool = new ArenaPool(); pool.setName(name); pool.setDescription("Grupo social para acompanhar a rodada com amigos. O criador organiza o bolão.");
+            pool.setOwner(demoUsers.getFirst()); pool.setInviteCode(code); pool.setPublicPool(visible);
+            pool.setPoolType(PoolType.POOL); pool.setSport(sport); pool.setChampionship(championship);
+            pool.setRules("Selecione este bolão ao registrar um palpite do Brasileirão. Ranking interno pelo retorno virtual dos acertos; desempate por acertos e nome. Sem prêmio automático ou valor financeiro.");
+            pool = pools.save(pool);
+        }
+        for (User user : demoUsers) if (members.findByPoolAndUser(pool, user).isEmpty()) {
+            ArenaPoolMember member = new ArenaPoolMember(); member.setPool(pool); member.setUser(user);
+            member.setModerator(user.getId().equals(pool.getOwner().getId())); members.save(member);
+        }
     }
     private void placeIfAbsent(User user, ArenaEvent event, PredictionMarket market, String optionKey, int points, ArenaPool pool, String key) {
         String persistedKey = "prediction:user:" + user.getId() + ":" + key;
@@ -321,7 +388,7 @@ public class ArenaDemoInitializer {
     }
     private void seedNotifications(User user) {
         if (!notificationRepository.findTop100ByUserOrderByCreatedAtDesc(user).isEmpty()) return;
-        notification(user, NotificationType.POOL_INVITE, "Bem-vindo à Liga Arena", "Você já faz parte do bolão de demonstração.", "/pools");
+        notification(user, NotificationType.POOL_INVITE, "Bem-vindo à Liga Arena", "Você está inscrito na competição pública da plataforma.", "/leagues");
         notification(user, NotificationType.EVENT_STARTED, "Evento ao vivo · demo", "Palmeiras x Flamengo está em andamento com dados simulados.", "/events");
         notification(user, NotificationType.ADMIN_NOTICE, "Pontos exclusivamente virtuais", "Os pontos da plataforma não possuem valor financeiro.", "/help");
     }

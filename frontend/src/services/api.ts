@@ -22,6 +22,7 @@ import type {
   ProfilePreferences,
   Wallet,
   WalletTransaction,
+  MarketTemplate,
 } from "../types";
 
 const configuredApiBase = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
@@ -482,7 +483,7 @@ export const adminApi = {
     request<T>(`/admin/${resource}/${id}`, { method: "PUT", body: adminPayload(resource, payload) }),
   recordEventResult: (
     eventId: number | string,
-    payload: { homeScore: number; awayScore: number; finishEvent: boolean },
+    payload: { homeScore: number; awayScore: number; finishEvent: boolean; resultData?: Record<string, string>; settleMarkets?: boolean },
     idempotencyKey = createIdempotencyKey(),
   ) =>
     request<Record<string, unknown>>(`/admin/events/${eventId}/result`, {
@@ -498,6 +499,8 @@ export const adminApi = {
       scoreLabel?: string | null;
     }>;
     finishEvent: boolean;
+    resultData?: Record<string, string>;
+    settleMarkets?: boolean;
   }, idempotencyKey = createIdempotencyKey()) => request<Record<string, unknown>>(`/admin/events/${eventId}/classification`, {
     method: "PUT",
     body: payload,
@@ -509,6 +512,10 @@ export const adminApi = {
       body: { correctOptionKey },
       idempotencyKey: createIdempotencyKey(),
     }),
+  marketTemplates: (eventId: number | string) => request<MarketTemplate[]>(`/admin/events/${eventId}/market-templates`),
+  generateMarkets: (eventId: number | string) => request<unknown>(`/admin/events/${eventId}/markets/generate`, {
+    method: "POST", idempotencyKey: createIdempotencyKey(),
+  }),
   moderateReport: (reportId: number | string, payload: { status: "REVIEWED" | "DISMISSED"; moderatorNote?: string }) =>
     request<Record<string, unknown>>(`/admin/community/reports/${reportId}`, {
       method: "PATCH",
@@ -521,6 +528,8 @@ export const adminApi = {
     }),
   cancelEvent: (eventId: number | string) =>
     request<{ refundedPredictions: number }>(`/admin/events/${eventId}/cancel`, { method: "POST" }),
+  cancelMarket: (marketId: number | string) =>
+    request<{ refundedPredictions: number }>(`/admin/markets/${marketId}/cancel`, { method: "POST" }),
 };
 
 function adminPayload(resource: string, payload: Record<string, unknown>) {
@@ -550,6 +559,11 @@ function adminPayload(resource: string, payload: Record<string, unknown>) {
   }
   if (resource === "championships") {
     for (const key of ["startsAt", "endsAt"]) {
+      if (typeof next[key] === "string" && next[key]) next[key] = new Date(String(next[key])).toISOString();
+    }
+  }
+  if (resource === "markets") {
+    for (const key of ["opensAt", "closesAt"]) {
       if (typeof next[key] === "string" && next[key]) next[key] = new Date(String(next[key])).toISOString();
     }
   }

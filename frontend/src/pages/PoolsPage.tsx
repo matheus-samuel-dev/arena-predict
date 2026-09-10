@@ -6,11 +6,14 @@ import { championshipName, dateTime, points, sportName } from "../app/format";
 import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
 import { useAppData } from "../contexts/AppDataContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { asList, catalogApi, poolsApi } from "../services/api";
 import type { Championship, Pool, RankingRow, Sport } from "../types";
 
 export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
+  const { user } = useAuth();
+  const canCreate = !leaguesOnly || user?.role === "ADMIN";
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [rankingPool, setRankingPool] = useState<Pool | null>(null);
@@ -27,8 +30,7 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
   }
 
   const pools = useMemo(() => {
-    if (!leaguesOnly) return data || [];
-    return (data || []).filter((pool) => String(pool.poolType || "").toUpperCase() === "LEAGUE" || Boolean(pool.recurring));
+    return (data || []).filter((pool) => (String(pool.poolType || "POOL").toUpperCase() === "LEAGUE") === leaguesOnly);
   }, [data, leaguesOnly]);
 
   async function openRanking(pool: Pool) {
@@ -63,13 +65,14 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
   return (
     <>
       <PageHeader
-        eyebrow={leaguesOnly ? "COMPETIÇÕES RECORRENTES" : "COMPETIÇÃO EM GRUPO"}
+        eyebrow={leaguesOnly ? "COMPETIÇÕES DA PLATAFORMA" : "SEU GRUPO DE AMIGOS"}
         title={leaguesOnly ? "Ligas" : "Bolões"}
-        description={leaguesOnly ? "Crie temporadas recorrentes com amigos, compare evolução e mantenha a rivalidade saudável." : "Crie grupos públicos ou privados, convide amigos e acompanhe rankings próprios."}
-        actions={<div className="button-row"><Button variant="secondary" onClick={() => setJoinOpen(true)}><KeyRound size={17} /> Entrar por código</Button><Button onClick={() => setCreateOpen(true)}><Plus size={17} /> {leaguesOnly ? "Criar liga" : "Criar bolão"}</Button></div>}
+        description={leaguesOnly ? "Dispute temporadas organizadas pelo ArenaPredict, com período, modalidades e regras definidos pela plataforma." : "Crie grupos públicos ou privados, convide amigos e acompanhe o ranking dos palpites vinculados ao seu bolão."}
+        actions={<div className="button-row">{!leaguesOnly && <Button variant="secondary" onClick={() => setJoinOpen(true)}><KeyRound size={17} /> Entrar por código</Button>}{canCreate && <Button onClick={() => setCreateOpen(true)}><Plus size={17} /> {leaguesOnly ? "Organizar liga" : "Criar bolão"}</Button>}</div>}
       />
 
-      {pools.length ? <div className="pool-grid">{pools.map((pool) => <PoolCard pool={pool} key={pool.id} onRanking={() => openRanking(pool)} onChange={refreshPoolData} />)}</div> : <EmptyState icon={leaguesOnly ? Swords : Trophy} title={leaguesOnly ? "Nenhuma liga recorrente ainda" : "Nenhum bolão encontrado"} description={leaguesOnly ? "Crie uma temporada entre amigos e mantenha um ranking contínuo." : "Crie o primeiro bolão ou entre com um código de convite."} action={<Button onClick={() => setCreateOpen(true)}><Plus size={17} /> Começar agora</Button>} />}
+      <section className="surface competition-explainer"><span>{leaguesOnly ? <Swords size={24} /> : <Users size={24} />}</span><div><h2>{leaguesOnly ? "Uma temporada, uma classificação" : "Seu bolão, suas regras"}</h2><p>{leaguesOnly ? "Ao participar, seus palpites válidos no período e escopo da liga contam automaticamente para a classificação. A organização é do ArenaPredict." : "O criador define o escopo e as regras. Ao confirmar um palpite, selecione o bolão para incluí-lo no ranking interno. Convites privados ficam entre os membros."}</p></div></section>
+      {pools.length ? <div className="pool-grid">{pools.map((pool) => <PoolCard pool={pool} key={pool.id} onRanking={() => openRanking(pool)} onChange={refreshPoolData} />)}</div> : <EmptyState icon={leaguesOnly ? Swords : Trophy} title={leaguesOnly ? "Nenhuma temporada publicada" : "Nenhum bolão encontrado"} description={leaguesOnly ? "As próximas competições aparecerão quando forem publicadas pela plataforma." : "Crie o primeiro bolão ou entre com um código de convite."} action={canCreate ? <Button onClick={() => setCreateOpen(true)}><Plus size={17} /> Começar agora</Button> : undefined} />}
 
       <div className="virtual-footer-note"><ShieldCheck size={15} /> Rankings e premiações são exclusivamente virtuais.</div>
       <CreatePoolModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={refreshPoolData} league={leaguesOnly} />
@@ -85,6 +88,7 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
   const { notify } = useToast();
   const count = Number(pool.participantCount ?? pool.participants ?? 0);
   const limit = Number(pool.maxParticipants || Math.max(count, 1));
+  const league = pool.poolType === "LEAGUE";
 
   async function leave() {
     if (working) return;
@@ -129,12 +133,14 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
     <>
       <article className="surface pool-card">
         <div className="pool-card__accent" />
-        <header><span className="pool-card__icon">{pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "ACTIVE"} /><h2>{pool.name}</h2></div>{pool.owner && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
+        <header><span className="pool-card__icon">{league ? <Swords size={21} /> : pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "ACTIVE"} /><h2>{pool.name}</h2><small>{league ? "Organização ArenaPredict" : pool.privacy === "PRIVATE" ? "Bolão privado · por convite" : "Bolão social · público"}</small></div>{pool.owner && !league && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
         <p>{pool.description || `Competição entre participantes da ${brand.name}.`}</p>
         <div className="pool-card__meta"><span><Trophy size={15} /> {sportName(pool.sport)}</span><span><CalendarRange size={15} /> {championshipName(pool.championship)}</span></div>
         <Progress value={count} max={limit} label={`${count} de ${limit} participantes`} />
         <div className="pool-card__dates"><span><small>Início</small><strong>{dateTime(pool.startsAt)}</strong></span><span><small>Encerramento</small><strong>{dateTime(pool.endsAt)}</strong></span></div>
-        {pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
+        {pool.rules && <details className="competition-rules"><summary>Regras e classificação</summary><p>{pool.rules}</p></details>}
+        {pool.virtualPrizePoints ? <p className="competition-reward">Reconhecimento da temporada: {points(pool.virtualPrizePoints)} pontos virtuais previstos nas regras.</p> : null}
+        {!league && pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
         <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
       </article>
       <Modal open={confirmLeave} onClose={() => !working && setConfirmLeave(false)} title="Sair do grupo" size="sm">
@@ -198,7 +204,7 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
     setSubmitting(true);
     try {
       await poolsApi.create({
-        name: name.trim(), description: description.trim(), privacy, maxParticipants: limit,
+        name: name.trim(), description: description.trim(), privacy: league ? "PUBLIC" : privacy, maxParticipants: limit,
         sportId: sportId ? Number(sportId) : undefined,
         championshipId: championshipId ? Number(championshipId) : undefined,
         rules: rules.trim(), virtualPrizePoints, startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
@@ -229,12 +235,12 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
         {catalogError && <p className="field-error">Não foi possível carregar modalidades e campeonatos.</p>}
         <label><span>Regras *</span><textarea required maxLength={1_500} value={rules} disabled={submitting} onChange={(event) => { setRules(event.target.value); clearError(); }} /></label>
         <div className="form-columns">
-          <label><span>Visibilidade</span><select value={privacy} disabled={submitting} onChange={(event) => setPrivacy(event.target.value)}><option value="PRIVATE">Privado, por convite</option><option value="PUBLIC">Público</option></select></label>
+          <label><span>Visibilidade</span><select value={league ? "PUBLIC" : privacy} disabled={submitting || league} onChange={(event) => setPrivacy(event.target.value)}><option value="PRIVATE">Privado, por convite</option><option value="PUBLIC">Público</option></select></label>
           <label><span>Limite de participantes</span><input type="number" min="2" max="500" step="1" value={limit} disabled={submitting} onChange={(event) => { setLimit(Number(event.target.value)); clearError(); }} /></label>
         </div>
         <div className="form-columns">
-          <label><span>Início</span><input type="datetime-local" value={startsAt} disabled={submitting} onChange={(event) => { setStartsAt(event.target.value); clearError(); }} /></label>
-          <label><span>Encerramento</span><input type="datetime-local" value={endsAt} disabled={submitting} onChange={(event) => { setEndsAt(event.target.value); clearError(); }} /></label>
+          <label><span>Início{league ? " *" : ""}</span><input type="datetime-local" required={league} value={startsAt} disabled={submitting} onChange={(event) => { setStartsAt(event.target.value); clearError(); }} /></label>
+          <label><span>Encerramento{league ? " *" : ""}</span><input type="datetime-local" required={league} value={endsAt} disabled={submitting} onChange={(event) => { setEndsAt(event.target.value); clearError(); }} /></label>
         </div>
         <label><span>Premiação virtual</span><input type="number" min="0" max="1000000" step="1" value={virtualPrizePoints} disabled={submitting} onChange={(event) => { setVirtualPrizePoints(Number(event.target.value)); clearError(); }} /><small>Somente pontos internos, sem valor financeiro.</small></label>
         {formError && <p className="field-error" role="alert" id="pool-create-error">{formError}</p>}

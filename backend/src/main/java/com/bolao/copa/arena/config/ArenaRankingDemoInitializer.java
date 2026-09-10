@@ -96,6 +96,22 @@ public class ArenaRankingDemoInitializer {
 
         normalizeLegacyHistory(now, participants);
         SCENARIOS.forEach(scenario -> seedScenario(scenario, participants, now));
+        normalizeRacingHistory();
+    }
+
+    // The old history used a football-shaped score for a two-driver comparison.
+    // Preserve its predictions and payouts while presenting the actual racing result.
+    private void normalizeRacingHistory() {
+        events.findByExternalKey(KEY_PREFIX + "motorsport-week").filter(ArenaEvent::isDemo).ifPresent(event -> {
+            event.setFormat(EventFormat.RACE);
+            event.setTitle("GP demonstrativo · classificação histórica");
+            event.setHomeScore(null);
+            event.setAwayScore(null);
+            eventParticipants.findByEventOrderByDisplayOrderAsc(event).forEach(participant ->
+                    participant.setPosition(participant.getDisplayOrder() + 1));
+            markets.findByEventOrderByIdAsc(event).stream().filter(market -> "DEMO_RESULT".equals(market.getCode()))
+                    .forEach(market -> market.setName("Confronto entre pilotos · Verstappen / Norris"));
+        });
     }
 
     private void seedScenario(Scenario scenario, List<User> participants, Instant now) {

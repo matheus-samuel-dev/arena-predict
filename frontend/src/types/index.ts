@@ -61,7 +61,39 @@ export interface PredictionMarket {
   code?: string;
   status?: string;
   minimumPoints?: number;
+  category?: string;
+  templateCode?: string | null;
+  timingMode?: "PRE_MATCH_ONLY" | "LIVE_ENABLED" | "LIVE_ONLY";
+  opensAt?: string | null;
+  closesAt?: string | null;
+  availability?: MarketAvailability;
+  settlementDescription?: string;
   options: PredictionOption[];
+}
+
+export interface MarketAvailability {
+  allowed: boolean;
+  code: string;
+  label: string;
+  reason: string;
+}
+
+export interface ResultField {
+  key: string;
+  label: string;
+  group: string;
+  type: "number" | "select";
+  required: boolean;
+  description?: string;
+  options?: Array<{ value: string; label: string }>;
+}
+
+export interface MarketTemplate {
+  code: string;
+  name: string;
+  category: string;
+  timingMode: string;
+  settlementDescription?: string;
 }
 
 export interface EventCompetitor {
@@ -118,6 +150,10 @@ export interface ArenaEvent {
   liveData?: string;
   score?: string;
   markets?: PredictionMarket[];
+  availableMarketCount?: number;
+  predictionAvailabilityLabel?: string;
+  resultData?: Record<string, string>;
+  resultSchema?: ResultField[];
   statistics?: Record<string, number | string>;
 }
 

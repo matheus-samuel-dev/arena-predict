@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -112,7 +113,8 @@ public class AdminEventResultService {
         boolean sameScore = Objects.equals(event.getHomeScore(), request.homeScore())
                 && Objects.equals(event.getAwayScore(), request.awayScore());
         boolean requestedFinished = Boolean.TRUE.equals(request.finishEvent());
-        return sameScore && (!requestedFinished || event.getStatus() == EventStatus.FINISHED);
+        return sameScore && (!requestedFinished || event.getStatus() == EventStatus.FINISHED)
+                && sameStructuredResult(catalog.eventResponse(event.getId()), request.resultData(), request.settleMarkets());
     }
 
     private String normalizedKey(String value) {
@@ -126,10 +128,12 @@ public class AdminEventResultService {
     }
 
     private String fingerprint(EventResultRequest request) {
-        return request.homeScore() + ":" + request.awayScore() + ":" + Boolean.TRUE.equals(request.finishEvent());
+        return digest(request.homeScore() + ":" + request.awayScore() + ":" + Boolean.TRUE.equals(request.finishEvent())
+                + ":" + Boolean.TRUE.equals(request.settleMarkets()) + ":" + canonicalData(request.resultData()));
     }
 
     private boolean classificationAlreadyApplied(EventResponse current, EventClassificationRequest request) {
+        if (!sameStructuredResult(current, request.resultData(), request.settleMarkets())) return false;
         if (Boolean.TRUE.equals(request.finishEvent()) && current.status() != EventStatus.FINISHED) return false;
         if (current.participants().size() != request.participants().size()) return false;
 
@@ -148,7 +152,25 @@ public class AdminEventResultService {
                 .sorted(Comparator.comparing(EventParticipantRequest::competitorId))
                 .map(input -> input.competitorId() + ":" + input.position() + ":" + normalizedScore(input.scoreLabel()))
                 .collect(Collectors.joining("|"))
-                + ":finish=" + Boolean.TRUE.equals(request.finishEvent());
+                + ":finish=" + Boolean.TRUE.equals(request.finishEvent())
+                + ":settle=" + Boolean.TRUE.equals(request.settleMarkets()) + ":" + canonicalData(request.resultData());
+        return digest(canonical);
+    }
+
+    private boolean sameStructuredResult(EventResponse current, Map<String, String> data, Boolean settle) {
+        if (data != null && data.entrySet().stream().anyMatch(e -> !Objects.equals(current.resultData().get(e.getKey()), e.getValue()))) return false;
+        return !Boolean.TRUE.equals(settle) || current.markets().stream()
+                .filter(m -> m.templateCode() != null)
+                .allMatch(m -> m.status() == com.bolao.copa.arena.domain.ArenaEnums.MarketStatus.SETTLED
+                        || m.status() == com.bolao.copa.arena.domain.ArenaEnums.MarketStatus.CANCELLED);
+    }
+
+    private String canonicalData(Map<String, String> data) {
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(new TreeMap<>(data == null ? Map.of() : data)); }
+        catch (Exception error) { throw new IllegalArgumentException("Estatísticas inválidas.", error); }
+    }
+
+    private String digest(String canonical) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(canonical.getBytes(StandardCharsets.UTF_8));

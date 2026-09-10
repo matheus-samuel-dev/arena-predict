@@ -1,0 +1,19 @@
+{
+  "ValidatedAt": "2026-09-09T18:57:34.8752764-03:00",
+  "Classification": "PRONTO PARA PORTFÓLIO",
+  "BackendTests": 158,
+  "FrontendTests": 135,
+  "BackendBuild": "PASS",
+  "FrontendBuild": "PASS",
+  "TypeScript": "PASS",
+  "Docker": "3 healthy containers",
+  "BrowserScenarios": 85,
+  "BrowserPassed": true,
+  "ApiRequests": 378,
+  "ConsoleErrors": 0,
+  "FinalUiPassed": true,
+  "CorePredictions": 6,
+  "SettledMarkets": 42,
+  "VirtualBalance": 7158,
+  "Url": "http://localhost:5174"
+}

@@ -25,12 +25,18 @@ public class ArenaPredictionService {
     private final ArenaNotificationService notifications;
     private final ProgressionService progression;
     private final AdminAuditService audit;
+    private final MarketAvailabilityService availability;
+    private final MarketDefinitionCatalog definitions;
+    private final MarketSettlementEngine settlement;
+    private final EventParticipantRepository participants;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository options,
                                   ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                   PointWalletService wallets, ArenaNotificationService notifications,
-                                  ProgressionService progression, AdminAuditService audit) {
+                                  ProgressionService progression, AdminAuditService audit,
+                                  MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
+                                  MarketSettlementEngine settlement, EventParticipantRepository participants) {
         this.predictions = predictions;
         this.events = events;
         this.markets = markets;
@@ -41,6 +47,7 @@ public class ArenaPredictionService {
         this.notifications = notifications;
         this.progression = progression;
         this.audit = audit;
+        this.availability=availability; this.definitions=definitions; this.settlement=settlement; this.participants=participants;
     }
 
     @Transactional
@@ -52,7 +59,7 @@ public class ArenaPredictionService {
             return idempotentResponse(existing, request, user);
         }
 
-        ArenaEvent event = events.findById(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        ArenaEvent event = events.findByIdForUpdate(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         PredictionMarket market = markets.findByIdForUpdate(request.marketId()).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
         // A concurrent request for the same market releases this lock only after
         // committing its prediction, so re-read the idempotency record here.
@@ -102,6 +109,10 @@ public class ArenaPredictionService {
 
     @Transactional
     public PredictionResponse cancel(Long id, User user) {
+        var located = predictions.commandContext(id, user)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Palpite não encontrado."));
+        events.findByIdForUpdate(located.getEventId()).orElseThrow();
+        markets.findByIdForUpdate(located.getMarketId()).orElseThrow();
         // Serializing cancellation on the prediction row makes retries truly
         // idempotent: exactly one request changes the state and credits the
         // refund, while followers observe the committed terminal state.
@@ -121,16 +132,39 @@ public class ArenaPredictionService {
 
     @Transactional
     public SettlementResponse settleMarket(Long marketId, String correctOptionKey) {
+        lockMarketEvent(marketId);
         PredictionMarket market = markets.findByIdForUpdate(marketId).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
         if (market.getStatus() == MarketStatus.SETTLED) {
             return new SettlementResponse(marketId, market.getResultOptionKey(), 0, 0, 0, true);
         }
         if (market.getEvent().getStatus() != EventStatus.FINISHED)
             throw new ArenaProblem.RuleViolation("Finalize o evento antes de liquidar seus mercados.");
+        if (market.getTemplateCode()!=null) throw new ArenaProblem.RuleViolation("Este mercado usa liquidação por resultado. Registre os dados da modalidade em Resultados.");
         if (market.getStatus() != MarketStatus.CLOSED)
             throw new ArenaProblem.RuleViolation("Feche o mercado antes de registrar o resultado correto.");
         MarketOption correct = options.findByMarketAndKey(market, correctOptionKey.trim().toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção correta não encontrada neste mercado."));
+        return applyOutcome(market, MarketSettlementEngine.Outcome.winner(correct.getKey()));
+    }
+
+    @Transactional
+    public void settleDerived(ArenaEvent event) {
+        events.findByIdForUpdate(event.getId()).orElseThrow();
+        if (event.getStatus()!=EventStatus.FINISHED) throw new ArenaProblem.RuleViolation("Finalize o evento antes de liquidar.");
+        List<EventParticipant> entries=participants.findByEventOrderByDisplayOrderAsc(event);
+        settlement.validateEvent(event,entries,true);
+        // Lock every affected wallet in one global order before processing multiple markets.
+        // Per-market ordering alone can deadlock when two events share participants.
+        orderedByUser(predictions.findByEventAndStatus(event, PredictionStatus.ACTIVE)).stream()
+                .map(ArenaPrediction::getUser).distinct().forEach(wallets::lockParticipant);
+        for (PredictionMarket market: markets.findByEventForUpdate(event)) {
+            if (market.getTemplateCode()==null || market.getStatus()==MarketStatus.SETTLED || market.getStatus()==MarketStatus.CANCELLED) continue;
+            var definition=definitions.definition(market,entries).orElseThrow(() -> new ArenaProblem.RuleViolation("Definição de mercado não encontrada."));
+            applyOutcome(market,settlement.evaluate(definition,event,entries));
+        }
+    }
+
+    private SettlementResponse applyOutcome(PredictionMarket market, MarketSettlementEngine.Outcome outcome) {
         List<ArenaPrediction> active = orderedByUser(predictions.findByMarketAndStatus(market, PredictionStatus.ACTIVE));
         int winners = 0;
         int losers = 0;
@@ -139,7 +173,11 @@ public class ArenaPredictionService {
         for (ArenaPrediction prediction : active) {
             affectedUsers.add(prediction.getUser());
             prediction.setResolvedAt(Instant.now());
-            if (prediction.getOption().getId().equals(correct.getId())) {
+            if (outcome.refund()) {
+                prediction.setStatus(PredictionStatus.REFUNDED);
+                wallets.apply(prediction.getUser(), prediction.getStakePoints(), PointTransactionType.REFUND,
+                        "settlement-refund:"+prediction.getId(), "PREDICTION", prediction.getId().toString(), "Pontos devolvidos por igualdade na linha ou empate anulado");
+            } else if (outcome.winningKeys().contains(prediction.getOption().getKey())) {
                 prediction.setStatus(PredictionStatus.WON);
                 prediction.setRewardedPoints(prediction.getPotentialPoints());
                 wallets.apply(prediction.getUser(), prediction.getPotentialPoints(), PointTransactionType.PREDICTION_WON,
@@ -154,7 +192,8 @@ public class ArenaPredictionService {
                 losers++;
             }
         }
-        market.setResultOptionKey(correct.getKey());
+        String resultKey=outcome.refund()? "REFUND" : String.join(",",new TreeSet<>(outcome.winningKeys()));
+        market.setResultOptionKey(resultKey);
         market.setStatus(MarketStatus.SETTLED);
         market.setSettledAt(Instant.now());
         affectedUsers.forEach(progression::refresh);
@@ -162,7 +201,7 @@ public class ArenaPredictionService {
                 "Mercado " + market.getName() + " liquidado: "
                         + quantity(winners, "vencedor", "vencedores") + " e "
                         + quantity(rewards, "ponto virtual creditado", "pontos virtuais creditados"));
-        return new SettlementResponse(marketId, correct.getKey(), winners, losers, rewards, false);
+        return new SettlementResponse(market.getId(), resultKey, winners, losers, rewards, false);
     }
 
     @Transactional
@@ -197,6 +236,7 @@ public class ArenaPredictionService {
 
     @Transactional
     public int cancelMarket(Long marketId) {
+        lockMarketEvent(marketId);
         PredictionMarket market = markets.findByIdForUpdate(marketId)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
         if (market.getStatus() == MarketStatus.CANCELLED) return 0;
@@ -232,22 +272,23 @@ public class ArenaPredictionService {
 
     private boolean canCancel(ArenaPrediction prediction) {
         return prediction.getStatus() == PredictionStatus.ACTIVE
-                && prediction.getEvent().getStatus() == EventStatus.OPEN_FOR_PREDICTIONS
-                && prediction.getMarket().getStatus() == MarketStatus.OPEN
-                && Instant.now().isBefore(prediction.getEvent().getPredictionClosesAt());
+                && prediction.getEvent().getStatus() != EventStatus.LIVE
+                && Instant.now().isBefore(prediction.getEvent().getStartsAt())
+                && availability.evaluate(prediction.getMarket()).allowed();
     }
 
     private void validateOpen(ArenaEvent event, PredictionMarket market, MarketOption option, int stake) {
-        if (event.getStatus() != EventStatus.OPEN_FOR_PREDICTIONS)
-            throw new ArenaProblem.RuleViolation("Este evento não está aberto para palpites.");
-        if (!Instant.now().isBefore(event.getPredictionClosesAt()))
-            throw new ArenaProblem.RuleViolation("O prazo para palpites neste evento foi encerrado.");
-        if (market.getStatus() != MarketStatus.OPEN) throw new ArenaProblem.RuleViolation("Este mercado não está disponível.");
+        MarketAvailability decision=availability.evaluate(market);
+        if (!decision.allowed()) throw new ArenaProblem.RuleViolation(decision.label()+". "+decision.reason());
         if (!option.isActive()) throw new ArenaProblem.RuleViolation("Esta opção está suspensa.");
         if (stake < market.getMinimumPoints())
             throw new ArenaProblem.RuleViolation("O mínimo para este mercado é " + market.getMinimumPoints() + " pontos.");
         if (stake > MAX_PREDICTION_STAKE_POINTS)
             throw new ArenaProblem.RuleViolation("O máximo por palpite é " + MAX_PREDICTION_STAKE_POINTS + " pontos.");
+    }
+    private void lockMarketEvent(Long id) {
+        Long eventId=markets.eventIdForMarket(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
+        events.findByIdForUpdate(eventId).orElseThrow();
     }
     private List<ArenaPrediction> orderedByUser(List<ArenaPrediction> values) {
         return values.stream().sorted(Comparator

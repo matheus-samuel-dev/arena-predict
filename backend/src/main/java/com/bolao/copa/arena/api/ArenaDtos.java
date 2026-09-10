@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public final class ArenaDtos {
     private ArenaDtos() { }
@@ -26,15 +27,23 @@ public final class ArenaDtos {
     public record EventParticipantResponse(Long id, CompetitorSummary competitor, int displayOrder,
                                            Integer position, String scoreLabel) { }
     public record MarketOptionResponse(Long id, String key, String label, BigDecimal multiplier, boolean active) { }
+    public record MarketAvailability(boolean allowed, String code, String label, String reason) { }
+    public record ResultChoice(String value, String label) { }
+    public record ResultField(String key, String label, String group, String type, boolean required,
+                              List<ResultChoice> options) { }
     public record MarketResponse(Long id, String code, String name, MarketStatus status, int minimumPoints,
-                                 String resultOptionKey, List<MarketOptionResponse> options) { }
+                                 String resultOptionKey, List<MarketOptionResponse> options, String category,
+                                 String templateCode, MarketTimingMode timingMode, Instant opensAt, Instant closesAt,
+                                 MarketAvailability availability, String settlementDescription) { }
     public record EventResponse(Long id, String externalKey, Long championshipId, String championship,
                                 SportResponse sport, String title, String stage, String venue, String broadcast,
                                 String imageUrl, CompetitorSummary homeCompetitor, CompetitorSummary awayCompetitor,
                                 Instant startsAt, Instant predictionClosesAt, EventStatus status, EventFormat format,
                                 int bestOf, Integer homeScore, Integer awayScore, String clock, String period,
                                 String liveData, boolean featured, boolean demo,
-                                List<EventParticipantResponse> participants, List<MarketResponse> markets) { }
+                                List<EventParticipantResponse> participants, List<MarketResponse> markets,
+                                int availableMarketCount, String predictionAvailabilityLabel,
+                                Map<String, String> resultData, List<ResultField> resultSchema) { }
 
     public record SportRequest(@NotBlank @Size(max = 40) String code, @NotBlank @Size(max = 100) String name,
                                @NotNull SportCategory category, @Size(max = 80) String icon,
@@ -63,13 +72,29 @@ public final class ArenaDtos {
     public record MarketRequest(@NotNull Long eventId, @NotBlank @Size(max = 80) String code,
                                 @NotBlank @Size(max = 140) String name, MarketStatus status,
                                 @Min(1) Integer minimumPoints,
-                                @NotNull @Size(min = 2, max = 20) List<@NotNull @Valid MarketOptionRequest> options) { }
+                                @NotNull @Size(min = 2, max = 40) List<@NotNull @Valid MarketOptionRequest> options,
+                                MarketTimingMode timingMode, Instant opensAt, Instant closesAt) {
+        public MarketRequest(Long eventId, String code, String name, MarketStatus status, Integer minimumPoints,
+                             List<MarketOptionRequest> options) {
+            this(eventId, code, name, status, minimumPoints, options, null, null, null);
+        }
+    }
     public record MarketStatusRequest(@NotNull MarketStatus status) { }
     public record SettleMarketRequest(@NotBlank @Size(max = 80) String correctOptionKey) { }
     public record EventResultRequest(@NotNull @PositiveOrZero Integer homeScore,
-                                     @NotNull @PositiveOrZero Integer awayScore, Boolean finishEvent) { }
+                                     @NotNull @PositiveOrZero Integer awayScore, Boolean finishEvent,
+                                     @Size(max = 120) Map<String, String> resultData, Boolean settleMarkets) {
+        public EventResultRequest(Integer homeScore, Integer awayScore, Boolean finishEvent) {
+            this(homeScore, awayScore, finishEvent, null, false);
+        }
+    }
     public record EventClassificationRequest(@NotEmpty @Size(max = 100) List<@NotNull @Valid EventParticipantRequest> participants,
-                                             Boolean finishEvent) { }
+                                             Boolean finishEvent, @Size(max = 120) Map<String, String> resultData,
+                                             Boolean settleMarkets) {
+        public EventClassificationRequest(List<EventParticipantRequest> participants, Boolean finishEvent) {
+            this(participants, finishEvent, null, false);
+        }
+    }
 
     public record PlacePredictionRequest(@NotNull Long eventId, @NotNull Long marketId, @NotNull Long optionId,
                                          @NotNull @Min(1) @Max(MAX_PREDICTION_STAKE_POINTS) Integer stakePoints,

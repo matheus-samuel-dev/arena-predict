@@ -1,0 +1,11 @@
+ALTER TABLE arena_markets ADD COLUMN template_code VARCHAR(80);
+ALTER TABLE arena_markets ADD COLUMN definition_data VARCHAR(24000);
+ALTER TABLE arena_markets ADD COLUMN category VARCHAR(80) NOT NULL DEFAULT 'Principais';
+ALTER TABLE arena_markets ADD COLUMN timing_mode VARCHAR(24) NOT NULL DEFAULT 'PRE_MATCH_ONLY';
+ALTER TABLE arena_markets ADD COLUMN opens_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE arena_markets ADD COLUMN closes_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE arena_markets ALTER COLUMN result_option_key TYPE VARCHAR(1000);
+ALTER TABLE arena_events ADD COLUMN result_data VARCHAR(16000);
+ALTER TABLE arena_markets ADD CONSTRAINT ck_arena_market_timing CHECK (timing_mode IN ('PRE_MATCH_ONLY','LIVE_ENABLED','LIVE_ONLY'));
+ALTER TABLE arena_markets ADD CONSTRAINT ck_arena_market_window CHECK (opens_at IS NULL OR closes_at IS NULL OR closes_at > opens_at);
+CREATE INDEX idx_arena_market_availability ON arena_markets(event_id, status, timing_mode, closes_at);

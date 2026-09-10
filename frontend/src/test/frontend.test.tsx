@@ -184,10 +184,11 @@ describe("ArenaPredict frontend", () => {
     });
   });
 
-  it("só habilita palpites em evento aberto e antes do limite", () => {
-    expect(isPredictionOpen({ id: 1, startsAt: "2099-01-01T00:00:00Z", predictionClosesAt: "2098-12-31T23:00:00Z", status: "OPEN_FOR_PREDICTIONS" })).toBe(true);
-    expect(isPredictionOpen({ id: 2, startsAt: "2099-01-01T00:00:00Z", predictionClosesAt: "2098-12-31T23:00:00Z", status: "LIVE" })).toBe(false);
-    expect(isPredictionOpen({ id: 3, startsAt: "2020-01-01T00:00:00Z", predictionClosesAt: "2020-01-01T00:00:00Z", status: "OPEN_FOR_PREDICTIONS" })).toBe(false);
+  it("habilita eventos somente conforme a quantidade de mercados disponíveis retornada pelo backend", () => {
+    expect(isPredictionOpen({ id: 1, startsAt: "2099-01-01", status: "SCHEDULED", availableMarketCount: 2 })).toBe(true);
+    expect(isPredictionOpen({ id: 2, startsAt: "2020-01-01", status: "LIVE", availableMarketCount: 1 })).toBe(true);
+    expect(isPredictionOpen({ id: 3, startsAt: "2099-01-01", status: "OPEN_FOR_PREDICTIONS", availableMarketCount: 0 })).toBe(false);
+    expect(isPredictionOpen({ id: 4, startsAt: "2099-01-01", status: "OPEN_FOR_PREDICTIONS" })).toBe(false);
   });
 
   it("mantém placar, classificação e liquidação como operações separadas", async () => {

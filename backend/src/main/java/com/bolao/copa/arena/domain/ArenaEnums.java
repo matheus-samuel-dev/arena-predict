@@ -10,6 +10,7 @@ public final class ArenaEnums {
     public enum EventStatus { SCHEDULED, OPEN_FOR_PREDICTIONS, LIVE, FINISHED, CANCELLED, POSTPONED }
     public enum EventFormat { STANDARD, INDIVIDUAL, RACE, BO1, BO3, BO5 }
     public enum MarketStatus { DRAFT, OPEN, SUSPENDED, CLOSED, SETTLED, CANCELLED }
+    public enum MarketTimingMode { PRE_MATCH_ONLY, LIVE_ENABLED, LIVE_ONLY }
     public enum PredictionStatus { PENDING, ACTIVE, WON, LOST, CANCELLED, REFUNDED }
     public enum PointTransactionType {
         INITIAL_BONUS, PREDICTION_PLACED, PREDICTION_WON, REFUND, CHALLENGE_COMPLETED,

@@ -10,8 +10,10 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 public interface PredictionMarketRepository extends JpaRepository<PredictionMarket, Long> {
-    @Override @EntityGraph(attributePaths = "event") Page<PredictionMarket> findAll(Pageable pageable);
-    @EntityGraph(attributePaths = "event")
+    @Query("select m.event.id from PredictionMarket m where m.id = :id")
+    Optional<Long> eventIdForMarket(@Param("id") Long id);
+    @Override @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport"}) Page<PredictionMarket> findAll(Pageable pageable);
+    @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport"})
     @Query("select market from PredictionMarket market where " +
             "lower(market.name) like lower(concat('%', :search, '%')) or " +
             "lower(market.code) like lower(concat('%', :search, '%')) or " +
@@ -19,6 +21,7 @@ public interface PredictionMarketRepository extends JpaRepository<PredictionMark
             "lower(market.event.title) like lower(concat('%', :search, '%'))")
     Page<PredictionMarket> search(@Param("search") String search, Pageable pageable);
     List<PredictionMarket> findByEventOrderByIdAsc(ArenaEvent event);
+    List<PredictionMarket> findByEventInOrderByEventIdAscIdAsc(Collection<ArenaEvent> events);
     Optional<PredictionMarket> findByEventAndCode(ArenaEvent event, String code);
     long countByStatus(MarketStatus status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
