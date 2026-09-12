@@ -50,6 +50,10 @@ app:
     live-scheduler-enabled: ${APP_DEMO_LIVE_SCHEDULER_ENABLED:false}
     live-refresh-ms: ${APP_DEMO_LIVE_REFRESH_MS:30000}
     live-initial-delay-ms: ${APP_DEMO_LIVE_INITIAL_DELAY_MS:30000}
+    schedule-refresh-ms: ${APP_DEMO_SCHEDULE_REFRESH_MS:300000}
+    schedule-initial-delay-ms: ${APP_DEMO_SCHEDULE_INITIAL_DELAY_MS:10000}
+    history-refresh-ms: ${APP_DEMO_HISTORY_REFRESH_MS:21600000}
+    history-initial-delay-ms: ${APP_DEMO_HISTORY_INITIAL_DELAY_MS:60000}
 
 management:
   endpoints:

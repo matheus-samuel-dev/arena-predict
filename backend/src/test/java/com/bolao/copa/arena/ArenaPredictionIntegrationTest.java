@@ -54,7 +54,9 @@ class ArenaPredictionIntegrationTest {
         assertThat(competitors.findAll())
                 .filteredOn(value -> "FURIA".equals(value.getCode()) || "NAVI".equals(value.getCode()))
                 .hasSize(2)
-                .allMatch(value -> value.getImageUrl() != null && !value.getImageUrl().isBlank());
+                .allMatch(value -> value.getImageUrl() == null || value.getImageUrl().startsWith("/assets/"));
+        assertThat(competitors.findAll()).filteredOn(value -> "FURIA".equals(value.getCode()))
+                .singleElement().extracting(value -> value.getImageUrl()).asString().startsWith("/assets/");
         var cancelled = events.findByExternalKey("demo-football-cancelled").orElseThrow();
         assertThat(cancelled.getStatus()).isEqualTo(EventStatus.CANCELLED);
         assertThat(predictions.findByEventAndStatus(cancelled, PredictionStatus.REFUNDED)).isNotEmpty();

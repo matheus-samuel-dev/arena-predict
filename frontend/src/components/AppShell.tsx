@@ -12,7 +12,6 @@ import {
   Compass,
   Gamepad2,
   Gauge,
-  Handshake,
   HeartHandshake,
   Layers3,
   LayoutDashboard,
@@ -33,7 +32,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { brand, isExplicitDemoMode } from "../app/branding";
 import { getWalletBalance, points, relativeTime } from "../app/format";
@@ -56,6 +55,7 @@ interface NavGroup {
   title: string;
   items: NavItem[];
   defaultOpen?: boolean;
+  contextLabel?: string;
 }
 
 const playerNavigation: NavGroup[] = [
@@ -98,12 +98,13 @@ const adminNavigation: NavGroup[] = [
   {
     id: "operation",
     title: "Operação",
+    contextLabel: "Administração",
     defaultOpen: true,
     items: [
       { label: "Painel", to: "/admin", icon: ShieldCheck, end: true },
-      { label: "Eventos", to: "/admin/events", icon: CalendarRange },
-      { label: "Mercados", to: "/admin/markets", icon: SlidersHorizontal },
-      { label: "Resultados", to: "/admin/results", icon: ClipboardCheck },
+      { label: "Gerenciar eventos", to: "/admin/events", icon: CalendarRange },
+      { label: "Gerenciar mercados", to: "/admin/markets", icon: SlidersHorizontal },
+      { label: "Processar resultados", to: "/admin/results", icon: ClipboardCheck },
     ],
   },
   {
@@ -145,6 +146,20 @@ const adminNavigation: NavGroup[] = [
   },
 ];
 
+const adminExperienceNavigation: NavGroup = {
+  id: "admin-experience",
+  title: "Visão do participante",
+  contextLabel: "Experiência",
+  items: [
+    { label: "Visão do participante", to: "/app", icon: LayoutDashboard, end: true },
+    { label: "Explorar eventos", to: "/events", icon: Compass },
+    { label: "Central ao vivo", to: "/live", icon: Activity },
+    { label: "Meus palpites", to: "/predictions", icon: Target },
+    { label: "Rankings", to: "/rankings", icon: BarChart3 },
+    { label: "Estatísticas", to: "/statistics", icon: Gauge },
+  ],
+};
+
 const pageTitles: Record<string, string> = {
   "/app": "Visão geral",
   "/events": "Eventos",
@@ -168,11 +183,19 @@ const pageTitles: Record<string, string> = {
 function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const { user } = useAuth();
   const location = useLocation();
+  const isAdmin = user?.role === "ADMIN";
   const groups = useMemo(
-    () => (user?.role === "ADMIN" ? [...playerNavigation.slice(0, 1), ...adminNavigation] : playerNavigation),
-    [user?.role],
+    () => (isAdmin ? [adminExperienceNavigation, ...adminNavigation] : playerNavigation),
+    [isAdmin],
   );
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const storageKey = `arenapredict.sidebar.${isAdmin ? "admin" : "participant"}`;
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(window.sessionStorage.getItem(storageKey) || "{}");
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     const activeGroup = groups.find((group) => group.items.some((item) => item.end
@@ -181,6 +204,10 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
     if (activeGroup) setExpanded((current) => ({ ...current, [activeGroup.id]: true }));
   }, [groups, location.pathname]);
 
+  useEffect(() => {
+    window.sessionStorage.setItem(storageKey, JSON.stringify(expanded));
+  }, [expanded, storageKey]);
+
   return (
     <nav className="sidebar-nav" aria-label="Navegação principal">
       {groups.map((group) => {
@@ -188,7 +215,9 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
         const isExpanded = expanded[group.id] ?? group.defaultOpen ?? active;
         const panelId = `nav-group-${group.id}`;
         return (
-          <section className={`nav-group ${active ? "nav-group--active" : ""}`} key={group.id}>
+          <Fragment key={group.id}>
+            {group.contextLabel && <span className="sidebar-context-label">{group.contextLabel}</span>}
+            <section className={`nav-group ${active ? "nav-group--active" : ""}`}>
             <button
               className="nav-group__toggle"
               type="button"
@@ -213,7 +242,8 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
                 </NavLink>
               ))}
             </div>
-          </section>
+            </section>
+          </Fragment>
         );
       })}
     </nav>
@@ -227,6 +257,7 @@ export function AppShell() {
   const [search, setSearch] = useState("");
   const [drawerMode, setDrawerMode] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches);
   const location = useLocation();
+  const isAdminArea = location.pathname.startsWith("/admin");
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -389,11 +420,17 @@ export function AppShell() {
             <X size={19} aria-hidden="true" />
           </button>
         </div>
+        {user?.role === "ADMIN" && (
+          <div className="sidebar-role-context" role="status">
+            <span><ShieldCheck size={16} aria-hidden="true" /></span>
+            <div><strong>Modo administrativo</strong><small>Experiência e operação no mesmo produto</small></div>
+          </div>
+        )}
         <SidebarNav onNavigate={() => setSidebarOpen(false)} />
         <div className="sidebar__foot">
           <NavLink className="points-card" to="/points">
             <span className="points-card__icon"><Zap size={17} /></span>
-            <span><small>Saldo virtual</small><strong>{walletError ? "Indisponível" : `${points(balance)} pts`}</strong></span>
+            <span><small>Saldo virtual</small><strong>{walletError ? "Falha ao carregar" : `${points(balance)} pts`}</strong></span>
             <ChevronRight size={16} className="points-card__arrow" aria-hidden="true" />
           </NavLink>
           <div className="safe-note"><ShieldCheck size={15} /><span>Pontos sem valor financeiro</span></div>
@@ -470,7 +507,7 @@ export function AppShell() {
         </main>
 
         <nav className="mobile-bottom-nav" aria-label="Navegação móvel">
-          {(user?.role === "ADMIN" ? [
+          {(user?.role === "ADMIN" && isAdminArea ? [
             { label: "Painel", to: "/admin", icon: ShieldCheck },
             { label: "Eventos", to: "/admin/events", icon: CalendarRange },
             { label: "Mercados", to: "/admin/markets", icon: SlidersHorizontal },

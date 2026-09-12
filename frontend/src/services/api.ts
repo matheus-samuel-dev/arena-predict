@@ -113,7 +113,7 @@ function safeServerMessage(message?: string) {
 function safeFieldErrors(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([field]) => /^[a-zA-Z][\w.\[\]-]{0,79}$/.test(field))
+    .filter(([field]) => /^[a-zA-Z][\w.[\]-]{0,79}$/.test(field))
     .map(([field, message]) => [field, safeServerMessage(typeof message === "string" ? message : undefined) || "Valor inválido."]);
   return entries.length ? Object.fromEntries(entries) : undefined;
 }
@@ -368,6 +368,10 @@ export const predictionsApi = {
       method: "POST",
       body: payload,
       idempotencyKey: payload.idempotencyKey,
+      // This write is serialized by event, market and wallet locks. A slightly
+      // larger budget prevents a slow demo host from reporting failure after
+      // the idempotent transaction has already committed successfully.
+      timeoutMs: 30_000,
     }),
   cancel: (id: number | string) => request<Prediction>(`/predictions/${id}/cancel`, { method: "POST" }),
 };

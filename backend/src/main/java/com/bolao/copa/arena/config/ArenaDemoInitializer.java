@@ -6,6 +6,7 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.arena.service.*;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
 import java.math.BigDecimal;
@@ -22,25 +23,15 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaDemoInitializer {
     private static final Duration MAX_DEMO_LIVE_AGE = Duration.ofHours(6);
-    private static final Set<String> DEMO_PARTICIPANT_EMAILS = Set.of(
-            "jogador@arenapredict.com",
-            "marina.costa@arenapredict.com",
-            "rafael.lima@arenapredict.com",
-            "beatriz.nunes@arenapredict.com",
-            "camila.rocha@arenapredict.com",
-            "lucas.almeida@arenapredict.com",
-            "ana.ribeiro@arenapredict.com",
-            "diego.ferreira@arenapredict.com"
-    );
-    private static final String PALMEIRAS_LOGO = "https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg";
-    private static final String FLAMENGO_LOGO = "https://upload.wikimedia.org/wikipedia/commons/9/96/Clube_de_Regatas_do_Flamengo_logo.svg";
+    private static final String PALMEIRAS_LOGO = null;
+    private static final String FLAMENGO_LOGO = null;
     private static final String FURIA_LOGO = "/assets/teams/furia.svg";
     private static final String LEGACY_FURIA_WORDMARK = "https://us.furia.gg/images/brand/logotipo-white.svg";
     private static final String LEGACY_GENERIC_BADGE = "/assets/teams/team-placeholder.svg";
-    private static final String NAVI_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Natus_Vincere_logo.png";
-    private static final String LOUD_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/LOUD_logo.svg";
-    private static final String T1_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/T1_esports_logo.svg";
-    private static final String GENG_LOGO = "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg";
+    private static final String NAVI_LOGO = null;
+    private static final String LOUD_LOGO = null;
+    private static final String T1_LOGO = null;
+    private static final String GENG_LOGO = null;
     private static final String LEVIATAN_IDENTITY = "/assets/teams/leviatan.svg";
     private static final String ALCARAZ_IDENTITY = "/assets/teams/carlos-alcaraz.svg";
     private static final String SINNER_IDENTITY = "/assets/teams/jannik-sinner.svg";
@@ -110,10 +101,8 @@ public class ArenaDemoInitializer {
 
         Competitor palmeiras = competitor(sport.get("FOOTBALL"), "Palmeiras", "PAL", "Brasil", PALMEIRAS_LOGO);
         Competitor flamengo = competitor(sport.get("FOOTBALL"), "Flamengo", "FLA", "Brasil", FLAMENGO_LOGO);
-        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos",
-                "https://en.wikipedia.org/wiki/Special:Redirect/file/Boston_Celtics.svg");
-        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos",
-                "https://en.wikipedia.org/wiki/Special:Redirect/file/Dallas_Mavericks_logo.svg");
+        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos", null);
+        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos", null);
         Competitor furia = competitor(sport.get("CS2"), "FURIA", "FURIA", "Brasil", FURIA_LOGO);
         Competitor navi = competitor(sport.get("CS2"), "NAVI", "NAVI", "Ucrânia", NAVI_LOGO);
         Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina", LEVIATAN_IDENTITY);
@@ -212,7 +201,7 @@ public class ArenaDemoInitializer {
         liveEvents.refresh();
         List<User> demoParticipants = users.findAll().stream()
                 .filter(user -> user.getRole().canonical() == com.bolao.copa.entity.UserRole.PARTICIPANTE)
-                .filter(user -> DEMO_PARTICIPANT_EMAILS.contains(user.getEmail().toLowerCase(Locale.ROOT)))
+                .filter(user -> DemoParticipantCatalog.contains(user.getEmail()))
                 .toList();
         demoParticipants.forEach(wallets::ensureWallet);
         ArenaPool pool = seedPool(brasileirao, sport.get("FOOTBALL"), demoParticipants);
@@ -271,7 +260,9 @@ public class ArenaDemoInitializer {
     }
 
     private boolean shouldRepairDemoImage(String code, String currentImageUrl, String expectedImageUrl) {
-        if (expectedImageUrl == null) return false;
+        if (expectedImageUrl == null) {
+            return currentImageUrl != null && (currentImageUrl.startsWith("http://") || currentImageUrl.startsWith("https://"));
+        }
         if (currentImageUrl == null || currentImageUrl.isBlank() || LEGACY_GENERIC_BADGE.equals(currentImageUrl)) return true;
         return "FURIA".equalsIgnoreCase(code) && !Objects.equals(currentImageUrl, expectedImageUrl);
     }

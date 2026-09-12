@@ -1,23 +1,12 @@
 # Logos de participantes
 
-O catálogo visual usa `TeamLogo` para resolver aliases conhecidos e sempre
-oferecer um fallback gráfico exclusivo e determinístico por entidade. Os assets oficiais abaixo são carregados de
-URLs estáveis enquanto o projeto não possui um pipeline de mídia local. A
-estrutura está pronta para substituir cada URL por um arquivo versionado em
-`frontend/public/assets/teams/` quando houver uma política de distribuição
-aprovada para as marcas:
+O catálogo visual usa `TeamLogo` e não depende de hotlinks. Identidades
+originais aprovadas para a demonstração ficam versionadas nesta pasta; quando
+não há um asset local distribuível, o componente produz um escudo com monograma,
+gradiente determinístico e nome acessível.
 
-- Palmeiras: [Wikimedia Commons – Palmeiras logo.svg](https://commons.wikimedia.org/wiki/File:Palmeiras_logo.svg)
-- Flamengo: [Wikimedia Commons – Clube de Regatas do Flamengo logo.svg](https://commons.wikimedia.org/wiki/File:Clube_de_Regatas_do_Flamengo_logo.svg)
-- Team Vitality: [Wikipedia – Team Vitality](https://en.wikipedia.org/wiki/Team_Vitality), com o arquivo publicado no Wikimedia
-- G2 Esports: [diretrizes oficiais de marca](https://g2esports.com/pages/brand-guidelines) e arquivo referenciado no Wikimedia Commons
-- FURIA: [perfil institucional da FURIA](https://us.furia.gg/about) e arte vetorial da pantera publicada no [Wikimedia](https://en.wikipedia.org/wiki/File:FURIA_Esports_logo.svg), versionada localmente como `furia.svg`
-- NAVI: [press kit oficial](https://navi.gg/en/company/presskit), com URL estável do arquivo publicada no Wikimedia
-
-Atletas sem um retrato distribuível usam badges originais, locais e distintos,
-identificados pelo nome do arquivo. Esses badges não se passam por marcas ou
-retratos oficiais.
-
-As marcas pertencem aos respectivos clubes/equipes. O componente trata
-indisponibilidade de rede, URL inválida e participantes sem imagem sem exibir
-ícone de imagem quebrada.
+Os badges de atletas são identidades demonstrativas originais e não se passam
+por retratos ou marcas oficiais. URLs antigas ainda existentes em bancos já
+inicializados são removidas pelo bootstrap demo. Uma imagem cadastrada que falhe
+também migra imediatamente para o mesmo fallback profissional, sem ícone de
+imagem quebrada ou espaço vazio.

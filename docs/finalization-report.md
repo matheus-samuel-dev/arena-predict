@@ -1,5 +1,9 @@
 # ArenaPredict — relatório de finalização
 
+> Este documento preserva a rodada de 9/9/2026. A revalidação final e o
+> veredito atual estão em
+> [final-product-audit-2026-09-12.md](final-product-audit-2026-09-12.md).
+
 Atualizado em 9 de setembro de 2026. O produto continua restrito a pontos virtuais, sem depósito, saque ou dinheiro real. A validação usa a aplicação real em Chromium, Spring Boot e PostgreSQL 16, no ambiente local isolado `http://localhost:5174`. Os dados do ambiente original foram preservados.
 
 ## 1. Causa do espaço branco nos cards

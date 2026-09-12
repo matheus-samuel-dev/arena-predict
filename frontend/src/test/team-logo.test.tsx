@@ -5,12 +5,12 @@ import { TEAM_PLACEHOLDER_PATH, TeamLogo, normalizeTeamName, resolveTeamLogo } f
 describe("TeamLogo", () => {
   afterEach(() => cleanup());
 
-  it("resolve aliases oficiais sem exigir cadastro manual no componente", () => {
+  it("resolve apenas identidades locais e usa fallback para marcas sem asset distribuível", () => {
     expect(normalizeTeamName("  São Paulo  ")).toBe("sao paulo");
-    expect(resolveTeamLogo("Palmeiras")).toContain("Palmeiras_logo.svg");
-    expect(resolveTeamLogo("Team Vitality")).toContain("Team_Vitality_logo.svg");
-    expect(resolveTeamLogo("FURIA")).toContain("FURIA_Esports_logo.svg");
-    expect(resolveTeamLogo("Natus Vincere")).toContain("Natus_Vincere_logo.png");
+    expect(resolveTeamLogo("Palmeiras")).toBeUndefined();
+    expect(resolveTeamLogo("Team Vitality")).toBeUndefined();
+    expect(resolveTeamLogo("FURIA")).toBe("/assets/teams/furia.svg");
+    expect(resolveTeamLogo("Natus Vincere")).toBeUndefined();
     expect(resolveTeamLogo("Carlos Alcaraz")).toBe("/assets/teams/carlos-alcaraz.svg");
   });
 
@@ -25,11 +25,11 @@ describe("TeamLogo", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("tenta a identidade curada antes do placeholder quando a URL da API falha", () => {
+  it("gera identidade estável quando uma URL cadastrada falha", () => {
     const { container } = render(<TeamLogo name="NAVI" logoUrl="/logos/antigo.svg" />);
     fireEvent.error(container.querySelector("img")!);
 
-    expect(container.querySelector("img")).toHaveAttribute("src", expect.stringContaining("Natus_Vincere_logo.png"));
+    expect(container.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
     expect(container.firstElementChild).not.toHaveClass("team-logo--fallback");
   });
 

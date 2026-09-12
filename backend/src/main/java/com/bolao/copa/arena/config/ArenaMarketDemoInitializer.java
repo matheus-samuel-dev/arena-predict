@@ -54,17 +54,22 @@ public class ArenaMarketDemoInitializer {
                 if (key.equals("lol-open")) state(generated,"FIRST_BARON",MarketStatus.CANCELLED);
             }
         }
-        seedTerminalExample("demo-football-awaiting-result", "Rodada demonstrativa · aguardando liquidação", EventStatus.FINISHED);
+        seedTerminalExample("demo-football-awaiting-result", "Rodada finalizada · aguardando liquidação", EventStatus.FINISHED);
     }
 
     private void seedTerminalExample(String key, String title, EventStatus status) {
-        if (events.findByExternalKey(key).isPresent()) return;
+        var existing = events.findByExternalKey(key);
+        if (existing.isPresent()) {
+            existing.get().setTitle(title);
+            existing.get().setStage("Validação dos estados de mercado");
+            return;
+        }
         ArenaEvent source=events.findByExternalKey("demo-football-open").orElseThrow();
         ArenaEvent event=new ArenaEvent();
         event.setExternalKey(key); event.setTitle(title); event.setChampionship(source.getChampionship());
         event.setHomeCompetitor(source.getHomeCompetitor()); event.setAwayCompetitor(source.getAwayCompetitor());
         event.setFormat(EventFormat.STANDARD); event.setBestOf(1); event.setDemo(true);
-        event.setStage("Demonstração dos estados de mercado"); event.setVenue("Arena digital");
+        event.setStage("Validação dos estados de mercado"); event.setVenue("Arena digital");
         event.setStartsAt(java.time.Instant.now().minusSeconds(10800));
         event.setPredictionClosesAt(event.getStartsAt().minusSeconds(300));
         event.setStatus(EventStatus.SCHEDULED);

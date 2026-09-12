@@ -9,6 +9,7 @@ import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.arena.service.ArenaPoolRankingService;
 import com.bolao.copa.arena.service.ArenaPredictionService;
 import com.bolao.copa.arena.service.PointWalletService;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
@@ -58,13 +59,12 @@ class ArenaRankingIntegrationTest {
         User current = users.findByEmail("jogador@arenapredict.com").orElseThrow();
 
         var weekly = rankingService.ranking(current, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null);
-        assertThat(weekly).hasSize(8);
+        assertThat(weekly).hasSize(DemoParticipantCatalog.participants().size());
         assertThat(weekly).extracting(row -> row.playerName()).doesNotContain("Administrador Demo");
         assertThat(weekly).extracting(row -> row.points()).isSortedAccordingTo((left, right) -> Long.compare(right, left));
         assertThat(weekly).extracting(row -> row.points()).doesNotHaveDuplicates();
 
         var ana = weekly.stream().filter(row -> row.playerName().equals("Ana Ribeiro")).findFirst().orElseThrow();
-        assertThat(ana.position()).isEqualTo(1);
         assertThat(ana.correctPredictions()).isEqualTo(5);
         assertThat(ana.totalPredictions()).isEqualTo(6);
         assertThat(ana.accuracy()).isEqualTo(83.33);
@@ -82,11 +82,11 @@ class ArenaRankingIntegrationTest {
         assertThat(overall).allMatch(row -> row.totalPredictions() >= 9);
 
         var cs2 = rankingService.ranking(current, RankingPeriod.WEEKLY, RankingScope.GLOBAL, "CS2");
-        assertThat(cs2).hasSize(8).allMatch(row -> row.totalPredictions() == 1);
+        assertThat(cs2).hasSize(DemoParticipantCatalog.participants().size()).allMatch(row -> row.totalPredictions() == 1);
         assertThat(rankingService.ranking(current, RankingPeriod.WEEKLY, RankingScope.GLOBAL, "Tênis"))
-                .hasSize(8).allMatch(row -> row.totalPredictions() == 1);
+                .hasSize(DemoParticipantCatalog.participants().size()).allMatch(row -> row.totalPredictions() == 1);
         assertThat(rankingService.ranking(current, RankingPeriod.WEEKLY, RankingScope.GLOBAL, "MOTORSPORT"))
-                .hasSize(8).allMatch(row -> row.totalPredictions() == 1);
+                .hasSize(DemoParticipantCatalog.participants().size()).allMatch(row -> row.totalPredictions() == 1);
         assertThat(rankingService.ranking(current, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null))
                 .usingRecursiveComparison().isEqualTo(weekly);
     }

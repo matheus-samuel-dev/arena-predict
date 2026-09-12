@@ -75,6 +75,9 @@ describe("confirmação do palpite", () => {
     fireEvent.click(submit);
 
     expect(await screen.findByText("Sua leitura está registrada")).toBeInTheDocument();
+    expect(screen.getByText("Boston Celtics × Dallas Mavericks")).toBeVisible();
+    expect(screen.getByText("Boston Celtics", { selector: ".prediction-receipt dd" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Ver meus palpites" })).toHaveAttribute("href", "/predictions");
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       stakePoints: 20,
       idempotencyKey: "prediction-intent-fixed",

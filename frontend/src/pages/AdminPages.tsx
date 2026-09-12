@@ -142,7 +142,7 @@ const resourceConfig: Record<string, ResourceConfig> = {
     ],
   },
   events: {
-    title: "Eventos",
+    title: "Gerenciar eventos",
     singular: "evento",
     description: "Agenda, status, placares e prazos de palpites.",
     icon: CalendarDays,
@@ -171,7 +171,7 @@ const resourceConfig: Record<string, ResourceConfig> = {
   markets: {
     title: "Mercados de previsão",
     singular: "mercado",
-    description: "Mercados por modalidade, disponibilidade pré-jogo e ao vivo, regras de liquidação e multiplicadores demonstrativos.",
+    description: "Gerencie disponibilidade, opções e regras de liquidação por modalidade.",
     icon: Layers3,
     creatable: true,
     editable: true,
@@ -396,6 +396,7 @@ export function AdminResourcePage() {
   const availableStatuses = useMemo(() => Array.from(new Set((data?.rows || [])
     .map((row) => recordStatus(row).toUpperCase())
     .filter(Boolean))), [data?.rows]);
+  const hasFilters = Boolean(search || statusFilter);
 
   if (loading) return <PageSkeleton cards={4} />;
   if (error) {
@@ -413,7 +414,7 @@ export function AdminResourcePage() {
         eyebrow="ADMINISTRAÇÃO"
         title={config.title}
         description={config.description}
-        actions={config.creatable ? <div className="admin-market-actions">{resource === "markets" && <Button onClick={() => setGeneratingMarkets(true)}><Layers3 size={17} /> Catálogo da modalidade</Button>}<Button variant={resource === "markets" ? "secondary" : "primary"} onClick={() => setEditing("new")}><Plus size={17} /> Criar {config.singular}</Button></div> : undefined}
+        actions={config.creatable ? <div className="admin-market-actions">{resource === "markets" && <Button variant="secondary" onClick={() => setGeneratingMarkets(true)}><Layers3 size={17} /> Abrir catálogo</Button>}<Button onClick={() => setEditing("new")}><Plus size={17} /> Criar {config.singular}</Button></div> : undefined}
       />
       <section className="surface admin-list-panel">
         <div className="admin-list-toolbar">
@@ -461,20 +462,24 @@ export function AdminResourcePage() {
         ) : (
           <EmptyState
             icon={config.creatable ? Plus : BarChart3}
-            title={search ? "Nenhum resultado encontrado" : emptyResourceTitle(resource, config)}
-            description={search ? "Ajuste a busca para consultar outros registros." : config.creatable ? "Crie o primeiro registro para começar." : "A fila está vazia no momento."}
-            action={config.creatable && !search ? <Button onClick={() => setEditing("new")}><Plus size={16} /> Criar registro</Button> : undefined}
+            title={hasFilters ? "Nenhum registro com esses filtros" : emptyResourceTitle(resource, config)}
+            description={hasFilters ? "Ajuste a busca ou limpe os filtros para consultar outros registros." : config.creatable ? "Crie o primeiro registro para começar." : "A fila está vazia no momento."}
+            action={hasFilters
+              ? <Button variant="secondary" onClick={() => { setSearch(""); setServerSearch(""); setStatusFilter(""); setPage(0); }}>Limpar filtros</Button>
+              : config.creatable ? <Button onClick={() => setEditing("new")}><Plus size={16} /> Criar registro</Button> : undefined}
           />
         )}
-        <footer className="pagination">
-          {data?.pagination ? (
-            <>
-              <Button variant="quiet" size="sm" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={data.pagination.first}>Anterior</Button>
-              <span>Página {data.pagination.number + 1} de {Math.max(1, data.pagination.totalPages)} · {points(data.pagination.totalElements)} registros</span>
-              <Button variant="quiet" size="sm" onClick={() => setPage((value) => value + 1)} disabled={data.pagination.last}>Próxima</Button>
-            </>
-          ) : <span>{points(data?.rows.length || 0)} registros nesta visão</span>}
-        </footer>
+        {(!hasFilters || rows.length > 0) && (
+          <footer className="pagination">
+            {data?.pagination ? (
+              <>
+                <Button variant="quiet" size="sm" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={data.pagination.first}>Anterior</Button>
+                <span>Página {data.pagination.number + 1} de {Math.max(1, data.pagination.totalPages)} · {points(data.pagination.totalElements)} registros</span>
+                <Button variant="quiet" size="sm" onClick={() => setPage((value) => value + 1)} disabled={data.pagination.last}>Próxima</Button>
+              </>
+            ) : <span>{points(data?.rows.length || 0)} registros nesta visão</span>}
+          </footer>
+        )}
       </section>
       <ResourceForm resource={resource} config={config} record={editing} lookups={data?.lookups || {}} onClose={() => setEditing(null)} onSaved={() => reload().catch(() => undefined)} />
       <ScoreModal record={scoring} onClose={() => setScoring(null)} onSaved={() => reload().catch(() => undefined)} />
@@ -563,7 +568,7 @@ const adminHeaderMap: Record<string, string[]> = {
   markets: ["Mercado", "Evento e opções", "Status", "Liquidação", "Ações"],
   users: ["Usuário", "Perfil e acesso", "Saldo virtual", "Cadastro e atividade", "Ações"],
   pools: ["Bolão ou liga", "Organização", "Participação", "Período", "Ações"],
-  "scoring-rules": ["Regra", "Fórmula", "Status", "Unidade", "Ações"],
+  "scoring-rules": ["Regra", "Cálculo", "Status", "Unidade", "Ações"],
   challenges: ["Desafio", "Métrica e objetivo", "Recompensa", "Período", "Ações"],
   achievements: ["Conquista", "Critério", "Recompensa", "Status", "Ações"],
   notifications: ["Notificação", "Destinatário e tipo", "Status", "Envio", "Ações"],
@@ -631,9 +636,9 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       const resultLabel = options.filter((option) => resultKeys.includes(String(option.key))).map((option) => String(option.label)).join(", ");
       return [
         <AdminIdentity icon={Layers3} title={String(row.name || "Mercado")} subtitle={`${String(row.sportName || row.sport || "Modalidade do evento")} · ${String(row.category || "Principais")} · ${row.templateCode ? "Regra da modalidade" : "Regra manual"}`} />,
-        <div className="admin-market-meta"><strong>{eventTitle}</strong><details><summary>{options.length} opções · multiplicadores demonstrativos</summary><ul>{options.map((option) => <li key={String(option.key)}>{String(option.label || enumLabel(option.key))}<b>{multiplier(option.multiplier)}</b></li>)}</ul></details></div>,
+        <div className="admin-market-meta"><strong title={eventTitle}>{eventTitle}</strong><details><summary>{options.length} opções · multiplicadores</summary><ul>{options.map((option) => <li key={String(option.key)}>{String(option.label || enumLabel(option.key))}<b>{multiplier(option.multiplier)}</b></li>)}</ul></details></div>,
         <div className="admin-market-meta">{statusBadge}<small title={availability?.reason}>{availability?.label}</small><small>{enumLabel(row.timingMode || "PRE_MATCH_ONLY")}</small><small>Abertura: {row.opensAt ? displayDate(row.opensAt) : "Imediata"}</small><small>Fechamento: {row.closesAt ? displayDate(row.closesAt) : "Regra do evento"}</small></div>,
-        <AdminDetail primary={row.settledAt ? displayDate(row.settledAt) : String(row.settlementDescription || "Resultado manual após o encerramento")} secondary={row.resultOptionKey ? `Resultado: ${resultLabel || enumLabel(String(row.resultOptionKey))}` : enumLabel(String(row.eventStatus || "PENDING"))} />,
+        <AdminDetail primary={<span className="admin-text-clamp" title={String(row.settlementDescription || "Resultado manual após o encerramento")}>{row.settledAt ? displayDate(row.settledAt) : String(row.settlementDescription || "Resultado manual após o encerramento")}</span>} secondary={row.resultOptionKey ? `Resultado: ${resultLabel || enumLabel(String(row.resultOptionKey))}` : enumLabel(String(row.eventStatus || "PENDING"))} />,
       ];
     }
     case "users":
@@ -652,10 +657,10 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       ];
     case "scoring-rules":
       return [
-        <AdminIdentity icon={Gauge} title={String(row.name || "Regra")} subtitle={String(row.description || "Sem explicação")} />,
-        <code className="admin-formula">{String(row.calculation || "Fórmula não informada")}</code>,
+        <AdminIdentity icon={Gauge} title={String(row.name || "Regra")} subtitle={scoringRuleDescription(row.description)} />,
+        <code className="admin-formula" title={String(row.calculation || "Fórmula não informada")}>{String(row.calculation || "Fórmula não informada")}</code>,
         statusBadge,
-        <AdminDetail primary={String(row.unit || "pontos virtuais")} secondary="Aplicação automática" />,
+        <AdminDetail primary={String(row.unit || "pontos virtuais")} secondary="Calculada pelo servidor" />,
       ];
     case "challenges":
       return [
@@ -716,17 +721,23 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
   }
 }
 
+export function scoringRuleDescription(value: unknown) {
+  return String(value || "Sem explicação")
+    .replace(/multiplicador\s+(?:simulado|demonstrativo)/gi, "multiplicador")
+    .trim();
+}
+
 function AdminIdentity({ icon: Icon, title, subtitle, image, logo = false }: { icon: LucideIcon; title: string; subtitle: string; image?: string; logo?: boolean }) {
   return (
     <span className="admin-identity">
       {logo ? <TeamLogo name={title} code={subtitle} logoUrl={image} size="sm" /> : image ? <img src={image} alt="" /> : <i><Icon size={18} /></i>}
-      <span><strong>{title}</strong><small>{subtitle}</small></span>
+      <span><strong title={title}>{title}</strong><small title={subtitle}>{subtitle}</small></span>
     </span>
   );
 }
 
 function AdminDetail({ primary, secondary }: { primary: ReactNode; secondary?: ReactNode }) {
-  return <span className="admin-detail"><strong>{primary}</strong>{secondary && <small>{secondary}</small>}</span>;
+  return <span className="admin-detail"><strong title={typeof primary === "string" ? primary : undefined}>{primary}</strong>{secondary && <small title={typeof secondary === "string" ? secondary : undefined}>{secondary}</small>}</span>;
 }
 
 function nestedText(value: unknown, key: string) {
@@ -774,7 +785,7 @@ function resultRegistrationAvailability(record: AdminRecord) {
   if (["SCHEDULED", "OPEN_FOR_PREDICTIONS", "LIVE", "FINISHED"].includes(status)) {
     return { allowed: true, label: "Disponível", reason: `${capitalize(resultName)} disponível para conferência.` };
   }
-  return { allowed: false, label: "Indisponível", reason: "O estado atual não permite registrar resultado." };
+  return { allowed: false, label: "Estado não compatível", reason: "O estado atual não permite registrar resultado." };
 }
 
 function initialForm(resource: string, config: ResourceConfig, record: AdminRecord | "new" | null) {
@@ -1142,7 +1153,7 @@ function GenerateMarketsModal({ open, events, onClose, onSaved }: { open: boolea
   }
   return <Modal open={open} onClose={() => !saving && onClose()} title="Catálogo de mercados da modalidade">
     <form className="stack-form" onSubmit={generate}>
-      <p>Selecione o evento para revisar os mercados com regras de resultado da modalidade e multiplicadores demonstrativos persistidos.</p>
+      <p>Selecione o evento para revisar opções, multiplicadores e regras de resultado da modalidade.</p>
       <label><span>Evento *</span><select required value={eventId} disabled={saving} onChange={(event) => setEventId(event.target.value)}><option value="">Selecione um evento</option>{events.filter((event) => !["FINISHED", "CANCELLED"].includes(String(event.status))).map((event) => <option key={String(event.id)} value={String(event.id)}>{String(event.title || event.name)}</option>)}</select></label>
       {loading && <p role="status">Carregando catálogo da modalidade...</p>}
       <div className="admin-template-list">{templates.map((template) => <article key={template.code}><strong>{template.name}</strong><small>{template.category} · {enumLabel(template.timingMode)}</small>{template.settlementDescription && <p>{template.settlementDescription}</p>}</article>)}</div>
@@ -1339,7 +1350,7 @@ function SettlementModal({ record, onClose, onSettled }: {
   const [correctOptionKey, setCorrectOptionKey] = useState("");
   const [saving, setSaving] = useState(false);
   const { notify } = useToast();
-  const availability = record ? marketSettlementAvailability(record) : { allowed: false, label: "Indisponível", reason: "Selecione um mercado." };
+  const availability = record ? marketSettlementAvailability(record) : { allowed: false, label: "Selecione um mercado", reason: "Escolha um mercado antes de continuar." };
 
   useEffect(() => {
     const first = marketOptions(record).find((option) => option.active !== false && String(option.key || "").trim());

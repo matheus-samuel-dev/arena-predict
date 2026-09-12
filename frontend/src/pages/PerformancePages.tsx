@@ -1,5 +1,5 @@
 import { Award, BarChart3, CalendarClock, CheckCircle2, ChevronDown, Crown, Flame, Gauge, Medal, Search, ShieldCheck, Sparkles, Target, Trophy, Users, Zap } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { dateTime, percentage, points, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";

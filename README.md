@@ -39,10 +39,10 @@ Principais capacidades:
 O tema claro é o padrão, com superfícies neutras, acentos índigo e feedbacks
 semânticos. O tema escuro continua disponível pelo menu do perfil e a escolha
 fica persistida no navegador. Eventos usam o componente reutilizável
-`TeamLogo`: ele prioriza `logoUrl` vindo do catálogo, resolve os quatro aliases
-demonstrativos conhecidos (Palmeiras, Flamengo, Team Vitality e G2 Esports) e
-troca qualquer imagem indisponível por iniciais acessíveis. As fontes e os
-créditos dos logos estão documentados em
+`TeamLogo`: ele prioriza assets locais do catálogo e transforma qualquer
+identidade sem arquivo distribuível em um escudo determinístico com iniciais
+acessíveis. O ambiente publicado não depende de hotlinks. A política dos assets
+está documentada em
 [`frontend/public/assets/teams/README.md`](frontend/public/assets/teams/README.md).
 
 ## Arquitetura
@@ -124,11 +124,11 @@ XP, nível, sequência, precisão, desafios e conquistas são calculados a parti
 
 ## Modo demonstração
 
-O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria um conjunto pequeno de modalidades, campeonatos, participantes, eventos, mercados, palpites, liga, notificações e conteúdo comunitário. O runtime do backend e o `docker-compose.yml` mantêm o modo demo desativado por padrão; o `.env.example` o ativa deliberadamente como referência para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
+O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria dez modalidades, 24 participantes de ranking, eventos, mercados, palpites, ligas, notificações e conteúdo comunitário. O runtime do backend e o `docker-compose.yml` mantêm o modo demo desativado por padrão; o `.env.example` o ativa deliberadamente como referência para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
 
 O provider ao vivo incluído é interno e simulado. O projeto não afirma integração com ESPN, Sportradar, FIFA, Riot, Steam ou provedores de odds.
 
-O seed pode ser executado novamente sem duplicar os registros conhecidos. O acesso rápido da tela de login é resolvido pelo backend somente quando o modo demo está habilitado; nenhuma senha é enviada ao navegador ou incorporada ao bundle.
+O seed pode ser executado novamente sem duplicar os registros conhecidos. Uma manutenção temporal idempotente reposiciona apenas as janelas dos fixtures estruturais não encerrados, preservando palpites, estados administrativos e registros criados pelo visitante. O histórico do ranking também é ancorado relativamente ao relógio, mantendo recortes semanal, mensal e geral populados. O acesso rápido da tela de login é resolvido pelo backend somente quando o modo demo está habilitado; nenhuma senha é enviada ao navegador ou incorporada ao bundle.
 
 Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique uma instância com credenciais demo, segredo JWT ou senha de banco padrão.
 
@@ -213,7 +213,7 @@ Use `.env.example` como referência. O arquivo `.env` local não deve ser versio
 | Grupo | Variáveis principais |
 |---|---|
 | Produto | `APP_BRAND_NAME`, `VITE_APP_NAME`, `VITE_APP_SHORT_NAME`, `VITE_APP_TAGLINE`, `VITE_APP_DESCRIPTION`, `VITE_APP_STORAGE_NAMESPACE`, `VITE_SUPPORT_EMAIL` |
-| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_ADMIN_EMAIL`, `APP_DEMO_ADMIN_PASSWORD`, `APP_DEMO_PARTICIPANT_EMAIL`, `APP_DEMO_PARTICIPANT_PASSWORD`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
+| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_ADMIN_EMAIL`, `APP_DEMO_ADMIN_PASSWORD`, `APP_DEMO_PARTICIPANT_EMAIL`, `APP_DEMO_PARTICIPANT_PASSWORD`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `APP_DEMO_SCHEDULE_REFRESH_MS`, `APP_DEMO_SCHEDULE_INITIAL_DELAY_MS`, `APP_DEMO_HISTORY_REFRESH_MS`, `APP_DEMO_HISTORY_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
 | Segurança | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES`, `CORS_ALLOWED_ORIGINS` |
 | Banco | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_VOLUME_NAME`, `POSTGRES_HOST_PORT` |
 | Rede/frontend | `APP_BIND_ADDRESS`, `FRONTEND_PORT`, `BACKEND_PORT`, `VITE_API_URL`, `VITE_BACKEND_PROXY`, `VITE_API_TIMEOUT_MS` |
@@ -276,11 +276,16 @@ Frontend:
 cd frontend
 npm ci
 npm run typecheck
+npm run lint
 npm run test:run
 npm run build
 ```
 
 Os testes existentes exercitam autenticação, claims JWT, 401/403, permissões, seed, carteira, saldo insuficiente, débito, cancelamento, idempotência, resultados por placar e classificação, liquidação, recompensa única, progressão recorrente, comunidade e formatos seguros dos recursos administrativos.
+
+A validação final de produto, incluindo a matriz real de navegador e as
+contagens do ambiente PostgreSQL, está em
+[`docs/final-product-audit-2026-09-12.md`](docs/final-product-audit-2026-09-12.md).
 
 O workflow `.github/workflows/ci.yml` executa backend e frontend em jobs independentes, com Java 21 e Node.js 22. O pipeline apenas valida o código; não publica artefatos nem realiza deploy.
 
@@ -311,7 +316,9 @@ Consulte o Swagger UI para payloads, validações, enums internos e respostas at
 
 - o provider esportivo incluído é demonstrativo e não consome fonte externa;
 - o perfil automatizado de integração usa H2 em modo compatível com PostgreSQL; o smoke test final também foi executado contra PostgreSQL real, mas essa paridade ainda deve entrar no CI com Testcontainers;
-- ainda não há suíte E2E automatizada com navegador;
+- a auditoria Chromium em `qa/browser-audit.cjs` cobre regressão visual, rede e
+  persistência do ambiente demo; ela é executada localmente e ainda não faz
+  parte do workflow de CI;
 - usuários, bolões, regras de pontuação e configurações são visões administrativas operacionais somente para consulta nesta versão; catálogo, eventos, mercados, resultados, engajamento, notificações e moderação possuem ações próprias;
 - logout remove o JWT do cliente, sem lista distribuída de revogação;
 - métricas, logs e traces ainda não são enviados a uma plataforma central;

@@ -19,6 +19,10 @@ app:
     enabled: true
     live-provider-enabled: true
     live-scheduler-enabled: false
+    # Scheduled demo maintenance is covered by focused unit tests. Keep its
+    # background timers outside unrelated integration-test contexts.
+    schedule-initial-delay-ms: 86400000
+    history-initial-delay-ms: 86400000
   cors:
     allowed-origins: http://localhost:5173
   jwt:

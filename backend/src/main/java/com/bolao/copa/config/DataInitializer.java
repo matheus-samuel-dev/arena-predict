@@ -44,86 +44,19 @@ public class DataInitializer {
                     true,
                     true
             );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    demo.participantEmail(),
-                    "Jogador Demo",
-                    demo.participantPassword(),
-                    UserRole.PARTICIPANTE,
-                    true,
-                    true
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "marina.costa@arenapredict.com",
-                    "Marina Costa",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "rafael.lima@arenapredict.com",
-                    "Rafael Lima",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "beatriz.nunes@arenapredict.com",
-                    "Beatriz Nunes",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "camila.rocha@arenapredict.com",
-                    "Camila Rocha",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "lucas.almeida@arenapredict.com",
-                    "Lucas Almeida",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "ana.ribeiro@arenapredict.com",
-                    "Ana Ribeiro",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
-            ensureUser(
-                    userRepository,
-                    passwordEncoder,
-                    "diego.ferreira@arenapredict.com",
-                    "Diego Ferreira",
-                    "",
-                    UserRole.PARTICIPANTE,
-                    true,
-                    false
-            );
+            DemoParticipantCatalog.participants().forEach(participant -> {
+                boolean quickAccessIdentity = participant.email().equalsIgnoreCase(demo.participantEmail());
+                ensureUser(
+                        userRepository,
+                        passwordEncoder,
+                        participant.email(),
+                        participant.name(),
+                        quickAccessIdentity ? demo.participantPassword() : "",
+                        UserRole.PARTICIPANTE,
+                        true,
+                        quickAccessIdentity
+                );
+            });
 
         });
     }

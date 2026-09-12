@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EventCard, isPredictionOpen, MarketList } from "../components/EventCard";
+import { EventCard, isPredictionOpen, marketAvailabilityStatus, marketAvailabilityTooltip, marketDisplayName, MarketList } from "../components/EventCard";
 import type { ArenaEvent, PredictionMarket } from "../types";
 
 const openMarket: PredictionMarket = {
@@ -23,7 +23,27 @@ describe("disponibilidade de mercados retornada pelo servidor", () => {
     render(<MarketList event={live} markets={[openMarket]} onPredict={choose} />);
     fireEvent.click(screen.getByRole("button", { name: /Acima de 2,5/ }));
     expect(choose).toHaveBeenCalledWith({ event: live, market: openMarket, option: openMarket.options[0] });
+    expect(screen.getByRole("button", { name: /Acima de 2,5/ })).toHaveAttribute("aria-pressed", "true");
     expect(isPredictionOpen(live)).toBe(true);
+  });
+
+  it("mantém a regra completa sob demanda e prioriza uma explicação curta", () => {
+    const market = {
+      ...openMarket,
+      name: "Resultado da partida · 90 minutos",
+      code: "WINNER",
+      timingMode: "PRE_MATCH_ONLY" as const,
+      closesAt: "2030-01-01T15:00:00Z",
+      settlementDescription: "Compara o placar ao final do tempo regulamentar.",
+    };
+    render(<MarketList event={live} markets={[market]} onPredict={vi.fn()} />);
+
+    expect(marketDisplayName(market)).toBe("Pré-jogo · Resultado final");
+    expect(screen.getByText("Disponível até o início do evento.")).toBeVisible();
+    expect(screen.getByText(market.settlementDescription)).not.toBeVisible();
+    fireEvent.click(screen.getByText("Entenda o mercado"));
+    expect(screen.getByText(market.settlementDescription)).toBeVisible();
+    expect(screen.getByText(/pontos utilizados são devolvidos/i)).toBeVisible();
   });
 
   it("não usa estado aberto do evento para habilitar mercado suspenso", () => {
@@ -36,6 +56,20 @@ describe("disponibilidade de mercados retornada pelo servidor", () => {
     expect(choose).not.toHaveBeenCalled();
   });
 
+  it("não usa verde quando um mercado tecnicamente aberto já encerrou para o participante", () => {
+    expect(marketAvailabilityStatus({
+      ...openMarket,
+      availability: { allowed: false, code: "EVENT_STARTED", label: "Encerrado após o início", reason: "Este mercado aceita palpites somente no pré-jogo." },
+    })).toBe("CLOSED");
+  });
+
+  it("concentra a transparência demonstrativa no aviso global", () => {
+    expect(marketAvailabilityTooltip({
+      ...openMarket,
+      availability: { ...openMarket.availability!, reason: "Multiplicadores demonstrativos; pontos exclusivamente virtuais." },
+    })).toBe("Disponibilidade controlada pelo servidor.");
+  });
+
   it("falha fechado quando o servidor ainda não informa disponibilidade", () => {
     expect(isPredictionOpen({ ...live, availableMarketCount: undefined, markets: [{ ...openMarket, availability: undefined }] })).toBe(false);
   });
@@ -44,6 +78,6 @@ describe("disponibilidade de mercados retornada pelo servidor", () => {
     render(<MemoryRouter><EventCard event={{ ...live, status: "OPEN_FOR_PREDICTIONS", availableMarketCount: 0, predictionAvailabilityLabel: "Palpites encerrados" }} /></MemoryRouter>);
     expect(screen.queryByText("Aberto para palpites")).not.toBeInTheDocument();
     expect(screen.getByText("Palpites encerrados")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Detalhes" })).toHaveAttribute("href", "/events/1");
+    expect(screen.getByRole("link", { name: "Ver detalhes" })).toHaveAttribute("href", "/events/1");
   });
 });

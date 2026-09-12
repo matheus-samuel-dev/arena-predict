@@ -12,32 +12,13 @@ export interface TeamLogoProps {
 }
 
 /**
- * Curated sources for the demo teams. Explicit API-provided URLs have priority;
- * these aliases make the demo useful even while a catalog record has no image.
- * Every image has a graphic fallback so a provider outage never creates a
- * broken-image state or an inconsistent text-only identity.
+ * Official marks are intentionally empty until a distributable local asset is
+ * versioned with the project. The public demo never hotlinks third-party logos:
+ * known original identities are local and every other participant receives a
+ * stable generated badge.
  */
 export const TEAM_PLACEHOLDER_PATH = "/assets/teams/team-placeholder.svg";
-export const TEAM_LOGO_MAP: Record<string, string> = {
-  palmeiras: "https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg",
-  flamengo: "https://upload.wikimedia.org/wikipedia/commons/9/96/Clube_de_Regatas_do_Flamengo_logo.svg",
-  furia: "https://upload.wikimedia.org/wikipedia/en/a/ad/FURIA_Esports_logo.svg",
-  "furia esports": "https://upload.wikimedia.org/wikipedia/en/a/ad/FURIA_Esports_logo.svg",
-  navi: "https://commons.wikimedia.org/wiki/Special:FilePath/Natus_Vincere_logo.png",
-  "natus vincere": "https://commons.wikimedia.org/wiki/Special:FilePath/Natus_Vincere_logo.png",
-  loud: "https://commons.wikimedia.org/wiki/Special:FilePath/LOUD_logo.svg",
-  t1: "https://commons.wikimedia.org/wiki/Special:FilePath/T1_esports_logo.svg",
-  "gen.g": "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg",
-  geng: "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg",
-  "gen.g esports": "https://commons.wikimedia.org/wiki/Special:FilePath/Gen.G_Logo.svg",
-  "boston celtics": "https://en.wikipedia.org/wiki/Special:Redirect/file/Boston_Celtics.svg",
-  "dallas mavericks": "https://en.wikipedia.org/wiki/Special:Redirect/file/Dallas_Mavericks_logo.svg",
-  vitality: "https://upload.wikimedia.org/wikipedia/en/4/49/Team_Vitality_logo.svg",
-  "team vitality": "https://upload.wikimedia.org/wikipedia/en/4/49/Team_Vitality_logo.svg",
-  "g2 esports": "https://commons.wikimedia.org/wiki/Special:FilePath/Esports_organization_G2_Esports_logo.svg",
-  g2: "https://commons.wikimedia.org/wiki/Special:FilePath/Esports_organization_G2_Esports_logo.svg",
-  leviatan: "https://owcdn.net/img/61b8888cc3860.png",
-};
+export const TEAM_LOGO_MAP: Record<string, string> = {};
 
 /**
  * Local, original demo identities for individual competitors. They are not

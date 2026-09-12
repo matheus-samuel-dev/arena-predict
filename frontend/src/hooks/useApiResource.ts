@@ -23,7 +23,6 @@ export function useApiResource<T>(loader: () => Promise<T>, dependencies: readon
     } finally {
       if (!silent && currentId === requestId.current) setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependencies);
 
   const reload = useCallback(() => load(false), [load]);

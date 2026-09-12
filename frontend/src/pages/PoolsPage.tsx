@@ -89,6 +89,7 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
   const count = Number(pool.participantCount ?? pool.participants ?? 0);
   const limit = Number(pool.maxParticipants || Math.max(count, 1));
   const league = pool.poolType === "LEAGUE";
+  const scope = poolScopeLabels(pool);
 
   async function leave() {
     if (working) return;
@@ -131,23 +132,37 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
 
   return (
     <>
-      <article className="surface pool-card">
+      <article className={`surface pool-card${league ? " pool-card--league" : ""}`}>
         <div className="pool-card__accent" />
-        <header><span className="pool-card__icon">{league ? <Swords size={21} /> : pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "ACTIVE"} /><h2>{pool.name}</h2><small>{league ? "Organização ArenaPredict" : pool.privacy === "PRIVATE" ? "Bolão privado · por convite" : "Bolão social · público"}</small></div>{pool.owner && !league && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
-        <p>{pool.description || `Competição entre participantes da ${brand.name}.`}</p>
-        <div className="pool-card__meta"><span><Trophy size={15} /> {sportName(pool.sport)}</span><span><CalendarRange size={15} /> {championshipName(pool.championship)}</span></div>
-        <Progress value={count} max={limit} label={`${count} de ${limit} participantes`} />
-        <div className="pool-card__dates"><span><small>Início</small><strong>{dateTime(pool.startsAt)}</strong></span><span><small>Encerramento</small><strong>{dateTime(pool.endsAt)}</strong></span></div>
-        {pool.rules && <details className="competition-rules"><summary>Regras e classificação</summary><p>{pool.rules}</p></details>}
-        {pool.virtualPrizePoints ? <p className="competition-reward">Reconhecimento da temporada: {points(pool.virtualPrizePoints)} pontos virtuais previstos nas regras.</p> : null}
-        {!league && pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
-        <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
+        <div className="pool-card__overview">
+          <header><span className="pool-card__icon">{league ? <Swords size={21} /> : pool.privacy === "PRIVATE" ? <LockKeyhole size={21} /> : <Globe2 size={21} />}</span><div><StatusBadge status={pool.status || "ACTIVE"} /><h2>{pool.name}</h2><small>{league ? "Organização ArenaPredict" : pool.privacy === "PRIVATE" ? "Bolão privado · por convite" : "Bolão social · público"}</small></div>{pool.owner && !league && <span className="owner-badge"><Crown size={13} /> Criador</span>}</header>
+          <p>{pool.description || `Competição entre participantes da ${brand.name}.`}</p>
+          <div className="pool-card__meta"><span><Trophy size={15} /> {scope.sport}</span><span><CalendarRange size={15} /> {scope.championship}</span></div>
+        </div>
+        <div className="pool-card__details">
+          <Progress value={count} max={limit} label={`${count} de ${limit} participantes`} />
+          <div className="pool-card__dates"><span><small>Início</small><strong>{dateTime(pool.startsAt, league)}</strong></span><span><small>Encerramento</small><strong>{dateTime(pool.endsAt, league)}</strong></span></div>
+          {pool.rules && <details className="competition-rules"><summary>Regras e classificação</summary><p>{pool.rules}</p></details>}
+          {pool.virtualPrizePoints ? <p className="competition-reward">Reconhecimento da temporada: {points(pool.virtualPrizePoints)} pontos virtuais previstos nas regras.</p> : null}
+          {!league && pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
+          <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
+        </div>
       </article>
       <Modal open={confirmLeave} onClose={() => !working && setConfirmLeave(false)} title="Sair do grupo" size="sm">
         <div className="confirm-content"><span><UserMinus size={25} /></span><p>Você deixará “{pool.name}” e não aparecerá mais no ranking deste grupo. Deseja continuar?</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmLeave(false)} disabled={working}>Continuar no grupo</Button><Button variant="danger" onClick={leave} loading={working}>Confirmar saída</Button></div></div>
       </Modal>
     </>
   );
+}
+
+export function poolScopeLabels(pool: {
+  sport?: Pool["sport"] | null;
+  championship?: Pool["championship"] | null;
+}) {
+  return {
+    sport: pool.sport ? sportName(pool.sport) : "Todas as modalidades",
+    championship: pool.championship ? championshipName(pool.championship) : "Todos os campeonatos",
+  };
 }
 
 export function validatePoolCreationDraft(values: {

@@ -1,10 +1,11 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  DEFAULT_USER_AVATAR_PATH,
   DEMO_PLAYER_AVATAR_PATH,
   normalizeUserName,
   resolveAvatarSource,
+  userAvatarGradient,
+  userInitials,
   UserAvatar,
 } from "../components/UserAvatar";
 
@@ -17,11 +18,13 @@ describe("UserAvatar", () => {
     expect(resolveAvatarSource("Beatriz Nunes")).toBe("/assets/avatars/beatriz-nunes.webp");
   });
 
-  it("usa um retrato visual padrão, nunca letras, quando o usuário não tem imagem", () => {
+  it("gera iniciais e cores estáveis quando o usuário não tem imagem", () => {
     const { container } = render(<UserAvatar name="Participante sem cadastro" size="xl" />);
 
-    expect(container.querySelector("img")).toHaveAttribute("src", DEFAULT_USER_AVATAR_PATH);
-    expect(container.textContent).toBe("");
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("PC");
+    expect(userInitials("Sofia Martins")).toBe("SM");
+    expect(userAvatarGradient("Sofia Martins")).toBe(userAvatarGradient("Sofia Martins"));
     expect(container.firstElementChild).toHaveClass("user-avatar", "user-avatar--xl");
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
   });
@@ -35,7 +38,7 @@ describe("UserAvatar", () => {
     expect(image).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("troca uma URL quebrada pelo avatar visual local sem alterar a superfície", () => {
+  it("troca uma URL quebrada pelas iniciais sem alterar a superfície", () => {
     const { container } = render(<UserAvatar name="Carlos Souza" src="/imagem-quebrada.jpg" />);
     const surface = container.firstElementChild;
     const image = container.querySelector("img");
@@ -43,8 +46,8 @@ describe("UserAvatar", () => {
     fireEvent.error(image!);
 
     expect(container.firstElementChild).toBe(surface);
-    expect(container.querySelector("img")).toHaveAttribute("src", DEFAULT_USER_AVATAR_PATH);
-    expect(container.textContent).toBe("");
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("CS");
   });
 
   it("preserva a identidade demo mapeada quando uma URL antiga falha", () => {

@@ -245,7 +245,7 @@ export function ProfilePage() {
 
   function navigateProfileTabs(event: KeyboardEvent<HTMLButtonElement>, currentTab: typeof tab) {
     const currentIndex = profileTabs.findIndex(({ id }) => id === currentTab);
-    let nextIndex = currentIndex;
+    let nextIndex: number;
     if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % profileTabs.length;
     else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + profileTabs.length) % profileTabs.length;
     else if (event.key === "Home") nextIndex = 0;

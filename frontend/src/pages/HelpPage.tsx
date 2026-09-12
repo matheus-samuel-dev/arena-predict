@@ -1,4 +1,4 @@
-import { BookOpen, ChevronDown, LifeBuoy, Mail, MessageCircleQuestion, ShieldCheck } from "lucide-react";
+import { ChevronDown, LifeBuoy, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { brand } from "../app/branding";
 import { Button, PageHeader } from "../components/UI";

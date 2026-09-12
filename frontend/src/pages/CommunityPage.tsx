@@ -151,7 +151,7 @@ export function CommunityPage() {
         <aside className="community-sidebar">
           <section className="surface trending-card">
             <header><span><TrendingUp size={19} /></span><div><small>EM ALTA AGORA</small><h2>Conversas para acompanhar</h2></div></header>
-            <Link to="/live"><span><Radio size={17} /></span><div><strong>Palmeiras x Flamengo</strong><small>Evento ao vivo · dados simulados</small></div></Link>
+            <Link to="/live"><span><Radio size={17} /></span><div><strong>Palmeiras x Flamengo</strong><small>Evento ao vivo · acompanhe agora</small></div></Link>
             <Link to="/events"><span><BarChart3 size={17} /></span><div><strong>FURIA x NAVI</strong><small>Análise do segundo mapa</small></div></Link>
             <Link to="/pools"><span><Trophy size={17} /></span><div><strong>Liga Arena 2026</strong><small>Ranking e palpites da rodada</small></div></Link>
           </section>

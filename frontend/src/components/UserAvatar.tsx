@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type HTMLAttributes } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type HTMLAttributes } from "react";
 
 export type UserAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -65,17 +65,39 @@ export function normalizeUserName(value?: string | null) {
 export function resolveAvatarSource(name?: string | null, avatarUrl?: string | null, src?: string | null) {
   const explicitSource = avatarUrl?.trim() || src?.trim();
   if (explicitSource) return explicitSource;
-  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || DEFAULT_USER_AVATAR_PATH;
+  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || null;
 }
 
 export function resolveAvatarFallback(name?: string | null) {
-  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || DEFAULT_USER_AVATAR_PATH;
+  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || null;
+}
+
+export function userInitials(name?: string | null) {
+  const parts = (name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return "?";
+  const initials = parts.length === 1
+    ? parts[0].slice(0, 2)
+    : `${parts[0][0]}${parts.at(-1)?.[0] || ""}`;
+  return initials.toLocaleUpperCase("pt-BR");
+}
+
+export function userAvatarGradient(name?: string | null) {
+  const normalizedName = normalizeUserName(name) || "participante";
+  const hash = [...normalizedName].reduce((value, character) => (
+    ((value << 5) - value + character.charCodeAt(0)) | 0
+  ), 0);
+  const hue = Math.abs(hash) % 360;
+  return `linear-gradient(135deg, hsl(${hue} 66% 46%), hsl(${(hue + 42) % 360} 72% 34%))`;
 }
 
 /**
  * Stable avatar surface shared by account, ranking, community and admin views.
- * Failed remote images fall back to a local illustrated portrait, never initials,
- * so every identity keeps a polished and context-rich visual treatment.
+ * Known demo identities keep their curated portrait. Other identities receive
+ * deterministic initials and colors, including when a stale image URL fails.
  */
 export function UserAvatar({
   name,
@@ -84,10 +106,13 @@ export function UserAvatar({
   size = "md",
   loading = "lazy",
   className = "",
+  style,
   ...props
 }: UserAvatarProps) {
   const preferredSource = useMemo(() => resolveAvatarSource(name, avatarUrl, src), [name, avatarUrl, src]);
   const visualFallback = useMemo(() => resolveAvatarFallback(name), [name]);
+  const initials = useMemo(() => userInitials(name), [name]);
+  const background = useMemo(() => userAvatarGradient(name), [name]);
   const [source, setSource] = useState<string | null>(preferredSource);
   const accessibleLabel = props["aria-label"];
 
@@ -99,6 +124,7 @@ export function UserAvatar({
     <span
       {...props}
       className={`user-avatar user-avatar--${size} ${className}`.trim()}
+      style={{ background, ...style } as CSSProperties}
       role={accessibleLabel ? props.role || "img" : props.role}
       aria-hidden={accessibleLabel ? undefined : true}
     >
@@ -112,15 +138,11 @@ export function UserAvatar({
           decoding="async"
           onError={() => {
             if (source !== visualFallback) setSource(visualFallback);
-            else if (source !== DEFAULT_USER_AVATAR_PATH) setSource(DEFAULT_USER_AVATAR_PATH);
             else setSource(null);
           }}
         />
       ) : (
-        <svg className="user-avatar__placeholder" viewBox="0 0 48 48" aria-hidden="true">
-          <circle cx="24" cy="18" r="8" />
-          <path d="M9 42c1.4-9 6.6-13.5 15-13.5S37.6 33 39 42" />
-        </svg>
+        <span className="user-avatar__initials" aria-hidden="true">{initials}</span>
       )}
     </span>
   );

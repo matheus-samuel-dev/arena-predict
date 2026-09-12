@@ -88,7 +88,11 @@ export function sportName(value: unknown) {
 }
 
 export function championshipName(value: unknown) {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "name" in value) return String((value as { name: unknown }).name);
+  const name = typeof value === "string"
+    ? value
+    : value && typeof value === "object" && "name" in value
+      ? String((value as { name: unknown }).name)
+      : "";
+  if (name) return name.replace(/\s*[·-]\s*demonstra(?:ção|cao)$/i, "").trim();
   return "Campeonato";
 }

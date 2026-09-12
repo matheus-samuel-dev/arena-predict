@@ -63,7 +63,8 @@ export function EventsPage() {
 
   function update(key: string, value: string) {
     const next = new URLSearchParams(params);
-    value ? next.set(key, value) : next.delete(key);
+    if (value) next.set(key, value);
+    else next.delete(key);
     setParams(next, { replace: true });
   }
 
@@ -102,7 +103,7 @@ export function EventsPage() {
 
       {events.length ? <div className="events-grid">{events.map((event) => <EventCard event={event} onPredict={setDraft} key={event.id} />)}</div> : <NoResults onClear={clear} />}
 
-      <div className="virtual-footer-note"><ShieldCheck size={15} /> Multiplicadores são coeficientes simulados para pontos virtuais, nunca cotações financeiras.</div>
+      <div className="virtual-footer-note"><ShieldCheck size={15} /> Coeficientes calculam recompensas apenas em pontos virtuais.</div>
       <PredictionComposer draft={draft} currentEvent={data?.events.find((item) => item.id === draft?.event.id) ?? null} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
   );
@@ -149,7 +150,7 @@ export function LiveEventsPage() {
       <PageHeader
         eyebrow="CENTRAL AO VIVO"
         title="A Arena está em movimento"
-        description="Acompanhe placares, períodos, mapas e mercados ativos. Dados simulados são sempre identificados."
+        description="Acompanhe placares, períodos, mapas e mercados em atualização."
         actions={(
           <div className="live-refresh" aria-live="polite">
             <span><span className="live-pulse"><i /> Atualização automática a cada 30 s</span><small><Wifi size={13} /> Última leitura {dateTime(lastUpdatedAt.toISOString())}</small></span>
@@ -163,8 +164,8 @@ export function LiveEventsPage() {
           <aside className="surface live-side-info">
             <span><Activity size={22} /></span>
             <h2>Como funciona</h2>
-            <p>O serviço interno atualiza placares de demonstração sem sugerir uma integração externa inexistente.</p>
-            <ul><li>Mercados podem ser suspensos durante o evento.</li><li>O horário de fechamento é validado no servidor.</li><li>Resultados oficiais processam recompensas uma única vez.</li></ul>
+            <p>Algumas opções continuam disponíveis durante o evento; outras fecham conforme a disputa avança.</p>
+            <ul><li>Mercados podem ser suspensos em momentos críticos.</li><li>Abertura e fechamento são controlados pelo servidor.</li><li>Resultados processam recompensas uma única vez.</li></ul>
             <div><ShieldCheck size={16} /> Ambiente de entretenimento com pontos virtuais.</div>
           </aside>
         </div>
@@ -189,9 +190,8 @@ function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (d
         <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" /><strong>{away.name || away.code}</strong></div>
       </div>}
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
-      {(event.demoLiveData || event.demo) && <div className="demo-data-note"><ShieldCheck size={14} /> Placar atualizado pelo serviço interno de demonstração.</div>}
       {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label="Mercados ainda não publicados" />}
-      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>Ver todos os mercados ({event.markets?.length || 0})</Link></footer>
+      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>Explorar todos ({event.markets?.length || 0})</Link></footer>
     </article>
   );
 }
@@ -206,6 +206,8 @@ export function EventDetailsPage() {
   const [home, away] = eventTeams(event);
   const multiParticipant = isMultiParticipantEvent(event);
   const participantCount = event.participants?.length || event.competitors?.length || 0;
+  const phaseIsDemo = /^demonstra(?:ção|cao)$/i.test(String(event.phase || ""));
+  const broadcastLabel = /\b(?:demo|demonstra)/i.test(String(event.broadcast || "")) ? "Atualização interna" : event.broadcast;
   const eventTitle = multiParticipant
     ? event.title || `${championshipName(event.championship || event.championshipName)} · ${participantCount ? `${participantCount} participantes` : enumLabel(event.format)}`
     : `${home.name || home.code} × ${away.name || away.code}`;
@@ -215,7 +217,7 @@ export function EventDetailsPage() {
       <EventCard event={event} compact />
       <section className="event-detail-grid">
         <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <CategorizedMarkets event={event} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title="Mercados ainda não publicados" description="A organização adicionará as opções antes do início do evento." />}</div>
-        <aside className="surface event-info"><h2>Informações</h2><dl><div><dt>Local</dt><dd>{event.venue || "A definir"}</dd></div><div><dt>Transmissão</dt><dd>{event.broadcast || "Consulte a programação oficial"}</dd></div><div><dt>Formato</dt><dd>{event.format ? enumLabel(event.format) : "Padrão da modalidade"}</dd></div>{multiParticipant && <div><dt>Participantes</dt><dd>{participantCount || "A definir"}</dd></div>}<div><dt>Fase</dt><dd>{event.phase ? enumLabel(event.phase) : "Fase regular"}</dd></div></dl><div className="virtual-disclaimer"><ShieldCheck size={16} /> Todos os coeficientes calculam somente recompensas em pontos.</div></aside>
+        <aside className="surface event-info"><h2>Informações</h2><dl><div><dt>Local</dt><dd>{event.venue || "A definir"}</dd></div><div><dt>Transmissão</dt><dd>{broadcastLabel || "Consulte a programação oficial"}</dd></div><div><dt>Formato</dt><dd>{event.format ? enumLabel(event.format) : "Padrão da modalidade"}</dd></div>{multiParticipant && <div><dt>Participantes</dt><dd>{participantCount || "A definir"}</dd></div>}{!phaseIsDemo && <div><dt>Fase</dt><dd>{event.phase ? enumLabel(event.phase) : "Fase regular"}</dd></div>}</dl><div className="virtual-disclaimer"><ShieldCheck size={16} /> Todos os coeficientes calculam somente recompensas em pontos.</div></aside>
       </section>
       <PredictionComposer draft={draft} currentEvent={event} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
@@ -237,7 +239,7 @@ export function CategorizedMarkets({ event, onPredict }: { event: ArenaEvent; on
   const [selectedCategory, setSelectedCategory] = useState("");
   const selected = groups.find((group) => group.name === selectedCategory) || groups[0];
   return <section className="event-markets" aria-label="Mercados por categoria">
-    <div className="market-availability-summary" aria-live="polite"><strong>{event.predictionAvailabilityLabel || "Consulte os estados dos mercados"}</strong><span>{event.availableMarketCount ?? 0} mercados abertos · Multiplicadores demonstrativos</span></div>
+    <div className="market-availability-summary" aria-live="polite"><strong>{event.predictionAvailabilityLabel || "Consulte os estados dos mercados"}</strong><span>{event.availableMarketCount ?? 0} mercados abertos · pontos exclusivamente virtuais</span></div>
     <div className="market-category-filters" role="group" aria-label="Selecionar categoria de mercado">
       {groups.map((group) => <button type="button" key={group.name} aria-pressed={selected?.name === group.name} aria-controls="selected-market-category" onClick={() => setSelectedCategory(group.name)}>{group.name}<span>{group.markets.length}</span></button>)}
     </div>

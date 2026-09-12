@@ -1,11 +1,11 @@
-import { CheckCircle2, Coins, ShieldCheck, Sparkles, Target, Trophy } from "lucide-react";
+import { CheckCircle2, Coins, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { championshipName, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
+import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
 import { createIdempotencyKey, poolsApi, predictionsApi } from "../services/api";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
-import { eventParticipantViews, isMultiParticipantEvent } from "./EventCard";
+import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
 import { Button, Modal } from "./UI";
 
 const MINIMUM_POINTS = 10;
@@ -168,11 +168,11 @@ export function PredictionComposer({
             <strong>{matchupLabel}</strong>
           </div>
           <div className="selection-summary">
-            <span><Target size={18} /></span>
-            <div><small>{draft.market.name}</small><strong>{draft.option.label || draft.option.name}</strong></div>
-            <b title="Multiplicador demonstrativo">{multiplier(coefficient)}</b>
+            <span><CheckCircle2 size={18} /></span>
+            <div><small>{marketDisplayName(draft.market)}</small><strong>{draft.option.label || draft.option.name}</strong></div>
+            <b title="Multiplicador">{multiplier(coefficient)}</b>
           </div>
-          <p className="prediction-multiplier-note">Multiplicador demonstrativo · registrado junto ao seu palpite</p>
+          <p className="prediction-multiplier-note">Multiplicador registrado junto ao seu palpite.</p>
           <label className="stake-field" htmlFor="prediction-stake">
             <span>Pontos virtuais</span>
             <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
@@ -211,9 +211,18 @@ export function PredictionComposer({
           <span><CheckCircle2 size={34} /></span>
           <h3>Sua leitura está registrada</h3>
           <p>Acompanhe o evento e o processamento da recompensa em “Meus palpites”.</p>
-          <dl className="prediction-receipt"><div><dt>Pontos debitados</dt><dd>{points(confirmed.stakePoints ?? confirmed.points ?? stake)} pts</dd></div><div><dt>Multiplicador registrado</dt><dd>{multiplier(confirmed.multiplier ?? coefficient)}</dd></div><div><dt>Palpite</dt><dd>#{confirmed.id}</dd></div></dl>
-          <div><small>Potencial</small><strong>{points(confirmed.potentialPoints ?? potential)} pts</strong></div>
-          <Button onClick={closeComposer}>Continuar na Arena</Button>
+          <dl className="prediction-receipt">
+            <div className="prediction-receipt__wide"><dt>Evento</dt><dd>{confirmed.eventTitle || matchupLabel}</dd></div>
+            <div className="prediction-receipt__wide"><dt>Escolha</dt><dd>{confirmed.optionLabel || confirmed.optionName || draft?.option.label || draft?.option.name || "Opção registrada"}</dd></div>
+            <div><dt>Pontos utilizados</dt><dd>{points(confirmed.stakePoints ?? confirmed.points ?? stake)} pts</dd></div>
+            <div><dt>Multiplicador</dt><dd>{multiplier(confirmed.multiplier ?? coefficient)}</dd></div>
+            <div><dt>Potencial</dt><dd>{points(confirmed.potentialPoints ?? potential)} pts</dd></div>
+            <div><dt>Confirmado em</dt><dd>{dateTime(confirmed.placedAt || confirmed.createdAt || new Date().toISOString(), true)}</dd></div>
+          </dl>
+          <div className="prediction-success__actions">
+            <Button variant="secondary" onClick={closeComposer}>Continuar na Arena</Button>
+            <a className="button button--primary button--md" href="/predictions" onClick={closeComposer}>Ver meus palpites</a>
+          </div>
         </div>
       )}
     </Modal>

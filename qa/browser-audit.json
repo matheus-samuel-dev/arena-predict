@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-09-09T21:55:24.825Z",
+  "startedAt": "2026-09-12T14:25:07.199Z",
   "baseURL": "http://localhost:5174",
   "pages": [
     {
@@ -14,7 +14,8 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 464
+      "readyMs": 1623,
+      "screenshot": "app-1440-light.png"
     },
     {
       "route": "/events",
@@ -37,79 +38,79 @@
       ],
       "cards": [
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 478,
+          "height": 470,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 430,
+      "readyMs": 1010,
       "screenshot": "events-1440-light.png"
     },
     {
@@ -124,7 +125,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 400,
+      "readyMs": 330,
       "screenshot": "live-1440-light.png"
     },
     {
@@ -139,7 +140,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 367
+      "readyMs": 434
     },
     {
       "route": "/pools",
@@ -153,7 +154,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 577
+      "readyMs": 308
     },
     {
       "route": "/leagues",
@@ -167,7 +168,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 655
+      "readyMs": 344
     },
     {
       "route": "/rankings",
@@ -196,7 +197,7 @@
         }
       ],
       "cards": [],
-      "readyMs": 509,
+      "readyMs": 518,
       "screenshot": "rankings-1440-light.png"
     },
     {
@@ -211,7 +212,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 364
+      "readyMs": 459
     },
     {
       "route": "/challenges",
@@ -225,7 +226,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 326
+      "readyMs": 506
     },
     {
       "route": "/points",
@@ -239,7 +240,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 499
+      "readyMs": 986
     },
     {
       "route": "/events/1",
@@ -253,7 +254,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 566
+      "readyMs": 1043
     },
     {
       "route": "/events/3",
@@ -267,7 +268,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 458
+      "readyMs": 516
     },
     {
       "route": "/events/2",
@@ -281,7 +282,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 474
+      "readyMs": 333
     },
     {
       "route": "/events/5",
@@ -295,7 +296,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 389
+      "readyMs": 368
     },
     {
       "route": "/events/7",
@@ -309,7 +310,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 415
+      "readyMs": 582
     },
     {
       "route": "/events/4",
@@ -323,7 +324,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 368
+      "readyMs": 459
     },
     {
       "route": "/events/6",
@@ -337,7 +338,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 500
+      "readyMs": 375
     },
     {
       "route": "/events/10",
@@ -351,7 +352,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 364
+      "readyMs": 338
     },
     {
       "route": "/events/12",
@@ -365,7 +366,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 410
+      "readyMs": 307
     },
     {
       "route": "/events/11",
@@ -379,7 +380,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 387
+      "readyMs": 469
     },
     {
       "route": "/app",
@@ -393,7 +394,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 1053
+      "readyMs": 1168
     },
     {
       "route": "/events",
@@ -416,79 +417,79 @@
       ],
       "cards": [
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 478,
+          "height": 470,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 496
+      "readyMs": 1077
     },
     {
       "route": "/live",
@@ -502,7 +503,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 449
+      "readyMs": 1065
     },
     {
       "route": "/rankings",
@@ -531,7 +532,7 @@
         }
       ],
       "cards": [],
-      "readyMs": 451
+      "readyMs": 600
     },
     {
       "route": "/events/1",
@@ -545,7 +546,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 458
+      "readyMs": 356
     },
     {
       "route": "/events/3",
@@ -559,7 +560,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 346
+      "readyMs": 363
     },
     {
       "route": "/events/2",
@@ -573,7 +574,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 503
+      "readyMs": 356
     },
     {
       "route": "/events/5",
@@ -587,7 +588,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 601
+      "readyMs": 424
     },
     {
       "route": "/events/7",
@@ -601,31 +602,31 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 405
+      "readyMs": 441
     },
     {
       "route": "/app",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "Boa leitura, Jogador.",
       "overflow": false,
-      "scrollWidth": 1366,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 1030
+      "readyMs": 1027
     },
     {
       "route": "/events",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "Eventos",
       "overflow": false,
-      "scrollWidth": 1366,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [
         {
@@ -638,103 +639,103 @@
       ],
       "cards": [
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 496,
+          "height": 470,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 669
+      "readyMs": 614
     },
     {
       "route": "/live",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "A Arena está em movimento",
       "overflow": false,
-      "scrollWidth": 1366,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 382
+      "readyMs": 360
     },
     {
       "route": "/rankings",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "Rankings",
       "overflow": false,
-      "scrollWidth": 1366,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [
         {
@@ -753,202 +754,646 @@
         }
       ],
       "cards": [],
-      "readyMs": 429
+      "readyMs": 426
     },
     {
       "route": "/events/1",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "Palmeiras × Flamengo",
       "overflow": false,
-      "scrollWidth": 1366,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 486
+      "readyMs": 386
     },
     {
       "route": "/events/3",
-      "width": 1366,
-      "height": 768,
+      "width": 1536,
+      "height": 864,
       "theme": "light",
       "missingLabels": [],
       "title": "Boston Celtics × Dallas Mavericks",
       "overflow": false,
-      "scrollWidth": 1366,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 687
-    },
-    {
-      "route": "/events/2",
-      "width": 1366,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "FURIA × NAVI",
-      "overflow": false,
-      "scrollWidth": 1366,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 532
-    },
-    {
-      "route": "/events/5",
-      "width": 1366,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Carlos Alcaraz × Jannik Sinner",
-      "overflow": false,
-      "scrollWidth": 1366,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 695
-    },
-    {
-      "route": "/events/7",
-      "width": 1366,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Grande Prêmio da Arena",
-      "overflow": false,
-      "scrollWidth": 1366,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 475
-    },
-    {
-      "route": "/app",
-      "width": 1024,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Boa leitura, Jogador.",
-      "overflow": false,
-      "scrollWidth": 1024,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 1139
-    },
-    {
-      "route": "/events",
-      "width": 1024,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Eventos",
-      "overflow": false,
-      "scrollWidth": 1024,
-      "offenders": [],
-      "controls": [
-        {
-          "label": "Filtrar modalidade",
-          "background": "rgb(255, 255, 255)",
-          "color": "rgb(22, 27, 43)",
-          "optionBackground": "rgb(255, 255, 255)",
-          "colorScheme": "light"
-        }
-      ],
-      "cards": [
-        {
-          "height": 369,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 369,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 359,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 478,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        }
-      ],
-      "readyMs": 703
-    },
-    {
-      "route": "/live",
-      "width": 1024,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "A Arena está em movimento",
-      "overflow": false,
-      "scrollWidth": 1024,
+      "scrollWidth": 1536,
       "offenders": [],
       "controls": [],
       "cards": [],
       "readyMs": 392
     },
     {
+      "route": "/events/2",
+      "width": 1536,
+      "height": 864,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "FURIA × NAVI",
+      "overflow": false,
+      "scrollWidth": 1536,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 406
+    },
+    {
+      "route": "/events/5",
+      "width": 1536,
+      "height": 864,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Carlos Alcaraz × Jannik Sinner",
+      "overflow": false,
+      "scrollWidth": 1536,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 476
+    },
+    {
+      "route": "/events/7",
+      "width": 1536,
+      "height": 864,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 1536,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 535
+    },
+    {
+      "route": "/app",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boa leitura, Jogador.",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1020
+    },
+    {
+      "route": "/events",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Eventos",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 470,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        }
+      ],
+      "readyMs": 596
+    },
+    {
+      "route": "/live",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 412
+    },
+    {
+      "route": "/rankings",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Rankings",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar ranking por grupo",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        },
+        {
+          "label": "Filtrar ranking por modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 1056
+    },
+    {
+      "route": "/events/1",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Palmeiras × Flamengo",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1052
+    },
+    {
+      "route": "/events/3",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boston Celtics × Dallas Mavericks",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 493
+    },
+    {
+      "route": "/events/2",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "FURIA × NAVI",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 372
+    },
+    {
+      "route": "/events/5",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Carlos Alcaraz × Jannik Sinner",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 495
+    },
+    {
+      "route": "/events/7",
+      "width": 1366,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 1366,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 348
+    },
+    {
+      "route": "/app",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boa leitura, Jogador.",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 426
+    },
+    {
+      "route": "/events",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Eventos",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 361,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 470,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        }
+      ],
+      "readyMs": 458
+    },
+    {
+      "route": "/live",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 444
+    },
+    {
+      "route": "/rankings",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Rankings",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar ranking por grupo",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        },
+        {
+          "label": "Filtrar ranking por modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 379
+    },
+    {
+      "route": "/events/1",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Palmeiras × Flamengo",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 288
+    },
+    {
+      "route": "/events/3",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boston Celtics × Dallas Mavericks",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 340
+    },
+    {
+      "route": "/events/2",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "FURIA × NAVI",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 331
+    },
+    {
+      "route": "/events/5",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Carlos Alcaraz × Jannik Sinner",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 330
+    },
+    {
+      "route": "/events/7",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 380
+    },
+    {
+      "route": "/app",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boa leitura, Jogador.",
+      "overflow": false,
+      "scrollWidth": 1024,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1011
+    },
+    {
+      "route": "/events",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Eventos",
+      "overflow": false,
+      "scrollWidth": 1024,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 319,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 351,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 470,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        }
+      ],
+      "readyMs": 1003
+    },
+    {
+      "route": "/live",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 1024,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1033
+    },
+    {
       "route": "/rankings",
       "width": 1024,
       "height": 768,
@@ -975,7 +1420,7 @@
         }
       ],
       "cards": [],
-      "readyMs": 489
+      "readyMs": 1033
     },
     {
       "route": "/events/1",
@@ -989,7 +1434,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 583
+      "readyMs": 397
     },
     {
       "route": "/events/3",
@@ -1003,7 +1448,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 450
+      "readyMs": 399
     },
     {
       "route": "/events/2",
@@ -1017,7 +1462,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 364
+      "readyMs": 398
     },
     {
       "route": "/events/5",
@@ -1026,20 +1471,6 @@
       "theme": "light",
       "missingLabels": [],
       "title": "Carlos Alcaraz × Jannik Sinner",
-      "overflow": false,
-      "scrollWidth": 1024,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 431
-    },
-    {
-      "route": "/events/7",
-      "width": 1024,
-      "height": 768,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Grande Prêmio da Arena",
       "overflow": false,
       "scrollWidth": 1024,
       "offenders": [],
@@ -1048,6 +1479,20 @@
       "readyMs": 418
     },
     {
+      "route": "/events/7",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 1024,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 488
+    },
+    {
       "route": "/app",
       "width": 768,
       "height": 1024,
@@ -1059,7 +1504,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 1077
+      "readyMs": 640
     },
     {
       "route": "/events",
@@ -1082,79 +1527,79 @@
       ],
       "cards": [
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 478,
+          "height": 470,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 571
+      "readyMs": 397
     },
     {
       "route": "/live",
@@ -1163,6 +1608,49 @@
       "theme": "light",
       "missingLabels": [],
       "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 768,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 255
+    },
+    {
+      "route": "/rankings",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Rankings",
+      "overflow": false,
+      "scrollWidth": 768,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar ranking por grupo",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        },
+        {
+          "label": "Filtrar ranking por modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 351
+    },
+    {
+      "route": "/events/1",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Palmeiras × Flamengo",
       "overflow": false,
       "scrollWidth": 768,
       "offenders": [],
@@ -1171,14 +1659,193 @@
       "readyMs": 482
     },
     {
-      "route": "/rankings",
+      "route": "/events/3",
       "width": 768,
       "height": 1024,
       "theme": "light",
       "missingLabels": [],
-      "title": "Rankings",
+      "title": "Boston Celtics × Dallas Mavericks",
       "overflow": false,
       "scrollWidth": 768,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 193
+    },
+    {
+      "route": "/events/2",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "FURIA × NAVI",
+      "overflow": false,
+      "scrollWidth": 768,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 599
+    },
+    {
+      "route": "/events/5",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Carlos Alcaraz × Jannik Sinner",
+      "overflow": false,
+      "scrollWidth": 768,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 321
+    },
+    {
+      "route": "/events/7",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 768,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 363
+    },
+    {
+      "route": "/app",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boa leitura, Jogador.",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 528
+    },
+    {
+      "route": "/events",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Eventos",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [
+        {
+          "height": 398,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 398,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 497,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 465,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 410,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 584,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        }
+      ],
+      "readyMs": 423
+    },
+    {
+      "route": "/live",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 349
+    },
+    {
+      "route": "/rankings",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Rankings",
+      "overflow": false,
+      "scrollWidth": 430,
       "offenders": [],
       "controls": [
         {
@@ -1197,424 +1864,202 @@
         }
       ],
       "cards": [],
-      "readyMs": 387
+      "readyMs": 241
     },
     {
       "route": "/events/1",
-      "width": 768,
-      "height": 1024,
+      "width": 430,
+      "height": 932,
       "theme": "light",
       "missingLabels": [],
       "title": "Palmeiras × Flamengo",
       "overflow": false,
-      "scrollWidth": 768,
+      "scrollWidth": 430,
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 369
+      "readyMs": 220
     },
     {
       "route": "/events/3",
-      "width": 768,
-      "height": 1024,
+      "width": 430,
+      "height": 932,
       "theme": "light",
       "missingLabels": [],
       "title": "Boston Celtics × Dallas Mavericks",
       "overflow": false,
-      "scrollWidth": 768,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 212
+    },
+    {
+      "route": "/events/2",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "FURIA × NAVI",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 331
+    },
+    {
+      "route": "/events/5",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Carlos Alcaraz × Jannik Sinner",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 287
+    },
+    {
+      "route": "/events/7",
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Grande Prêmio da Arena",
+      "overflow": false,
+      "scrollWidth": 430,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 347
+    },
+    {
+      "route": "/app",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Boa leitura, Jogador.",
+      "overflow": false,
+      "scrollWidth": 390,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1030
+    },
+    {
+      "route": "/events",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Eventos",
+      "overflow": false,
+      "scrollWidth": 390,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar modalidade",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [
+        {
+          "height": 401,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 432,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 414,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 414,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 445,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 414,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 520,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 469,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 414,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 414,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 445,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        },
+        {
+          "height": 587,
+          "alignSelf": "start",
+          "minHeight": "0px",
+          "gridAlign": "start"
+        }
+      ],
+      "readyMs": 472
+    },
+    {
+      "route": "/live",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "A Arena está em movimento",
+      "overflow": false,
+      "scrollWidth": 390,
       "offenders": [],
       "controls": [],
       "cards": [],
       "readyMs": 415
     },
     {
-      "route": "/events/2",
-      "width": 768,
-      "height": 1024,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "FURIA × NAVI",
-      "overflow": false,
-      "scrollWidth": 768,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 411
-    },
-    {
-      "route": "/events/5",
-      "width": 768,
-      "height": 1024,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Carlos Alcaraz × Jannik Sinner",
-      "overflow": false,
-      "scrollWidth": 768,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 365
-    },
-    {
-      "route": "/events/7",
-      "width": 768,
-      "height": 1024,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Grande Prêmio da Arena",
-      "overflow": false,
-      "scrollWidth": 768,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 382
-    },
-    {
-      "route": "/app",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Boa leitura, Jogador.",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 983
-    },
-    {
-      "route": "/events",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Eventos",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [
-        {
-          "label": "Filtrar modalidade",
-          "background": "rgb(255, 255, 255)",
-          "color": "rgb(22, 27, 43)",
-          "optionBackground": "rgb(255, 255, 255)",
-          "colorScheme": "light"
-        }
-      ],
-      "cards": [
-        {
-          "height": 428,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 428,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 525,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 439,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 494,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 592,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        }
-      ],
-      "readyMs": 517
-    },
-    {
-      "route": "/live",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "A Arena está em movimento",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 342
-    },
-    {
-      "route": "/rankings",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Rankings",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [
-        {
-          "label": "Filtrar ranking por grupo",
-          "background": "rgb(255, 255, 255)",
-          "color": "rgb(22, 27, 43)",
-          "optionBackground": "rgb(255, 255, 255)",
-          "colorScheme": "light"
-        },
-        {
-          "label": "Filtrar ranking por modalidade",
-          "background": "rgb(255, 255, 255)",
-          "color": "rgb(22, 27, 43)",
-          "optionBackground": "rgb(255, 255, 255)",
-          "colorScheme": "light"
-        }
-      ],
-      "cards": [],
-      "readyMs": 244
-    },
-    {
-      "route": "/events/1",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Palmeiras × Flamengo",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 305
-    },
-    {
-      "route": "/events/3",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Boston Celtics × Dallas Mavericks",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 215
-    },
-    {
-      "route": "/events/2",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "FURIA × NAVI",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 199
-    },
-    {
-      "route": "/events/5",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Carlos Alcaraz × Jannik Sinner",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 241
-    },
-    {
-      "route": "/events/7",
-      "width": 430,
-      "height": 932,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Grande Prêmio da Arena",
-      "overflow": false,
-      "scrollWidth": 430,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 345
-    },
-    {
-      "route": "/app",
-      "width": 390,
-      "height": 844,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Boa leitura, Jogador.",
-      "overflow": false,
-      "scrollWidth": 390,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 525
-    },
-    {
-      "route": "/events",
-      "width": 390,
-      "height": 844,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "Eventos",
-      "overflow": false,
-      "scrollWidth": 390,
-      "offenders": [],
-      "controls": [
-        {
-          "label": "Filtrar modalidade",
-          "background": "rgb(255, 255, 255)",
-          "color": "rgb(22, 27, 43)",
-          "optionBackground": "rgb(255, 255, 255)",
-          "colorScheme": "light"
-        }
-      ],
-      "cards": [
-        {
-          "height": 459,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 428,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 545,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 439,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 494,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 450,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 418,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 450,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        },
-        {
-          "height": 592,
-          "alignSelf": "start",
-          "minHeight": "0px",
-          "gridAlign": "start"
-        }
-      ],
-      "readyMs": 357
-    },
-    {
-      "route": "/live",
-      "width": 390,
-      "height": 844,
-      "theme": "light",
-      "missingLabels": [],
-      "title": "A Arena está em movimento",
-      "overflow": false,
-      "scrollWidth": 390,
-      "offenders": [],
-      "controls": [],
-      "cards": [],
-      "readyMs": 348
-    },
-    {
       "route": "/rankings",
       "width": 390,
       "height": 844,
@@ -1641,7 +2086,7 @@
         }
       ],
       "cards": [],
-      "readyMs": 247
+      "readyMs": 401
     },
     {
       "route": "/events/1",
@@ -1655,7 +2100,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 411
+      "readyMs": 401
     },
     {
       "route": "/events/3",
@@ -1669,7 +2114,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 435
+      "readyMs": 370
     },
     {
       "route": "/events/2",
@@ -1683,7 +2128,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 244
+      "readyMs": 290
     },
     {
       "route": "/events/5",
@@ -1697,7 +2142,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 233
+      "readyMs": 268
     },
     {
       "route": "/events/7",
@@ -1711,7 +2156,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 259
+      "readyMs": 366
     },
     {
       "route": "/app",
@@ -1725,7 +2170,8 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 488
+      "readyMs": 1007,
+      "screenshot": "app-360-light.png"
     },
     {
       "route": "/events",
@@ -1748,79 +2194,79 @@
       ],
       "cards": [
         {
-          "height": 482,
+          "height": 452,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 462,
+          "height": 452,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 568,
+          "height": 434,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 473,
+          "height": 465,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 462,
+          "height": 465,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 548,
+          "height": 434,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 473,
+          "height": 540,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 473,
+          "height": 520,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 442,
+          "height": 434,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 442,
+          "height": 465,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 473,
+          "height": 465,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 647,
+          "height": 639,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 369,
+      "readyMs": 383,
       "screenshot": "events-360-light.png"
     },
     {
@@ -1835,7 +2281,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 368,
+      "readyMs": 385,
       "screenshot": "live-360-light.png"
     },
     {
@@ -1865,7 +2311,7 @@
         }
       ],
       "cards": [],
-      "readyMs": 381,
+      "readyMs": 369,
       "screenshot": "rankings-360-light.png"
     },
     {
@@ -1880,7 +2326,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 287
+      "readyMs": 395
     },
     {
       "route": "/events/3",
@@ -1894,7 +2340,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 396
+      "readyMs": 311
     },
     {
       "route": "/events/2",
@@ -1908,7 +2354,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 373
+      "readyMs": 301
     },
     {
       "route": "/events/5",
@@ -1922,7 +2368,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 412
+      "readyMs": 398
     },
     {
       "route": "/events/7",
@@ -1936,7 +2382,7 @@
       "offenders": [],
       "controls": [],
       "cards": [],
-      "readyMs": 362
+      "readyMs": 422
     },
     {
       "route": "/events",
@@ -1959,79 +2405,79 @@
       ],
       "cards": [
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 319,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 369,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 359,
+          "height": 351,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         },
         {
-          "height": 478,
+          "height": 470,
           "alignSelf": "start",
           "minHeight": "0px",
           "gridAlign": "start"
         }
       ],
-      "readyMs": 455,
+      "readyMs": 423,
       "screenshot": "events-1440-dark.png"
     },
     {
@@ -2061,7 +2507,448 @@
         }
       ],
       "cards": [],
-      "readyMs": 246
+      "readyMs": 455
+    },
+    {
+      "route": "/admin",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Painel administrativo",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 1097,
+      "screenshot": "admin-1440-light.png"
+    },
+    {
+      "route": "/admin/sports",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Modalidades",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 286
+    },
+    {
+      "route": "/admin/championships",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Campeonatos",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 395
+    },
+    {
+      "route": "/admin/competitors",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Equipes e participantes",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 431
+    },
+    {
+      "route": "/admin/events",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Gerenciar eventos",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Gerenciar eventos",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 528
+    },
+    {
+      "route": "/admin/markets",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Mercados de previsão",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Mercados de previsão",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 472,
+      "screenshot": "admin-markets-1440-light.png"
+    },
+    {
+      "route": "/admin/results",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Resultados",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Resultados",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 1050
+    },
+    {
+      "route": "/admin/users",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Usuários",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 572,
+      "screenshot": "admin-users-1440-light.png"
+    },
+    {
+      "route": "/admin/pools",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Bolões e ligas",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 486
+    },
+    {
+      "route": "/admin/scoring-rules",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Regras de pontuação",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 378
+    },
+    {
+      "route": "/admin/engagement",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Gerenciar eventos",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Gerenciar eventos",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 982
+    },
+    {
+      "route": "/admin/moderation",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Moderação",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 543
+    },
+    {
+      "route": "/admin/reports",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Relatórios",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 441
+    },
+    {
+      "route": "/admin/audit",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Auditoria",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 294
+    },
+    {
+      "route": "/admin/settings",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Configurações",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Configurações",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 274
+    },
+    {
+      "route": "/admin",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Painel administrativo",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 513
+    },
+    {
+      "route": "/admin/events",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Gerenciar eventos",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Gerenciar eventos",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 394
+    },
+    {
+      "route": "/admin/markets",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Mercados de previsão",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Mercados de previsão",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 413
+    },
+    {
+      "route": "/admin/results",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Resultados",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Resultados",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 407
+    },
+    {
+      "route": "/admin/users",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Usuários",
+      "overflow": false,
+      "scrollWidth": 1280,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 261
+    },
+    {
+      "route": "/admin",
+      "width": 360,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Painel administrativo",
+      "overflow": false,
+      "scrollWidth": 360,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 265
+    },
+    {
+      "route": "/admin/events",
+      "width": 360,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Gerenciar eventos",
+      "overflow": false,
+      "scrollWidth": 360,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Gerenciar eventos",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 455
+    },
+    {
+      "route": "/admin/markets",
+      "width": 360,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Mercados de previsão",
+      "overflow": false,
+      "scrollWidth": 360,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Mercados de previsão",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 1012
+    },
+    {
+      "route": "/admin/results",
+      "width": 360,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Resultados",
+      "overflow": false,
+      "scrollWidth": 360,
+      "offenders": [],
+      "controls": [
+        {
+          "label": "Filtrar status em Resultados",
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(22, 27, 43)",
+          "optionBackground": "rgb(255, 255, 255)",
+          "colorScheme": "light"
+        }
+      ],
+      "cards": [],
+      "readyMs": 608
+    },
+    {
+      "route": "/admin/users",
+      "width": 360,
+      "height": 800,
+      "theme": "light",
+      "missingLabels": [],
+      "title": "Usuários",
+      "overflow": false,
+      "scrollWidth": 360,
+      "offenders": [],
+      "controls": [],
+      "cards": [],
+      "readyMs": 322
     }
   ],
   "errors": [],
@@ -2079,10 +2966,6 @@
       "status": 200
     },
     {
-      "url": "/api/dashboard",
-      "status": 200
-    },
-    {
       "url": "/api/auth/me",
       "status": 200
     },
@@ -2100,10 +2983,6 @@
     },
     {
       "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2115,6 +2994,10 @@
       "status": 200
     },
     {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
       "url": "/api/events?size=48",
       "status": 200
     },
@@ -2123,11 +3006,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2139,11 +3022,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2171,11 +3054,11 @@
       "status": 200
     },
     {
-      "url": "/api/auth/me",
+      "url": "/api/championships",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/auth/me",
       "status": 200
     },
     {
@@ -2183,15 +3066,19 @@
       "status": 200
     },
     {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
       "url": "/api/pools",
       "status": 200
     },
     {
-      "url": "/api/championships",
+      "url": "/api/sports",
       "status": 200
     },
     {
-      "url": "/api/sports",
+      "url": "/api/championships",
       "status": 200
     },
     {
@@ -2235,11 +3122,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2251,7 +3138,7 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2259,7 +3146,7 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -2268,6 +3155,10 @@
     },
     {
       "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2279,19 +3170,15 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
       "url": "/api/auth/me",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2335,11 +3222,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2355,11 +3242,11 @@
       "status": 200
     },
     {
-      "url": "/api/events/4",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/events/4",
       "status": 200
     },
     {
@@ -2387,11 +3274,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/events/10",
       "status": 200
     },
     {
-      "url": "/api/events/10",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -2451,11 +3338,11 @@
       "status": 200
     },
     {
-      "url": "/api/sports",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/sports",
       "status": 200
     },
     {
@@ -2467,163 +3354,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/live",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/1",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/events/3",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/2",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
       "url": "/api/notifications",
       "status": 200
     },
     {
       "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/events/5",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/7",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/dashboard",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events?size=48",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -2687,163 +3422,11 @@
       "status": 200
     },
     {
-      "url": "/api/events/2",
-      "status": 200
-    },
-    {
       "url": "/api/wallet",
       "status": 200
     },
     {
       "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/5",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/events/7",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/dashboard",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events?size=48",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/events/live",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/events/1",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/events/3",
-      "status": 200
-    },
-    {
-      "url": "/api/auth/me",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -2939,7 +3522,7 @@
       "status": 200
     },
     {
-      "url": "/api/sports",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -2947,7 +3530,7 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/sports",
       "status": 200
     },
     {
@@ -2991,11 +3574,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3023,11 +3606,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3055,15 +3638,15 @@
       "status": 200
     },
     {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
       "url": "/api/wallet",
       "status": 200
     },
     {
       "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3091,19 +3674,19 @@
       "status": 200
     },
     {
-      "url": "/api/sports",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
-      "status": 200
-    },
-    {
       "url": "/api/notifications",
       "status": 200
     },
     {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
       "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3207,11 +3790,11 @@
       "status": 200
     },
     {
-      "url": "/api/sports",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/sports",
       "status": 200
     },
     {
@@ -3227,11 +3810,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3243,7 +3826,7 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/sports",
       "status": 200
     },
     {
@@ -3251,7 +3834,7 @@
       "status": 200
     },
     {
-      "url": "/api/sports",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3263,11 +3846,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3279,11 +3862,11 @@
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3327,11 +3910,11 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/notifications",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3348,6 +3931,158 @@
     },
     {
       "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/events?size=48",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/live",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/1",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/3",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/2",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/events/5",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/7",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3379,11 +4114,463 @@
       "status": 200
     },
     {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/live",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/1",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
       "url": "/api/notifications",
       "status": 200
     },
     {
       "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/3",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/2",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/5",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/7",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events?size=48",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/live",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/1",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/3",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/2",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/5",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/7",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/events?size=48",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/live",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/events/1",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/3",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/events/2",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/5",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/events/7",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/events?size=48",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3431,7 +4618,7 @@
       "status": 200
     },
     {
-      "url": "/api/events/3",
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3439,7 +4626,7 @@
       "status": 200
     },
     {
-      "url": "/api/wallet",
+      "url": "/api/events/3",
       "status": 200
     },
     {
@@ -3492,6 +4679,10 @@
     },
     {
       "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3500,10 +4691,6 @@
     },
     {
       "url": "/api/achievements",
-      "status": 200
-    },
-    {
-      "url": "/api/wallet",
       "status": 200
     },
     {
@@ -3519,15 +4706,15 @@
       "status": 200
     },
     {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
       "url": "/api/sports",
       "status": 200
     },
     {
       "url": "/api/wallet",
-      "status": 200
-    },
-    {
-      "url": "/api/notifications",
       "status": 200
     },
     {
@@ -3539,7 +4726,91 @@
       "status": 200
     },
     {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
       "url": "/api/sports",
+      "status": 200
+    },
+    {
+      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/profile",
+      "status": 200
+    },
+    {
+      "url": "/api/achievements",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/demo",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/audit?page=0&size=6",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/sports?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/sports?page=0&size=100",
       "status": 200
     },
     {
@@ -3551,7 +4822,87 @@
       "status": 200
     },
     {
-      "url": "/api/rankings?period=WEEKLY&scope=GLOBAL",
+      "url": "/api/admin/championships?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/sports?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/competitors?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/championships?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/competitors?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/markets?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
       "status": 200
     },
     {
@@ -3563,7 +4914,15 @@
       "status": 200
     },
     {
-      "url": "/api/profile",
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/users?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
       "status": 200
     },
     {
@@ -3571,445 +4930,329 @@
       "status": 200
     },
     {
-      "url": "/api/achievements",
+      "url": "/api/notifications",
       "status": 200
     },
     {
-      "url": "/api/dashboard",
+      "url": "/api/admin/pools?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/scoring-rules?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/competitors?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/championships?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/moderation?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/reports?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/audit?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/settings?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/audit?page=0&size=6",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/championships?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/competitors?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/markets?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/users?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/audit?page=0&size=6",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/dashboard",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/competitors?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/championships?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=100",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/markets?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/events?page=0&size=25",
+      "status": 200
+    },
+    {
+      "url": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "url": "/api/wallet",
+      "status": 200
+    },
+    {
+      "url": "/api/notifications",
+      "status": 200
+    },
+    {
+      "url": "/api/admin/users?page=0&size=25",
       "status": 200
     }
   ],
   "persistence": {
-    "verifiedAt": "2026-09-09T21:55:27.189Z",
+    "verifiedAt": "2026-09-12T14:25:12.904Z",
     "wallet": {
-      "balance": 7158,
-      "lifetimeEarned": 3573,
-      "lifetimeUsed": 1485,
-      "updatedAt": "2026-09-09T17:14:24.461652Z",
+      "balance": 7838,
+      "lifetimeEarned": 4303,
+      "lifetimeUsed": 1535,
+      "updatedAt": "2026-09-12T07:54:44.831625Z",
       "virtualPointsNotice": "Pontos virtuais de entretenimento, sem valor financeiro e sem possibilidade de saque."
     },
-    "predictions": [
-      {
-        "id": 110,
-        "eventId": 28,
-        "eventTitle": "Validação E2E · Automobilismo",
-        "marketId": 149,
-        "marketName": "Terminar no Top 3",
-        "optionId": 450,
-        "optionLabel": "Lando Norris",
-        "stakePoints": 40,
-        "multiplier": 1.65,
-        "potentialPoints": 66,
-        "rewardedPoints": 66,
-        "status": "WON",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:40:17.226065Z",
-        "resolvedAt": "2026-09-09T16:42:26.733846Z",
-        "canCancel": false
-      },
-      {
-        "id": 109,
-        "eventId": 27,
-        "eventTitle": "Validação E2E · Tênis",
-        "marketId": 145,
-        "marketName": "Total de games · 22,5",
-        "optionId": 437,
-        "optionLabel": "Acima",
-        "stakePoints": 40,
-        "multiplier": 1.9,
-        "potentialPoints": 76,
-        "rewardedPoints": 76,
-        "status": "WON",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:40:14.821710Z",
-        "resolvedAt": "2026-09-09T16:42:19.441884Z",
-        "canCancel": false
-      },
-      {
-        "id": 108,
-        "eventId": 26,
-        "eventTitle": "Validação E2E · Basquete",
-        "marketId": 137,
-        "marketName": "Boston Celtics · total de pontos 108,5",
-        "optionId": 417,
-        "optionLabel": "Acima",
-        "stakePoints": 40,
-        "multiplier": 1.9,
-        "potentialPoints": 76,
-        "rewardedPoints": 76,
-        "status": "WON",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:40:12.831829Z",
-        "resolvedAt": "2026-09-09T16:42:11.973952Z",
-        "canCancel": false
-      },
-      {
-        "id": 107,
-        "eventId": 25,
-        "eventTitle": "Validação E2E · Counter-Strike 2",
-        "marketId": 127,
-        "marketName": "Total de rounds · primeiro mapa · 21,5",
-        "optionId": 393,
-        "optionLabel": "Acima",
-        "stakePoints": 40,
-        "multiplier": 1.9,
-        "potentialPoints": 76,
-        "rewardedPoints": 76,
-        "status": "WON",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:40:10.568858Z",
-        "resolvedAt": "2026-09-09T16:41:42.961863Z",
-        "canCancel": false
-      },
-      {
-        "id": 106,
-        "eventId": 24,
-        "eventTitle": "Validação E2E · Futebol",
-        "marketId": 116,
-        "marketName": "Total de gols · 2,5",
-        "optionId": 345,
-        "optionLabel": "Abaixo",
-        "stakePoints": 30,
-        "multiplier": 1.85,
-        "potentialPoints": 55,
-        "rewardedPoints": 0,
-        "status": "LOST",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:39:59.547036Z",
-        "resolvedAt": "2026-09-09T16:41:35.536170Z",
-        "canCancel": false
-      },
-      {
-        "id": 105,
-        "eventId": 24,
-        "eventTitle": "Validação E2E · Futebol",
-        "marketId": 116,
-        "marketName": "Total de gols · 2,5",
-        "optionId": 344,
-        "optionLabel": "Acima",
-        "stakePoints": 40,
-        "multiplier": 1.9,
-        "potentialPoints": 76,
-        "rewardedPoints": 76,
-        "status": "WON",
-        "poolId": null,
-        "placedAt": "2026-09-09T16:39:57.650800Z",
-        "resolvedAt": "2026-09-09T16:41:35.172647Z",
-        "canCancel": false
-      }
-    ],
-    "events": [
-      {
-        "id": 28,
-        "status": "FINISHED",
-        "markets": [
-          {
-            "id": 148,
-            "status": "SETTLED"
-          },
-          {
-            "id": 149,
-            "status": "SETTLED"
-          },
-          {
-            "id": 150,
-            "status": "SETTLED"
-          },
-          {
-            "id": 151,
-            "status": "SETTLED"
-          },
-          {
-            "id": 152,
-            "status": "SETTLED"
-          },
-          {
-            "id": 153,
-            "status": "SETTLED"
-          },
-          {
-            "id": 154,
-            "status": "SETTLED"
-          }
-        ]
-      },
-      {
-        "id": 26,
-        "status": "FINISHED",
-        "markets": [
-          {
-            "id": 132,
-            "status": "SETTLED"
-          },
-          {
-            "id": 133,
-            "status": "SETTLED"
-          },
-          {
-            "id": 134,
-            "status": "SETTLED"
-          },
-          {
-            "id": 135,
-            "status": "SETTLED"
-          },
-          {
-            "id": 136,
-            "status": "SETTLED"
-          },
-          {
-            "id": 137,
-            "status": "SETTLED"
-          },
-          {
-            "id": 138,
-            "status": "SETTLED"
-          },
-          {
-            "id": 139,
-            "status": "SETTLED"
-          }
-        ]
-      },
-      {
-        "id": 27,
-        "status": "FINISHED",
-        "markets": [
-          {
-            "id": 140,
-            "status": "SETTLED"
-          },
-          {
-            "id": 141,
-            "status": "SETTLED"
-          },
-          {
-            "id": 142,
-            "status": "SETTLED"
-          },
-          {
-            "id": 143,
-            "status": "SETTLED"
-          },
-          {
-            "id": 144,
-            "status": "SETTLED"
-          },
-          {
-            "id": 145,
-            "status": "SETTLED"
-          },
-          {
-            "id": 146,
-            "status": "SETTLED"
-          },
-          {
-            "id": 147,
-            "status": "SETTLED"
-          }
-        ]
-      },
-      {
-        "id": 25,
-        "status": "FINISHED",
-        "markets": [
-          {
-            "id": 122,
-            "status": "SETTLED"
-          },
-          {
-            "id": 123,
-            "status": "SETTLED"
-          },
-          {
-            "id": 124,
-            "status": "SETTLED"
-          },
-          {
-            "id": 125,
-            "status": "SETTLED"
-          },
-          {
-            "id": 126,
-            "status": "SETTLED"
-          },
-          {
-            "id": 127,
-            "status": "SETTLED"
-          },
-          {
-            "id": 128,
-            "status": "SETTLED"
-          },
-          {
-            "id": 129,
-            "status": "SETTLED"
-          },
-          {
-            "id": 130,
-            "status": "SETTLED"
-          },
-          {
-            "id": 131,
-            "status": "SETTLED"
-          }
-        ]
-      },
-      {
-        "id": 24,
-        "status": "FINISHED",
-        "markets": [
-          {
-            "id": 113,
-            "status": "SETTLED"
-          },
-          {
-            "id": 114,
-            "status": "SETTLED"
-          },
-          {
-            "id": 115,
-            "status": "SETTLED"
-          },
-          {
-            "id": 116,
-            "status": "SETTLED"
-          },
-          {
-            "id": 117,
-            "status": "SETTLED"
-          },
-          {
-            "id": 118,
-            "status": "SETTLED"
-          },
-          {
-            "id": 119,
-            "status": "SETTLED"
-          },
-          {
-            "id": 120,
-            "status": "SETTLED"
-          },
-          {
-            "id": 121,
-            "status": "SETTLED"
-          }
-        ]
-      }
-    ],
-    "transactions": [
-      {
-        "id": 236,
-        "type": "PREDICTION_WON",
-        "amount": 66,
-        "balanceAfter": 7158,
-        "description": "Recompensa pelo palpite vencedor: Validação E2E · Automobilismo",
-        "referenceType": "PREDICTION",
-        "referenceId": "110",
-        "createdAt": "2026-09-09T16:42:26.751851Z"
-      },
-      {
-        "id": 235,
-        "type": "PREDICTION_WON",
-        "amount": 76,
-        "balanceAfter": 7092,
-        "description": "Recompensa pelo palpite vencedor: Validação E2E · Tênis",
-        "referenceType": "PREDICTION",
-        "referenceId": "109",
-        "createdAt": "2026-09-09T16:42:19.488262Z"
-      },
-      {
-        "id": 234,
-        "type": "PREDICTION_WON",
-        "amount": 76,
-        "balanceAfter": 7016,
-        "description": "Recompensa pelo palpite vencedor: Validação E2E · Basquete",
-        "referenceType": "PREDICTION",
-        "referenceId": "108",
-        "createdAt": "2026-09-09T16:42:12.030306Z"
-      },
-      {
-        "id": 233,
-        "type": "PREDICTION_WON",
-        "amount": 76,
-        "balanceAfter": 6940,
-        "description": "Recompensa pelo palpite vencedor: Validação E2E · Counter-Strike 2",
-        "referenceType": "PREDICTION",
-        "referenceId": "107",
-        "createdAt": "2026-09-09T16:41:43.651925Z"
-      },
-      {
-        "id": 232,
-        "type": "PREDICTION_WON",
-        "amount": 76,
-        "balanceAfter": 6864,
-        "description": "Recompensa pelo palpite vencedor: Validação E2E · Futebol",
-        "referenceType": "PREDICTION",
-        "referenceId": "105",
-        "createdAt": "2026-09-09T16:41:35.219744Z"
-      },
-      {
-        "id": 231,
-        "type": "PREDICTION_PLACED",
-        "amount": -40,
-        "balanceAfter": 6788,
-        "description": "Pontos utilizados no palpite: Validação E2E · Automobilismo",
-        "referenceType": "PREDICTION",
-        "referenceId": "110",
-        "createdAt": "2026-09-09T16:40:17.262717Z"
-      },
-      {
-        "id": 230,
-        "type": "PREDICTION_PLACED",
-        "amount": -40,
-        "balanceAfter": 6828,
-        "description": "Pontos utilizados no palpite: Validação E2E · Tênis",
-        "referenceType": "PREDICTION",
-        "referenceId": "109",
-        "createdAt": "2026-09-09T16:40:14.857364Z"
-      },
-      {
-        "id": 229,
-        "type": "PREDICTION_PLACED",
-        "amount": -40,
-        "balanceAfter": 6868,
-        "description": "Pontos utilizados no palpite: Validação E2E · Basquete",
-        "referenceType": "PREDICTION",
-        "referenceId": "108",
-        "createdAt": "2026-09-09T16:40:12.866576Z"
-      },
-      {
-        "id": 228,
-        "type": "PREDICTION_PLACED",
-        "amount": -40,
-        "balanceAfter": 6908,
-        "description": "Pontos utilizados no palpite: Validação E2E · Counter-Strike 2",
-        "referenceType": "PREDICTION",
-        "referenceId": "107",
-        "createdAt": "2026-09-09T16:40:10.607538Z"
-      },
-      {
-        "id": 227,
-        "type": "PREDICTION_PLACED",
-        "amount": -30,
-        "balanceAfter": 6948,
-        "description": "Pontos utilizados no palpite: Validação E2E · Futebol",
-        "referenceType": "PREDICTION",
-        "referenceId": "106",
-        "createdAt": "2026-09-09T16:39:59.568961Z"
-      },
-      {
-        "id": 226,
-        "type": "PREDICTION_PLACED",
-        "amount": -40,
-        "balanceAfter": 6978,
-        "description": "Pontos utilizados no palpite: Validação E2E · Futebol",
-        "referenceType": "PREDICTION",
-        "referenceId": "105",
-        "createdAt": "2026-09-09T16:39:57.808134Z"
-      }
-    ],
+    "predictionCount": 25,
+    "transactionCount": 50,
+    "eventCount": 29,
+    "liveEvents": 2,
+    "openMarkets": 82,
+    "rankingRows": {
+      "WEEKLY": 24,
+      "MONTHLY": 24,
+      "ALL": 24
+    },
     "passed": true
   },
   "eventExamples": [
@@ -4074,6 +5317,6 @@
       "markets": 8
     }
   ],
-  "completedAt": "2026-09-09T21:56:09.161Z",
+  "completedAt": "2026-09-12T14:26:23.992Z",
   "passed": true
 }
