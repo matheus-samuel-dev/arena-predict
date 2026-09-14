@@ -23,16 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaDemoInitializer {
     private static final Duration MAX_DEMO_LIVE_AGE = Duration.ofHours(6);
-    private static final String PALMEIRAS_LOGO = null;
-    private static final String FLAMENGO_LOGO = null;
+    private static final String PALMEIRAS_LOGO = "/assets/teams/palmeiras.svg";
+    private static final String FLAMENGO_LOGO = "/assets/teams/flamengo.svg";
     private static final String FURIA_LOGO = "/assets/teams/furia.svg";
     private static final String LEGACY_FURIA_WORDMARK = "https://us.furia.gg/images/brand/logotipo-white.svg";
     private static final String LEGACY_GENERIC_BADGE = "/assets/teams/team-placeholder.svg";
-    private static final String NAVI_LOGO = null;
-    private static final String LOUD_LOGO = null;
-    private static final String T1_LOGO = null;
-    private static final String GENG_LOGO = null;
-    private static final String LEVIATAN_IDENTITY = "/assets/teams/leviatan.svg";
+    private static final String NAVI_LOGO = "/assets/teams/navi.svg";
+    private static final String LOUD_LOGO = "/assets/teams/loud.svg";
+    private static final String T1_LOGO = "/assets/teams/t1.png";
+    private static final String GENG_LOGO = "/assets/teams/geng.svg";
+    private static final String LEVIATAN_IDENTITY = "/assets/teams/leviatan.png";
     private static final String ALCARAZ_IDENTITY = "/assets/teams/carlos-alcaraz.svg";
     private static final String SINNER_IDENTITY = "/assets/teams/jannik-sinner.svg";
     private static final String VERSTAPPEN_IDENTITY = "/assets/teams/max-verstappen.svg";
@@ -101,8 +101,8 @@ public class ArenaDemoInitializer {
 
         Competitor palmeiras = competitor(sport.get("FOOTBALL"), "Palmeiras", "PAL", "Brasil", PALMEIRAS_LOGO);
         Competitor flamengo = competitor(sport.get("FOOTBALL"), "Flamengo", "FLA", "Brasil", FLAMENGO_LOGO);
-        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos", null);
-        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos", null);
+        Competitor celtics = competitor(sport.get("BASKETBALL"), "Boston Celtics", "BOS", "Estados Unidos", "/assets/teams/boston-celtics.svg");
+        Competitor mavericks = competitor(sport.get("BASKETBALL"), "Dallas Mavericks", "DAL", "Estados Unidos", "/assets/teams/dallas-mavericks.svg");
         Competitor furia = competitor(sport.get("CS2"), "FURIA", "FURIA", "Brasil", FURIA_LOGO);
         Competitor navi = competitor(sport.get("CS2"), "NAVI", "NAVI", "Ucrânia", NAVI_LOGO);
         Competitor leviatan = competitor(sport.get("VALORANT"), "Leviatán", "LEV", "Argentina", LEVIATAN_IDENTITY);
@@ -117,12 +117,12 @@ public class ArenaDemoInitializer {
         Competitor piastri = competitor(sport.get("MOTORSPORT"), "Oscar Piastri", "PIA", "Austrália", PIASTRI_IDENTITY);
         Competitor hamilton = competitor(sport.get("MOTORSPORT"), "Lewis Hamilton", "HAM", "Reino Unido", null);
         Competitor russell = competitor(sport.get("MOTORSPORT"), "George Russell", "RUS", "Reino Unido", null);
-        Competitor minas = competitor(sport.get("VOLLEYBALL"), "Minas", "MIN", "Brasil", null);
-        Competitor cruzeiro = competitor(sport.get("VOLLEYBALL"), "Sada Cruzeiro", "CRU", "Brasil", null);
+        Competitor minas = competitor(sport.get("VOLLEYBALL"), "Minas", "MIN", "Brasil", "/assets/teams/minas.svg");
+        Competitor cruzeiro = competitor(sport.get("VOLLEYBALL"), "Sada Cruzeiro", "CRU", "Brasil", "/assets/teams/sada-cruzeiro.svg");
         Competitor falcons = competitor(sport.get("AMERICAN_FOOTBALL"), "Aurora Falcons", "FAL", "Brasil", null);
         Competitor bears = competitor(sport.get("AMERICAN_FOOTBALL"), "Horizonte Bears", "BEA", "Brasil", null);
-        Competitor spirit = competitor(sport.get("DOTA2"), "Team Spirit", "SPI", "Internacional", null);
-        Competitor liquid = competitor(sport.get("DOTA2"), "Team Liquid", "LIQ", "Internacional", null);
+        Competitor spirit = competitor(sport.get("DOTA2"), "Team Spirit", "SPI", "Internacional", "/assets/teams/team-spirit.svg");
+        Competitor liquid = competitor(sport.get("DOTA2"), "Team Liquid", "LIQ", "Internacional", "/assets/teams/team-liquid.svg");
 
         Instant now = Instant.now();
         ArenaEvent footballLive = event("demo-football-live", brasileirao, palmeiras, flamengo, "Palmeiras x Flamengo",
@@ -264,7 +264,7 @@ public class ArenaDemoInitializer {
             return currentImageUrl != null && (currentImageUrl.startsWith("http://") || currentImageUrl.startsWith("https://"));
         }
         if (currentImageUrl == null || currentImageUrl.isBlank() || LEGACY_GENERIC_BADGE.equals(currentImageUrl)) return true;
-        return "FURIA".equalsIgnoreCase(code) && !Objects.equals(currentImageUrl, expectedImageUrl);
+        return !Objects.equals(currentImageUrl, expectedImageUrl);
     }
     private ArenaEvent event(String key, Championship championship, Competitor home, Competitor away, String title,
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {

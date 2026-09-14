@@ -7,10 +7,10 @@ describe("TeamLogo", () => {
 
   it("resolve apenas identidades locais e usa fallback para marcas sem asset distribuível", () => {
     expect(normalizeTeamName("  São Paulo  ")).toBe("sao paulo");
-    expect(resolveTeamLogo("Palmeiras")).toBeUndefined();
+    expect(resolveTeamLogo("Palmeiras")).toBe("/assets/teams/palmeiras.svg");
     expect(resolveTeamLogo("Team Vitality")).toBeUndefined();
     expect(resolveTeamLogo("FURIA")).toBe("/assets/teams/furia.svg");
-    expect(resolveTeamLogo("Natus Vincere")).toBeUndefined();
+    expect(resolveTeamLogo("Natus Vincere")).toBe("/assets/teams/navi.svg");
     expect(resolveTeamLogo("Carlos Alcaraz")).toBe("/assets/teams/carlos-alcaraz.svg");
   });
 
@@ -29,6 +29,8 @@ describe("TeamLogo", () => {
     const { container } = render(<TeamLogo name="NAVI" logoUrl="/logos/antigo.svg" />);
     fireEvent.error(container.querySelector("img")!);
 
+    expect(container.querySelector("img")).toHaveAttribute("src", "/assets/teams/navi.svg");
+    fireEvent.error(container.querySelector("img")!);
     expect(container.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
     expect(container.firstElementChild).not.toHaveClass("team-logo--fallback");
   });

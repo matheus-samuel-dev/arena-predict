@@ -82,7 +82,8 @@ public class AuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                canonicalRole
+                canonicalRole,
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
         );
     }
 

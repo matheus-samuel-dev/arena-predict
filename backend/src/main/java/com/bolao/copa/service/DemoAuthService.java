@@ -1,6 +1,7 @@
 package com.bolao.copa.service;
 
 import com.bolao.copa.config.DemoProperties;
+import com.bolao.copa.arena.repository.PlayerProfileRepository;
 import com.bolao.copa.dto.AuthDtos.AuthResponse;
 import com.bolao.copa.dto.AuthDtos.DemoAccessRequest;
 import com.bolao.copa.entity.User;
@@ -22,11 +23,13 @@ public class DemoAuthService {
     private final UserRepository users;
     private final JwtService jwtService;
     private final DemoProperties properties;
+    private final PlayerProfileRepository playerProfiles;
 
-    public DemoAuthService(UserRepository users, JwtService jwtService, DemoProperties properties) {
+    public DemoAuthService(UserRepository users, JwtService jwtService, DemoProperties properties, PlayerProfileRepository playerProfiles) {
         this.users = users;
         this.jwtService = jwtService;
         this.properties = properties;
+        this.playerProfiles = playerProfiles;
     }
 
     @Transactional(readOnly = true)
@@ -47,7 +50,8 @@ public class DemoAuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getRole().canonical()
+                user.getRole().canonical(),
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
         );
     }
 

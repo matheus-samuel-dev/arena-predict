@@ -12,13 +12,26 @@ export interface TeamLogoProps {
 }
 
 /**
- * Official marks are intentionally empty until a distributable local asset is
- * versioned with the project. The public demo never hotlinks third-party logos:
- * known original identities are local and every other participant receives a
- * stable generated badge.
+ * Shared local marks for the seeded teams; asset sources are documented in
+ * public/assets/teams/README.md. No runtime third-party hotlinks.
  */
 export const TEAM_PLACEHOLDER_PATH = "/assets/teams/team-placeholder.svg";
-export const TEAM_LOGO_MAP: Record<string, string> = {};
+export const TEAM_LOGO_MAP: Record<string, string> = {
+  palmeiras: "/assets/teams/palmeiras.svg", pal: "/assets/teams/palmeiras.svg",
+  flamengo: "/assets/teams/flamengo.svg", fla: "/assets/teams/flamengo.svg",
+  "boston celtics": "/assets/teams/boston-celtics.svg", bos: "/assets/teams/boston-celtics.svg",
+  "dallas mavericks": "/assets/teams/dallas-mavericks.svg", dal: "/assets/teams/dallas-mavericks.svg",
+  furia: "/assets/teams/furia.svg", "furia esports": "/assets/teams/furia.svg",
+  navi: "/assets/teams/navi.svg", "natus vincere": "/assets/teams/navi.svg",
+  leviatan: "/assets/teams/leviatan.png", lev: "/assets/teams/leviatan.png",
+  loud: "/assets/teams/loud.svg",
+  t1: "/assets/teams/t1.png",
+  "gen.g": "/assets/teams/geng.svg", geng: "/assets/teams/geng.svg",
+  minas: "/assets/teams/minas.svg", min: "/assets/teams/minas.svg",
+  "sada cruzeiro": "/assets/teams/sada-cruzeiro.svg", cru: "/assets/teams/sada-cruzeiro.svg",
+  "team spirit": "/assets/teams/team-spirit.svg", spi: "/assets/teams/team-spirit.svg",
+  "team liquid": "/assets/teams/team-liquid.svg", liq: "/assets/teams/team-liquid.svg",
+};
 
 /**
  * Local, original demo identities for individual competitors. They are not
@@ -26,10 +39,6 @@ export const TEAM_LOGO_MAP: Record<string, string> = {};
  * distinct without depending on portrait/image rights or a remote provider.
  */
 export const COMPETITOR_IDENTITY_MAP: Record<string, string> = {
-  furia: "/assets/teams/furia.svg",
-  "furia esports": "/assets/teams/furia.svg",
-  leviatan: "/assets/teams/leviatan.svg",
-  lev: "/assets/teams/leviatan.svg",
   "carlos alcaraz": "/assets/teams/carlos-alcaraz.svg",
   alc: "/assets/teams/carlos-alcaraz.svg",
   "jannik sinner": "/assets/teams/jannik-sinner.svg",

@@ -36,23 +36,6 @@ export const USER_AVATAR_OPTIONS: readonly UserAvatarOption[] = [
   { id: "arena-08", label: "Avatar Arena 8", src: "/assets/avatars/rafael-lima.webp" },
 ];
 
-/**
- * Demo identities are centralized here so ranking and administration responses
- * that only contain a display name still receive the same local visual avatar.
- * API-provided avatar URLs always take priority.
- */
-export const DEMO_USER_AVATAR_MAP: Record<string, string> = {
-  "administrador demo": "/assets/avatars/admin-demo.webp",
-  "jogador demo": DEMO_PLAYER_AVATAR_PATH,
-  "beatriz nunes": "/assets/avatars/beatriz-nunes.webp",
-  "marina costa": "/assets/avatars/marina-costa.webp",
-  "rafael lima": "/assets/avatars/rafael-lima.webp",
-  "camila rocha": "/assets/avatars/camila-rocha.webp",
-  "lucas almeida": "/assets/avatars/lucas-almeida.webp",
-  "ana ribeiro": "/assets/avatars/ana-ribeiro.webp",
-  "diego ferreira": "/assets/avatars/diego-ferreira.webp",
-};
-
 export function normalizeUserName(value?: string | null) {
   return (value || "")
     .normalize("NFD")
@@ -62,14 +45,14 @@ export function normalizeUserName(value?: string | null) {
     .trim();
 }
 
-export function resolveAvatarSource(name?: string | null, avatarUrl?: string | null, src?: string | null) {
-  const explicitSource = avatarUrl?.trim() || src?.trim();
-  if (explicitSource) return explicitSource;
-  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || null;
+export function resolveAvatarSource(_name?: string | null, avatarUrl?: string | null, src?: string | null) {
+  return avatarUrl?.trim() || src?.trim() || null;
 }
 
-export function resolveAvatarFallback(name?: string | null) {
-  return DEMO_USER_AVATAR_MAP[normalizeUserName(name)] || null;
+export function resolveAvatarFallback(source?: string | null) {
+  // Seeded portraits use the existing local avatar structure. Names alone
+  // never classify registered users as demo identities.
+  return source?.startsWith("/assets/avatars/") ? DEFAULT_USER_AVATAR_PATH : null;
 }
 
 export function userInitials(name?: string | null) {
@@ -96,7 +79,7 @@ export function userAvatarGradient(name?: string | null) {
 
 /**
  * Stable avatar surface shared by account, ranking, community and admin views.
- * Known demo identities keep their curated portrait. Other identities receive
+ * Local demo portraits keep a visual fallback. Other identities receive
  * deterministic initials and colors, including when a stale image URL fails.
  */
 export function UserAvatar({
@@ -110,7 +93,7 @@ export function UserAvatar({
   ...props
 }: UserAvatarProps) {
   const preferredSource = useMemo(() => resolveAvatarSource(name, avatarUrl, src), [name, avatarUrl, src]);
-  const visualFallback = useMemo(() => resolveAvatarFallback(name), [name]);
+  const visualFallback = useMemo(() => resolveAvatarFallback(preferredSource), [preferredSource]);
   const initials = useMemo(() => userInitials(name), [name]);
   const background = useMemo(() => userAvatarGradient(name), [name]);
   const [source, setSource] = useState<string | null>(preferredSource);
@@ -141,6 +124,16 @@ export function UserAvatar({
             else setSource(null);
           }}
         />
+      ) : visualFallback ? (
+        <svg className="user-avatar__image" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" fill="#e8e5f5" />
+          <path d="M8 64v-8c0-12 10-19 24-19s24 7 24 19v8" fill="#7464ad" />
+          <ellipse cx="32" cy="27" rx="15" ry="18" fill="#e4b99c" />
+          <path d="M17 27V19c0-17 30-17 30 0v8l-5-10-5 3-12-4-8 11Z" fill="#413755" />
+          <circle cx="27" cy="28" r="1.5" fill="#413755" />
+          <circle cx="37" cy="28" r="1.5" fill="#413755" />
+          <path d="M28 35q4 4 8 0" fill="none" stroke="#885b56" strokeWidth="2" strokeLinecap="round" />
+        </svg>
       ) : (
         <span className="user-avatar__initials" aria-hidden="true">{initials}</span>
       )}

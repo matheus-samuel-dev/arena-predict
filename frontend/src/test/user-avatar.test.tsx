@@ -12,10 +12,12 @@ import {
 describe("UserAvatar", () => {
   afterEach(() => cleanup());
 
-  it("resolve identidades demo de forma centralizada e tolerante a acentos", () => {
+  it("usa os avatares dos dados, sem classificar cadastros normais pelo nome", () => {
     expect(normalizeUserName("  Beatríz   Nunes  ")).toBe("beatriz nunes");
-    expect(resolveAvatarSource("Jogador Demo")).toBe(DEMO_PLAYER_AVATAR_PATH);
-    expect(resolveAvatarSource("Beatriz Nunes")).toBe("/assets/avatars/beatriz-nunes.webp");
+    expect(resolveAvatarSource("Jogador Demo", DEMO_PLAYER_AVATAR_PATH)).toBe(DEMO_PLAYER_AVATAR_PATH);
+    expect(resolveAvatarSource("Beatriz Nunes")).toBeNull();
+    const { container } = render(<UserAvatar name="Sofia Martins" />);
+    expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("SM");
   });
 
   it("gera iniciais e cores estáveis quando o usuário não tem imagem", () => {
@@ -50,16 +52,19 @@ describe("UserAvatar", () => {
     expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("CS");
   });
 
-  it("preserva a identidade demo mapeada quando uma URL antiga falha", () => {
-    const { container } = render(<UserAvatar name="Beatriz Nunes" avatarUrl="/imagem-antiga.jpg" />);
+  it("mantém um avatar visual demo mesmo se o retrato e o fallback local falharem", () => {
+    const { container } = render(<UserAvatar name="Sofia Martins" avatarUrl="/assets/avatars/sofia-martins.webp" />);
     fireEvent.error(container.querySelector("img")!);
 
-    expect(container.querySelector("img")).toHaveAttribute("src", "/assets/avatars/beatriz-nunes.webp");
+    expect(container.querySelector("img")).toHaveAttribute("src", "/assets/avatars/avatar-default.webp");
+    fireEvent.error(container.querySelector("img")!);
+    expect(container.querySelector("svg.user-avatar__image")).toBeInTheDocument();
+    expect(container.querySelector(".user-avatar__initials")).not.toBeInTheDocument();
     expect(container.textContent).toBe("");
   });
 
   it("usa o asset local no perfil Jogador Demo e permite rótulo acessível quando isolado", () => {
-    const { container } = render(<UserAvatar name="Jogador Demo" aria-label="Avatar de Jogador Demo" />);
+    const { container } = render(<UserAvatar name="Jogador Demo" avatarUrl={DEMO_PLAYER_AVATAR_PATH} aria-label="Avatar de Jogador Demo" />);
     const surface = screen.getByRole("img", { name: "Avatar de Jogador Demo" });
 
     expect(container.querySelector("img")).toHaveAttribute("src", DEMO_PLAYER_AVATAR_PATH);

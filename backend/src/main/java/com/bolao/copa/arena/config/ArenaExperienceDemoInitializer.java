@@ -4,6 +4,7 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import com.bolao.copa.repository.UserRepository;
 import java.time.*;
 import java.util.*;
@@ -19,15 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaExperienceDemoInitializer {
     private static final Map<String, String> DEMO_AVATARS = Map.of(
-            "admin@arenapredict.com", "/assets/avatars/admin-demo.webp",
-            "jogador@arenapredict.com", "/assets/avatars/jogador-demo.webp",
-            "beatriz.nunes@arenapredict.com", "/assets/avatars/beatriz-nunes.webp",
-            "marina.costa@arenapredict.com", "/assets/avatars/marina-costa.webp",
-            "rafael.lima@arenapredict.com", "/assets/avatars/rafael-lima.webp",
-            "camila.rocha@arenapredict.com", "/assets/avatars/camila-rocha.webp",
-            "lucas.almeida@arenapredict.com", "/assets/avatars/lucas-almeida.webp",
-            "ana.ribeiro@arenapredict.com", "/assets/avatars/ana-ribeiro.webp",
-            "diego.ferreira@arenapredict.com", "/assets/avatars/diego-ferreira.webp"
+            "admin@arenapredict.com", "/assets/avatars/admin-demo.webp"
     );
     private final UserRepository users;
     private final PlayerProfileRepository profiles;
@@ -126,7 +119,8 @@ public class ArenaExperienceDemoInitializer {
         });
         boolean changed = profile.getId() == null;
         String email = user.getEmail().toLowerCase(Locale.ROOT);
-        String expectedAvatar = DEMO_AVATARS.get(email);
+        var participant = DemoParticipantCatalog.byEmail().get(email);
+        String expectedAvatar = participant != null ? participant.avatarUrl() : DEMO_AVATARS.get(email);
         if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && expectedAvatar != null) {
             profile.setAvatarUrl(expectedAvatar);
             changed = true;

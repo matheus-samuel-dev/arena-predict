@@ -35,6 +35,7 @@ public class AdminOperationsService {
 
     private final UserRepository users;
     private final PointWalletRepository wallets;
+    private final PlayerProfileRepository profiles;
     private final ArenaPoolRepository pools;
     private final ArenaPoolMemberRepository poolMembers;
     private final ChampionshipRepository championships;
@@ -52,7 +53,7 @@ public class AdminOperationsService {
     private final boolean demoMode;
     private final boolean demoLiveProvider;
 
-    public AdminOperationsService(UserRepository users, PointWalletRepository wallets,
+    public AdminOperationsService(UserRepository users, PointWalletRepository wallets, PlayerProfileRepository profiles,
                                   ArenaPoolRepository pools, ArenaPoolMemberRepository poolMembers,
                                   ChampionshipRepository championships, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository marketOptions,
@@ -64,6 +65,7 @@ public class AdminOperationsService {
                                   @Value("${app.demo.live-provider-enabled:false}") boolean demoLiveProvider) {
         this.users = users;
         this.wallets = wallets;
+        this.profiles = profiles;
         this.pools = pools;
         this.poolMembers = poolMembers;
         this.championships = championships;
@@ -88,7 +90,9 @@ public class AdminOperationsService {
                 : users.findAll(pageable);
         Map<Long, PointWallet> walletByUser = result.isEmpty() ? Map.of() : wallets.findByUserIn(result.getContent()).stream()
                 .collect(Collectors.toMap(wallet -> wallet.getUser().getId(), Function.identity()));
-        return result.map(user -> userResponse(user, walletByUser.get(user.getId())));
+        Map<Long, PlayerProfile> profileByUser = result.isEmpty() ? Map.of() : profiles.findByUserIn(result.getContent()).stream()
+                .collect(Collectors.toMap(profile -> profile.getUser().getId(), Function.identity()));
+        return result.map(user -> userResponse(user, walletByUser.get(user.getId()), profileByUser.get(user.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -209,10 +213,10 @@ public class AdminOperationsService {
         return community.reports(page, safeSize(size)).map(this::moderationResponse);
     }
 
-    private AdminUserResponse userResponse(User user, PointWallet wallet) {
+    private AdminUserResponse userResponse(User user, PointWallet wallet, PlayerProfile profile) {
         return new AdminUserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole().canonical(),
                 "ACTIVE", wallet == null ? 0 : wallet.getBalance(), user.getCreatedAt(),
-                wallet == null ? user.getCreatedAt() : wallet.getUpdatedAt());
+                wallet == null ? user.getCreatedAt() : wallet.getUpdatedAt(), profile == null ? null : profile.getAvatarUrl());
     }
 
     private AdminPoolResponse poolResponse(ArenaPool pool, long participantCount) {

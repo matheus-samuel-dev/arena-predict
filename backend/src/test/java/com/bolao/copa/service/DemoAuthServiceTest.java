@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.bolao.copa.config.DemoProperties;
+import com.bolao.copa.arena.domain.PlayerProfile;
+import com.bolao.copa.arena.repository.PlayerProfileRepository;
 import com.bolao.copa.dto.AuthDtos.DemoAccessRequest;
 import com.bolao.copa.dto.AuthDtos.DemoProfile;
 import com.bolao.copa.entity.User;
@@ -28,6 +30,7 @@ class DemoAuthServiceTest {
 
     @Mock UserRepository users;
     @Mock JwtService jwtService;
+    @Mock PlayerProfileRepository playerProfiles;
 
     private DemoAuthService service;
 
@@ -42,7 +45,8 @@ class DemoAuthServiceTest {
                         "",
                         "portfolio-player@example.test",
                         ""
-                )
+                ),
+                playerProfiles
         );
     }
 
@@ -52,12 +56,17 @@ class DemoAuthServiceTest {
         when(users.findByEmailIgnoreCase("portfolio-player@example.test"))
                 .thenReturn(Optional.of(participant));
         when(jwtService.generate(participant)).thenReturn("regular-signed-jwt");
+        var profile = new PlayerProfile();
+        profile.setUser(participant);
+        profile.setAvatarUrl("/assets/avatars/jogador-demo.webp");
+        when(playerProfiles.findByUser(participant)).thenReturn(Optional.of(profile));
 
         var response = service.access(new DemoAccessRequest(DemoProfile.PARTICIPANT));
 
         assertThat(response.token()).isEqualTo("regular-signed-jwt");
         assertThat(response.email()).isEqualTo("portfolio-player@example.test");
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);
+        assertThat(response.avatarUrl()).isEqualTo("/assets/avatars/jogador-demo.webp");
     }
 
     @Test

@@ -80,8 +80,12 @@ public final class AuthDtos {
             Long userId,
             String name,
             String email,
-            UserRole role
+            UserRole role,
+            String avatarUrl
     ) {
+        public AuthResponse(String token, Long userId, String name, String email, UserRole role) {
+            this(token, userId, name, email, role, null);
+        }
     }
 
     public record UserResponse(Long userId, String name, String email, UserRole role, String avatarUrl) {

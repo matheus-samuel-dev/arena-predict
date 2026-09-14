@@ -24,7 +24,7 @@ public final class AdminOperationsDtos {
     private AdminOperationsDtos() { }
 
     public record AdminUserResponse(Long id, String name, String email, UserRole role, String status,
-                                    long pointBalance, Instant createdAt, Instant updatedAt) { }
+                                    long pointBalance, Instant createdAt, Instant updatedAt, String avatarUrl) { }
 
     public record AdminPoolResponse(Long id, String name, String description, PoolStatus status,
                                     Long ownerId, String ownerName, String visibility,
