@@ -1,0 +1,56 @@
+{
+  "balanceBeforeSettlement": 9286,
+  "predictions": [
+    {
+      "id": 309,
+      "eventId": 40,
+      "eventTitle": "QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "marketId": 252,
+      "marketName": "Resultado ao vivo · 90 minutos",
+      "optionId": 783,
+      "optionLabel": "Flamengo",
+      "stakePoints": 30,
+      "multiplier": 23.45,
+      "potentialPoints": 703,
+      "rewardedPoints": 0,
+      "status": "LOST",
+      "poolId": null,
+      "placedAt": "2026-09-21T17:48:13.799092Z",
+      "resolvedAt": "2026-09-21T22:59:30.288885Z",
+      "canCancel": false
+    },
+    {
+      "id": 308,
+      "eventId": 40,
+      "eventTitle": "QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "marketId": 252,
+      "marketName": "Resultado ao vivo · 90 minutos",
+      "optionId": 781,
+      "optionLabel": "Palmeiras",
+      "stakePoints": 40,
+      "multiplier": 1.16,
+      "potentialPoints": 46,
+      "rewardedPoints": 46,
+      "status": "WON",
+      "poolId": null,
+      "placedAt": "2026-09-21T17:45:15.248058Z",
+      "resolvedAt": "2026-09-21T22:59:28.805537Z",
+      "canCancel": false
+    }
+  ],
+  "balanceAfterSettlement": 9332,
+  "eventId": 40,
+  "idempotent": true,
+  "rewardTransactions": [
+    {
+      "id": 604,
+      "type": "PREDICTION_WON",
+      "amount": 46,
+      "balanceAfter": 9332,
+      "description": "Recompensa pelo palpite vencedor: QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "referenceType": "PREDICTION",
+      "referenceId": "308",
+      "createdAt": "2026-09-21T22:59:29.576566Z"
+    }
+  ]
+}

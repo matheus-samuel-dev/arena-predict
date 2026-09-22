@@ -44,6 +44,75 @@ class MultimarketIntegrationTest {
     @Autowired ArenaDashboardService dashboard;
     @jakarta.persistence.PersistenceContext jakarta.persistence.EntityManager entityManager;
 
+    @ParameterizedTest
+    @CsvSource({"football-open,LIVE_RESULT", "nba-open,WINNER", "tennis-open,MATCH_WINNER", "cs2-open,SERIES_WINNER", "vct-open,SERIES_WINNER", "lol-open,SERIES_WINNER"})
+    void liveQuoteSnapshotSurvivesReloadAndPaysOnlyOnce(String source,String code) {
+        var event=fixture(source); event.setStatus(EventStatus.LIVE);event.setHomeScore(0);event.setAwayScore(0);
+        if(source.equals("football-open")) { event.setHomeScore(3);event.setAwayScore(1);event.setClock("20"); }
+        if(source.equals("nba-open")) { event.setHomeScore(20);event.setAwayScore(10);event.setClock("08:00");event.setLiveData("{\"quarter\":1,\"quarterMinutes\":12}"); }
+        var market=market(event,code);var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        long before=wallets.wallet(user).balance();
+        var displayed=catalog.marketResponse(market).options().stream().filter(o -> o.key().equals("HOME")).findFirst().orElseThrow();
+        String intent=UUID.randomUUID().toString();
+        var request=new PlacePredictionRequest(event.getId(),market.getId(),displayed.id(),40,null,intent,displayed.multiplier());
+        var win=commands.place(request,intent,user);var lose=place(event,market,"AWAY",30);
+        assertThat(win.multiplier()).isEqualByComparingTo(displayed.multiplier());
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70);
+        Long eventId=event.getId(),marketId=market.getId();entityManager.flush();entityManager.clear();
+        event=events.findById(eventId).orElseThrow();market=markets.findById(marketId).orElseThrow();
+        if(source.equals("football-open")) event.setClock("83");
+        else if(source.equals("nba-open")) { event.setHomeScore(110);event.setAwayScore(100);event.setClock("00:30");event.setLiveData("{\"quarter\":4,\"quarterMinutes\":12}"); }
+        else event.setHomeScore(1);
+        var changed=catalog.marketResponse(market).options().stream().filter(o -> o.key().equals("HOME")).findFirst().orElseThrow();
+        assertThat(changed.multiplier()).isLessThan(displayed.multiplier());
+        assertThat(predictions.findById(win.id()).orElseThrow().getMultiplier()).isEqualByComparingTo(displayed.multiplier());
+        assertThat(commands.place(request,intent,user).id()).isEqualTo(win.id());
+        var stale=new PlacePredictionRequest(eventId,marketId,displayed.id(),40,null,UUID.randomUUID().toString(),displayed.multiplier());
+        assertThatThrownBy(() -> commands.place(stale,null,user)).isInstanceOf(ArenaProblem.Conflict.class).hasMessageContaining("multiplicador");
+        int home=source.equals("football-open")?3:source.equals("nba-open")?115:2;
+        int away=source.equals("nba-open")?101:1;
+        var result=new EventResultRequest(home,away,true,data(source),true);
+        results.record(eventId,result,"snapshot-"+eventId);
+        entityManager.flush();entityManager.clear();
+        assertThat(predictions.findById(win.id()).orElseThrow().getRewardedPoints()).isEqualTo(win.potentialPoints());
+        assertThat(predictions.findById(win.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.WON);
+        assertThat(predictions.findById(lose.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.LOST);
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints());
+        results.record(eventId,result,"snapshot-again-"+eventId);
+        commands.settleDerived(events.findById(eventId).orElseThrow());
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints());
+    }
+
+    @Test void suspensionCanReopenButClosureIsFinalAndAudited() {
+        var event=fixture("nba-open");var market=market(event,"WINNER");
+        catalog.changeMarketStatus(market.getId(),MarketStatus.SUSPENDED);
+        assertThat(availability.evaluate(market).reason()).contains("administrativa registrada");
+        assertThatThrownBy(() -> place(event,market,"HOME",20)).isInstanceOf(ArenaProblem.RuleViolation.class);
+        catalog.changeMarketStatus(market.getId(),MarketStatus.OPEN);place(event,market,"HOME",20);
+        catalog.changeMarketStatus(market.getId(),MarketStatus.CLOSED);
+        assertThatThrownBy(() -> catalog.changeMarketStatus(market.getId(),MarketStatus.OPEN)).isInstanceOf(ArenaProblem.RuleViolation.class);
+    }
+
+    @Test void administrativeLiveResultPersistsClosureAndNeverReopensItOnScoreCorrection() {
+        var event=fixture("football-open");event.setStatus(EventStatus.LIVE);
+        var total=market(event,"TOTAL_GOALS");total.setStatus(MarketStatus.SUSPENDED);
+        results.record(event.getId(),new EventResultRequest(3,1,false),"known-total-"+event.getId());
+        assertThat(total.getStatus()).isEqualTo(MarketStatus.CLOSED);
+        results.record(event.getId(),new EventResultRequest(0,0,false),"correct-total-"+event.getId());
+        assertThat(total.getStatus()).isEqualTo(MarketStatus.CLOSED);
+        assertThat(availability.evaluate(total).allowed()).isFalse();
+    }
+
+    @Test void editingLiveMarketMetadataKeepsStaticBaseAndConfirmedQuoteSeparate() {
+        var event=fixture("football-open");event.setStatus(EventStatus.LIVE);event.setHomeScore(3);event.setAwayScore(1);event.setClock("83");
+        var market=market(event,"LIVE_RESULT");var response=catalog.marketResponse(market);
+        var home=options.findByMarketAndKey(market,"HOME").orElseThrow();var base=home.getMultiplier();
+        var inputs=response.options().stream().map(o -> new MarketOptionRequest(o.key(),o.label(),o.multiplier(),o.active())).toList();
+        catalog.saveMarket(market.getId(),new MarketRequest(event.getId(),market.getCode(),"Resultado ao vivo atualizado",MarketStatus.OPEN,market.getMinimumPoints(),inputs));
+        assertThat(home.getMultiplier()).isEqualTo(base);
+        assertThat(market.getName()).isEqualTo("Resultado ao vivo atualizado");
+    }
+
     @Test
     void demoIncludesCancelledAndAwaitingSettlementEventsWithPersistedRules() {
         for (String key : List.of("demo-football-cancelled", "demo-football-awaiting-result")) {
@@ -52,7 +121,7 @@ class MultimarketIntegrationTest {
             assertThat(response.availableMarketCount()).isZero();
             assertThat(response.markets()).isNotEmpty().allMatch(m -> !m.availability().allowed());
             if (response.status()==EventStatus.FINISHED)
-                assertThat(response.markets()).hasSize(9).allMatch(m -> m.templateCode()!=null);
+                assertThat(response.markets()).hasSize(10).allMatch(m -> m.templateCode()!=null);
             assertThat(response.status()).isIn(EventStatus.CANCELLED,EventStatus.FINISHED);
         }
     }
@@ -144,7 +213,7 @@ class MultimarketIntegrationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"SUSPENDED", "CLOSED", "CANCELLED"})
+    @CsvSource({"SUSPENDED", "CLOSED", "SETTLED", "CANCELLED"})
     void closedAndSuspendedMarketsRejectPredictionsWithoutDebit(MarketStatus status) {
         var event=fixture("football-open"); var market=market(event,"TOTAL_GOALS"); market.setStatus(status);
         var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
@@ -241,7 +310,8 @@ class MultimarketIntegrationTest {
         var persisted=catalog.eventResponse(eventId);
         assertThat(persisted.status()).isEqualTo(EventStatus.LIVE);
         assertThat(persisted.homeScore()).isNull();
-        assertThat(persisted.markets()).allMatch(m -> m.status()==MarketStatus.OPEN);
+        assertThat(persisted.markets()).allMatch(m -> m.status()==(m.timingMode()==MarketTimingMode.PRE_MATCH_ONLY?MarketStatus.CLOSED:MarketStatus.OPEN));
+        tx.executeWithoutResult(s -> assertThat(markets.findByEventOrderByIdAsc(events.findById(eventId).orElseThrow())).allMatch(m -> m.getStatus()==MarketStatus.OPEN));
         assertThat(wallets.wallet(user).balance()).isEqualTo(balance);
         results.record(eventId,new EventResultRequest(3,1,true,data("football-open"),true),"incomplete-"+eventId);
         assertThat(catalog.eventResponse(eventId).markets()).allMatch(m -> m.status()==MarketStatus.SETTLED);

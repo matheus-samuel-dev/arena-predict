@@ -224,6 +224,7 @@ export function MarketList({
               ))}
             </div>
             <div className="market-block__secondary">
+              {market.pricingReason && <span>{market.pricingReason}</span>}
               <span>{enumLabel(market.timingMode || "PRE_MATCH_ONLY")}</span>
               {market.closesAt && <span>Fecha em {dateTime(market.closesAt)}</span>}
               <MarketRuleDisclosure market={market} />
@@ -254,12 +255,13 @@ export function marketPrimarySummary(market: PredictionMarket) {
 
 export function marketAvailabilityStatus(market: PredictionMarket) {
   if (market.availability?.allowed) return "OPEN";
-  const context = `${market.status || ""} ${market.availability?.code || ""} ${market.availability?.label || ""} ${market.availability?.reason || ""}`.toLocaleLowerCase("pt-BR");
-  if (/cancel|reembols/.test(context)) return "CANCELED";
-  if (/suspens|paus/.test(context)) return "SUSPENDED";
-  if (/process/.test(context)) return "PROCESSING";
-  if (/\babre\b|aguardando|próximo período/.test(context)) return "PENDING";
-  return "CLOSED";
+  switch (market.availability?.code) {
+    case "CANCELLED": return "CANCELED";
+    case "SUSPENDED": case "OPTIONS_SUSPENDED": case "POSTPONED": return "SUSPENDED";
+    case "SETTLED": return "SETTLED";
+    case "DRAFT": case "NOT_YET_OPEN": case "WAITING_LIVE": return "PENDING";
+    default: return "CLOSED";
+  }
 }
 
 export function marketAvailabilityTooltip(market: PredictionMarket) {

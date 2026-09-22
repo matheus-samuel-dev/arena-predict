@@ -1,0 +1,109 @@
+{
+  "debits": [
+    {
+      "id": 603,
+      "type": "PREDICTION_PLACED",
+      "amount": -30,
+      "balanceAfter": 9286,
+      "description": "Pontos utilizados no palpite: QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "referenceType": "PREDICTION",
+      "referenceId": "309",
+      "createdAt": "2026-09-21T17:48:14.207836Z"
+    },
+    {
+      "id": 602,
+      "type": "PREDICTION_PLACED",
+      "amount": -40,
+      "balanceAfter": 9316,
+      "description": "Pontos utilizados no palpite: QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "referenceType": "PREDICTION",
+      "referenceId": "308",
+      "createdAt": "2026-09-21T17:45:19.917838Z"
+    }
+  ],
+  "eventId": 40,
+  "predictions": [
+    {
+      "id": 309,
+      "eventId": 40,
+      "eventTitle": "QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "marketId": 252,
+      "marketName": "Resultado ao vivo · 90 minutos",
+      "optionId": 783,
+      "optionLabel": "Flamengo",
+      "stakePoints": 30,
+      "multiplier": 23.45,
+      "potentialPoints": 703,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-21T17:48:13.799092Z",
+      "resolvedAt": null,
+      "canCancel": false
+    },
+    {
+      "id": 308,
+      "eventId": 40,
+      "eventTitle": "QA mercados · Palmeiras x Flamengo · próxima rodada",
+      "marketId": 252,
+      "marketName": "Resultado ao vivo · 90 minutos",
+      "optionId": 781,
+      "optionLabel": "Palmeiras",
+      "stakePoints": 40,
+      "multiplier": 1.16,
+      "potentialPoints": 46,
+      "rewardedPoints": 0,
+      "status": "ACTIVE",
+      "poolId": null,
+      "placedAt": "2026-09-21T17:45:15.248058Z",
+      "resolvedAt": null,
+      "canCancel": false
+    }
+  ],
+  "balance": 9286,
+  "market": {
+    "id": 252,
+    "code": "AUTO_LIVE_RESULT",
+    "name": "Resultado ao vivo · 90 minutos",
+    "status": "OPEN",
+    "minimumPoints": 10,
+    "resultOptionKey": null,
+    "options": [
+      {
+        "id": 781,
+        "key": "HOME",
+        "label": "Palmeiras",
+        "multiplier": 1.01,
+        "active": true
+      },
+      {
+        "id": 782,
+        "key": "DRAW",
+        "label": "Empate",
+        "multiplier": 93.21,
+        "active": true
+      },
+      {
+        "id": 783,
+        "key": "AWAY",
+        "label": "Flamengo",
+        "multiplier": 100.0,
+        "active": true
+      }
+    ],
+    "category": "Principais",
+    "templateCode": "LIVE_RESULT",
+    "timingMode": "LIVE_ONLY",
+    "opensAt": "2026-09-14T12:42:41.631788Z",
+    "closesAt": "2026-09-21T20:42:41.631788Z",
+    "availability": {
+      "allowed": true,
+      "code": "OPEN",
+      "label": "Aberto ao vivo",
+      "reason": "Multiplicadores demonstrativos; pontos exclusivamente virtuais."
+    },
+    "settlementDescription": "Compara o placar do período indicado. Empate sem opção específica devolve os pontos. Em interrupção sem resultado válido, cancele o mercado para reembolsar.",
+    "pricingMode": "DYNAMIC",
+    "pricingReason": "Estimativa demonstrativa v1 calculada pelo placar e contexto esportivo disponíveis."
+  }
+}

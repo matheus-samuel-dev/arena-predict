@@ -124,16 +124,6 @@ export function UserAvatar({
             else setSource(null);
           }}
         />
-      ) : visualFallback ? (
-        <svg className="user-avatar__image" viewBox="0 0 64 64" aria-hidden="true">
-          <rect width="64" height="64" fill="#e8e5f5" />
-          <path d="M8 64v-8c0-12 10-19 24-19s24 7 24 19v8" fill="#7464ad" />
-          <ellipse cx="32" cy="27" rx="15" ry="18" fill="#e4b99c" />
-          <path d="M17 27V19c0-17 30-17 30 0v8l-5-10-5 3-12-4-8 11Z" fill="#413755" />
-          <circle cx="27" cy="28" r="1.5" fill="#413755" />
-          <circle cx="37" cy="28" r="1.5" fill="#413755" />
-          <path d="M28 35q4 4 8 0" fill="none" stroke="#885b56" strokeWidth="2" strokeLinecap="round" />
-        </svg>
       ) : (
         <span className="user-avatar__initials" aria-hidden="true">{initials}</span>
       )}

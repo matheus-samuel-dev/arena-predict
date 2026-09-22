@@ -33,7 +33,8 @@ class DemoSportsDataProviderTest {
 
         var stable = provider.liveUpdates();
         assertThat(stable.getFirst().clock()).isEqualTo("89:24");
-        assertThat(stable.getFirst().structuredData()).contains("\"shots\":[25,8]");
+        assertThat(stable.getFirst().structuredData()).contains("\"shots\":[18,8]", "\"corners\":[5,4]");
+        assertThat(stable.getFirst().homeScore()).isEqualTo(3);
         assertThat(provider.liveUpdates()).isEqualTo(stable);
     }
 }

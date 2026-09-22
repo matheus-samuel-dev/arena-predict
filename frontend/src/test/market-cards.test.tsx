@@ -18,6 +18,11 @@ const live: ArenaEvent = {
 
 describe("disponibilidade de mercados retornada pelo servidor", () => {
   afterEach(cleanup);
+  it("usa códigos do servidor sem inferir status pelo texto e mostra a limitação estática", () => {
+    expect(marketAvailabilityStatus({ ...openMarket, availability: { allowed:false, code:"DEADLINE", label:"Encerrado", reason:"Suspensão anterior resolvida" } })).toBe("CLOSED");
+    render(<MarketList event={live} markets={[{ ...openMarket, pricingMode:"STATIC", pricingReason:"Dados ao vivo insuficientes: multiplicadores estáticos." }]} onPredict={vi.fn()} />);
+    expect(screen.getByText("Dados ao vivo insuficientes: multiplicadores estáticos.")).toBeVisible();
+  });
   it("permite mercado ao vivo mesmo com prazo global legado vencido", () => {
     const choose = vi.fn();
     render(<MarketList event={live} markets={[openMarket]} onPredict={choose} />);

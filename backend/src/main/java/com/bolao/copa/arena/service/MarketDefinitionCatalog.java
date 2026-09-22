@@ -35,6 +35,7 @@ public class MarketDefinitionCatalog {
                 b.add("DOUBLE_CHANCE", "Dupla possibilidade", "Principais", Strategy.DOUBLE_CHANCE, "score", null, PRE,
                         List.of(choice("HOME_DRAW", home + " ou empate", "1.35"), choice("HOME_AWAY", home + " ou " + away, "1.30"), choice("DRAW_AWAY", "Empate ou " + away, "1.50")));
                 b.total("TOTAL_GOALS", "Total de gols · 2,5", "Gols", "score", "2.5", LIVE);
+                b.total("TOTAL_GOALS_45", "Total de gols · 4,5", "Gols", "score", "4.5", LIVE);
                 b.add("BOTH_SCORE", "Ambas as equipes marcam", "Gols", Strategy.BOTH_SCORE, "score", null, LIVE, yesNo());
                 b.exact("CORRECT_SCORE", "Placar correto · 90 minutos", "Gols", 4, false);
                 b.winner("FIRST_HALF_WINNER", "Resultado do primeiro tempo", "1º tempo", "firstHalf", true, PRE);

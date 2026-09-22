@@ -26,6 +26,7 @@ public class ArenaCatalogService {
     private final MarketDefinitionCatalog definitions;
     private final MarketSettlementEngine settlement;
     private final ArenaPredictionService predictionService;
+    private final DemoProbabilityEngine pricing;
 
     public ArenaCatalogService(SportRepository sports, ChampionshipRepository championships,
                                CompetitorRepository competitors, ArenaEventRepository events,
@@ -33,7 +34,8 @@ public class ArenaCatalogService {
                                EventParticipantRepository eventParticipants,
                                ArenaPredictionRepository predictions, AdminAuditService audit,
                                MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
-                               MarketSettlementEngine settlement, ArenaPredictionService predictionService) {
+                               MarketSettlementEngine settlement, ArenaPredictionService predictionService, DemoProbabilityEngine pricing) {
+        this.pricing=pricing;
         this.sports = sports;
         this.championships = championships;
         this.competitors = competitors;
@@ -251,6 +253,7 @@ public class ArenaCatalogService {
         }
         audit.record(id == null ? "EVENT_CREATED" : "EVENT_UPDATED", "EVENT", event.getId(),
                 "Evento " + event.getTitle() + " salvo com status " + event.getStatus());
+        if(event.getStatus()==EventStatus.LIVE) availability.closeDeterminedMarkets(markets.findByEventForUpdate(event));
         return eventResponse(event);
     }
 
@@ -326,6 +329,7 @@ public class ArenaCatalogService {
         market.setCode(code);
         market.setName(request.name().trim());
         market.setStatus(requestedStatus);
+        market.setStatusReason(requestedStatus==MarketStatus.SUSPENDED?"Suspensão administrativa registrada.":null);
         market.setMinimumPoints(request.minimumPoints() == null ? 10 : request.minimumPoints());
         if (request.timingMode()!=null) market.setTimingMode(request.timingMode());
         if (request.opensAt()!=null) market.setOpensAt(request.opensAt());
@@ -341,7 +345,7 @@ public class ArenaCatalogService {
             option.setMarket(market);
             option.setKey(key);
             option.setLabel(input.label().trim());
-            option.setMultiplier(input.multiplier());
+            if(market.getTemplateCode()==null) option.setMultiplier(input.multiplier().setScale(2,java.math.RoundingMode.HALF_UP));
             option.setActive(input.active() == null || input.active());
             options.save(option);
         }
@@ -361,6 +365,7 @@ public class ArenaCatalogService {
         validateMarketEvent(market.getEvent(), status, false);
         validateMarketTransition(market, status);
         market.setStatus(status);
+        market.setStatusReason(status==MarketStatus.SUSPENDED?"Suspensão administrativa registrada.":null);
         audit.record("MARKET_STATUS_CHANGED", "MARKET", market.getId(),
                 "Status do mercado " + market.getName() + " alterado para " + status);
         return marketResponse(market);
@@ -415,10 +420,11 @@ public class ArenaCatalogService {
         return marketResponse(value,options.findByMarketOrderByIdAsc(value));
     }
     public MarketResponse marketResponse(PredictionMarket value,List<MarketOption> selections) {
-        return new MarketResponse(value.getId(), value.getCode(), value.getName(), value.getStatus(), value.getMinimumPoints(),
-                value.getResultOptionKey(), selections.stream().map(this::optionResponse).toList(),value.getCategory(),value.getTemplateCode(),
+        var quote=pricing.quote(value,selections);
+        return new MarketResponse(value.getId(), value.getCode(), value.getName(), availability.effectiveStatus(value,selections), value.getMinimumPoints(),
+                value.getResultOptionKey(), selections.stream().map(o -> new MarketOptionResponse(o.getId(),o.getKey(),o.getLabel(),quote.multipliers().get(o.getKey()),o.isActive())).toList(),value.getCategory(),value.getTemplateCode(),
                 value.getTimingMode(),value.getOpensAt(),value.getClosesAt(),availability.withOptions(value,selections),
-                definitions.definition(value,List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Mercado personalizado: resultado conferido manualmente pela organização."));
+                definitions.definition(value,List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Mercado personalizado: resultado conferido manualmente pela organização."),quote.mode(),quote.reason());
     }
     private void applyResultData(ArenaEvent event,Map<String,String> data,Boolean finish,Boolean settle) {
         var entries=eventParticipants.findByEventOrderByDisplayOrderAsc(event);
@@ -430,6 +436,7 @@ public class ArenaCatalogService {
             event.setStatus(EventStatus.FINISHED);
             eventMarkets.stream().filter(m -> !isTerminal(m.getStatus())).forEach(m -> m.setStatus(MarketStatus.CLOSED));
         }
+        availability.closeDeterminedMarkets(eventMarkets);
         if (Boolean.TRUE.equals(settle)) predictionService.settleDerived(event);
     }
     private MarketOptionResponse optionResponse(MarketOption value) {
@@ -533,11 +540,12 @@ public class ArenaCatalogService {
         }
         if (requestedOptions.size() != existingOptions.size())
             throw new ArenaProblem.Conflict("As opções do mercado não podem mudar depois do primeiro palpite.");
+        var displayedMultipliers=pricing.quote(market,existingOptions).multipliers();
         for (MarketOption existing : existingOptions) {
             MarketOptionRequest input = requestedOptions.get(existing.getKey());
             boolean requestedActive = input != null && (input.active() == null || input.active());
             if (input == null || !existing.getLabel().equals(input.label().trim())
-                    || existing.getMultiplier().compareTo(input.multiplier()) != 0
+                    || (existing.getMultiplier().compareTo(input.multiplier()) != 0 && displayedMultipliers.get(existing.getKey()).compareTo(input.multiplier()) != 0)
                     || existing.isActive() != requestedActive)
                 throw new ArenaProblem.Conflict("As opções do mercado não podem mudar depois do primeiro palpite.");
         }
@@ -551,12 +559,14 @@ public class ArenaCatalogService {
     }
     private void validateMarketTransition(PredictionMarket market, MarketStatus target) {
         MarketStatus current = market.getStatus();
+        if(target==MarketStatus.OPEN && List.of("DEADLINE","EVENT_STARTED","EVENT_FINISHED","OUTCOME_DETERMINED").contains(availability.evaluate(market).code()))
+            throw new ArenaProblem.RuleViolation("Este mercado já encerrou sua janela de palpites e não pode reabrir.");
         if (current == target) return;
         boolean allowed = switch (current) {
             case DRAFT -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
             case OPEN -> target == MarketStatus.SUSPENDED || target == MarketStatus.CLOSED;
             case SUSPENDED -> target == MarketStatus.OPEN || target == MarketStatus.CLOSED;
-            case CLOSED -> target == MarketStatus.OPEN;
+            case CLOSED -> false;
             case SETTLED, CANCELLED -> false;
         };
         if (!allowed)

@@ -68,6 +68,8 @@ export interface PredictionMarket {
   closesAt?: string | null;
   availability?: MarketAvailability;
   settlementDescription?: string;
+  pricingMode?: "STATIC" | "DYNAMIC";
+  pricingReason?: string;
   options: PredictionOption[];
 }
 

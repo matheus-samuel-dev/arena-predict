@@ -21,8 +21,12 @@ public class ArenaMarketDemoInitializer {
     private final EventParticipantRepository participants;
     private final MarketDefinitionCatalog definitions;
     private final MarketTemplateService templates;
+    private final MarketOptionRepository options;
+    private final MarketAvailabilityService availability;
     public ArenaMarketDemoInitializer(ArenaEventRepository events, PredictionMarketRepository markets,
-            EventParticipantRepository participants, MarketDefinitionCatalog definitions, MarketTemplateService templates) {
+            EventParticipantRepository participants, MarketDefinitionCatalog definitions, MarketTemplateService templates, MarketOptionRepository options, MarketAvailabilityService availability) {
+        this.availability=availability;
+        this.options=options;
         this.events=events; this.markets=markets; this.participants=participants; this.definitions=definitions; this.templates=templates;
     }
     @EventListener(ApplicationReadyEvent.class)
@@ -34,7 +38,6 @@ public class ArenaMarketDemoInitializer {
             ArenaEvent event = events.findByExternalKey("demo-"+key).orElse(null);
             if (event==null || event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED) continue;
             var catalog = definitions.definitions(event,participants.findByEventOrderByDisplayOrderAsc(event));
-            boolean firstUpgrade = markets.findByEventOrderByIdAsc(event).stream().noneMatch(m -> m.getTemplateCode()!=null);
             for (var market : markets.findByEventOrderByIdAsc(event)) {
                 if (market.getTemplateCode()!=null || market.getStatus()==MarketStatus.SETTLED || market.getStatus()==MarketStatus.CANCELLED) continue;
                 catalog.stream().filter(d -> d.code().equals(market.getCode())).findFirst().ifPresent(d -> {
@@ -47,14 +50,43 @@ public class ArenaMarketDemoInitializer {
                 });
             }
             var generated=templates.generate(event.getId());
-            if (firstUpgrade) {
-                if (key.equals("football-live")) state(generated,"TOTAL_CORNERS",MarketStatus.SUSPENDED);
-                if (key.equals("vct-open")) state(generated,"PISTOL1",MarketStatus.SUSPENDED);
-                if (key.equals("tennis-open")) state(generated,"TIEBREAK",MarketStatus.CLOSED);
-                if (key.equals("lol-open")) state(generated,"FIRST_BARON",MarketStatus.CANCELLED);
+            availability.closeDeterminedMarkets(generated);
+            if (key.equals("football-live") && generated.stream().anyMatch(m -> "LIVE_RESULT".equals(m.getTemplateCode()) && m.getStatus()==MarketStatus.CANCELLED)
+                    && markets.findByEventAndCode(event,"AUTO_LIVE_RESULT_CURRENT").isEmpty()) {
+                var d=catalog.stream().filter(v -> v.code().equals("LIVE_RESULT")).findFirst().orElseThrow();
+                var market=new PredictionMarket(); market.setEvent(event); market.setCode("AUTO_LIVE_RESULT_CURRENT");
+                market.setTemplateCode("LIVE_RESULT_CURRENT"); market.setName(d.name()+" · edição atual"); market.setCategory(d.category());
+                market.setTimingMode(d.timingMode()); market.setStatus(MarketStatus.OPEN);
+                market.setOpensAt(event.getStartsAt()); market.setClosesAt(event.getStartsAt().plusSeconds(8*3600));
+                definitions.snapshot(market,d); markets.save(market);
+                for(var c:d.options()) { var o=new MarketOption(); o.setMarket(market); o.setKey(c.key()); o.setLabel(c.label()); o.setMultiplier(c.multiplier()); o.setActive(true); options.save(o); }
             }
         }
         seedTerminalExample("demo-football-awaiting-result", "Rodada finalizada · aguardando liquidação", EventStatus.FINISHED);
+        seedLiveExample("nba", "nba-open", 110, 100, "00:30", "4º quarto", "{\"demo\":true,\"quarter\":4,\"quarterMinutes\":12}");
+        seedLiveExample("tennis", "tennis-open", 1, 0, null, "2º set", "{\"demo\":true,\"currentGames\":[5,3]}");
+        seedLiveExample("f1", "f1-open", null, null, null, "Corrida em andamento", "{\"demo\":true}");
+    }
+
+    private void seedLiveExample(String key,String sourceKey,Integer home,Integer away,String clock,String period,String data) {
+        if(events.findByExternalKey("demo-"+key+"-live").isPresent()) return;
+        var source=events.findByExternalKey("demo-"+sourceKey).orElseThrow();
+        var event=new ArenaEvent();event.setExternalKey("demo-"+key+"-live");event.setTitle(source.getTitle()+" · demonstração ao vivo");
+        event.setChampionship(source.getChampionship());event.setHomeCompetitor(source.getHomeCompetitor());event.setAwayCompetitor(source.getAwayCompetitor());
+        event.setFormat(source.getFormat());event.setBestOf(source.getBestOf());event.setDemo(true);event.setStatus(EventStatus.LIVE);
+        event.setStartsAt(java.time.Instant.now().minusSeconds(1800));event.setPredictionClosesAt(event.getStartsAt().minusSeconds(300));
+        event.setHomeScore(home);event.setAwayScore(away);event.setClock(clock);event.setPeriod(period);event.setLiveData(data);events.saveAndFlush(event);
+        for(var p:participants.findByEventOrderByDisplayOrderAsc(source)) { var entry=new EventParticipant();entry.setEvent(event);entry.setCompetitor(p.getCompetitor());entry.setDisplayOrder(p.getDisplayOrder());participants.save(entry); }
+        for(var m:templates.generate(event.getId())) {
+            // This race demo explicitly offers a stable winner market without a live position feed.
+            if(key.equals("f1") && "RACE_WINNER".equals(m.getTemplateCode())) {
+                var d=definitions.definition(m,List.of()).orElseThrow();
+                m.setTimingMode(MarketTimingMode.LIVE_ENABLED);m.setClosesAt(event.getStartsAt().plusSeconds(8*3600));
+                definitions.snapshot(m,new MarketDefinitionCatalog.Definition(d.code(),d.name(),d.category(),d.strategy(),d.metric(),d.line(),MarketTimingMode.LIVE_ENABLED,d.options(),d.fields(),d.settlementDescription()));
+            } else if(m.getTimingMode()==MarketTimingMode.PRE_MATCH_ONLY) {
+                m.setStatus(MarketStatus.CLOSED);m.setStatusReason("Mercado encerrado após o início; exclusivo de pré-jogo.");
+            }
+        }
     }
 
     private void seedTerminalExample(String key, String title, EventStatus status) {
@@ -86,8 +118,5 @@ public class ArenaMarketDemoInitializer {
             market.setStatus(status==EventStatus.CANCELLED ? MarketStatus.CANCELLED : MarketStatus.CLOSED);
         event.setStatus(status);
         if (status==EventStatus.FINISHED) { event.setHomeScore(3); event.setAwayScore(1); }
-    }
-    private void state(List<PredictionMarket> values,String code,MarketStatus state) {
-        values.stream().filter(m -> code.equals(m.getTemplateCode())).findFirst().ifPresent(m -> m.setStatus(state));
     }
 }

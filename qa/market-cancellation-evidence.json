@@ -1,0 +1,62 @@
+[
+  {
+    "second": {
+      "refundedPredictions": 0
+    },
+    "balanceAfter": 8568,
+    "eventId": 32,
+    "balanceBefore": 8568,
+    "refund": 0,
+    "first": {
+      "refundedPredictions": 0
+    }
+  },
+  {
+    "second": {
+      "refundedPredictions": 0
+    },
+    "balanceAfter": 8568,
+    "eventId": 33,
+    "balanceBefore": 8568,
+    "refund": 0,
+    "first": {
+      "refundedPredictions": 0
+    }
+  },
+  {
+    "second": {
+      "refundedPredictions": 0
+    },
+    "balanceAfter": 8568,
+    "eventId": 34,
+    "balanceBefore": 8568,
+    "refund": 0,
+    "first": {
+      "refundedPredictions": 0
+    }
+  },
+  {
+    "second": {
+      "refundedPredictions": 0
+    },
+    "balanceAfter": 8568,
+    "eventId": 35,
+    "balanceBefore": 8568,
+    "refund": 0,
+    "first": {
+      "refundedPredictions": 0
+    }
+  },
+  {
+    "second": {
+      "refundedPredictions": 0
+    },
+    "balanceAfter": 8568,
+    "eventId": 36,
+    "balanceBefore": 8568,
+    "refund": 0,
+    "first": {
+      "refundedPredictions": 0
+    }
+  }
+]

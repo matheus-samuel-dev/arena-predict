@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
 public class ArenaExperienceDemoInitializer {
     private static final Map<String, String> DEMO_AVATARS = Map.of(
-            "admin@arenapredict.com", "/assets/avatars/admin-demo.webp"
+            "admin@arenapredict.com", "/assets/avatars/camila-rocha.webp"
     );
     private final UserRepository users;
     private final PlayerProfileRepository profiles;
@@ -121,7 +121,10 @@ public class ArenaExperienceDemoInitializer {
         String email = user.getEmail().toLowerCase(Locale.ROOT);
         var participant = DemoParticipantCatalog.byEmail().get(email);
         String expectedAvatar = participant != null ? participant.avatarUrl() : DEMO_AVATARS.get(email);
-        if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && expectedAvatar != null) {
+        String currentAvatar = profile.getAvatarUrl();
+        boolean missingAvatar = currentAvatar == null || currentAvatar.isBlank();
+        boolean nonArenaDemoAvatar = !missingAvatar && !DemoParticipantCatalog.isArenaAvatar(currentAvatar);
+        if (expectedAvatar != null && (missingAvatar || nonArenaDemoAvatar)) {
             profile.setAvatarUrl(expectedAvatar);
             changed = true;
         }

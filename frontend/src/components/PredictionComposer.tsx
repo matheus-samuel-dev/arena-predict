@@ -141,6 +141,7 @@ export function PredictionComposer({
         marketId: draft.market.id,
         optionId: draft.option.id,
         stakePoints: stake,
+        expectedMultiplier: coefficient,
         poolId: poolId ? Number(poolId) : undefined,
         // A retry after a network failure is the same intent and must reuse
         // the key so it can never debit the virtual wallet twice.

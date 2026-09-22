@@ -44,7 +44,7 @@ O catálogo não inclui empate anula no futebol, primeira torre no Dota 2, const
 - O resultado registrado é a evidência de liquidação. Estatística ausente não é zero e não é inferida do vencedor. Dados necessários devem ser fornecidos ou o mercado deve ser cancelado com reembolso explícito.
 - Totais usam linhas com meio ponto para evitar ambiguidades comuns. Reembolso e resultados anulados devem usar o fluxo transacional de devolução, sem multiplicador de prêmio.
 - Corridas têm múltiplos participantes; mercados Top N podem ter vários vencedores. O confronto entre dois pilotos existe apenas como um mercado dentro da corrida.
-- Multiplicadores demonstrativos são gravados no mercado/opção e fotografados no palpite. O retorno potencial em pontos é calculado antes do débito e conservado para a liquidação.
+- Os valores base demonstrativos ficam no mercado/opção. Quando há contexto ao vivo suficiente, o backend calcula uma cotação determinística sem alterar essa base. O multiplicador confirmado e o retorno potencial são gravados no palpite antes do débito e conservados para a liquidação. A revisão de setembro de 2026 está documentada em `market-business-validation.md`.
 
 ## Bolão e liga
 

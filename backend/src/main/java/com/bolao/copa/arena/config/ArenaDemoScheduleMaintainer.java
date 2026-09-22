@@ -26,6 +26,9 @@ public class ArenaDemoScheduleMaintainer {
     private static final List<Timeline> TIMELINES = List.of(
             new Timeline("demo-football-live", EventStatus.LIVE, -4_000, -7_200),
             new Timeline("demo-cs2-live", EventStatus.LIVE, -3_000, -5_400),
+            new Timeline("demo-nba-live", EventStatus.LIVE, -1_800, -2_100),
+            new Timeline("demo-tennis-live", EventStatus.LIVE, -1_800, -2_100),
+            new Timeline("demo-f1-live", EventStatus.LIVE, -1_800, -2_100),
             new Timeline("demo-nba-open", EventStatus.OPEN_FOR_PREDICTIONS, 14_400, 13_500),
             new Timeline("demo-vct-open", EventStatus.OPEN_FOR_PREDICTIONS, 28_800, 27_900),
             new Timeline("demo-tennis-open", EventStatus.OPEN_FOR_PREDICTIONS, 86_400, 84_600),
@@ -57,7 +60,7 @@ public class ArenaDemoScheduleMaintainer {
 
     void refresh(Instant now) {
         for (Timeline timeline : TIMELINES) {
-            ArenaEvent event = events.findByExternalKey(timeline.externalKey()).orElse(null);
+            ArenaEvent event = events.findByExternalKeyForUpdate(timeline.externalKey()).orElse(null);
             if (event == null) continue;
             Instant previousStart = event.getStartsAt();
             boolean changed = ArenaDemoInitializer.refreshRollingDemoSchedule(

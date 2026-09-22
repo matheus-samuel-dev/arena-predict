@@ -42,7 +42,7 @@ class ArenaDemoScheduleMaintainerTest {
         market.setOpensAt(now.minus(Duration.ofHours(4)));
         market.setClosesAt(now.minus(Duration.ofMinutes(2)));
 
-        when(events.findByExternalKey(anyString())).thenAnswer(invocation ->
+        when(events.findByExternalKeyForUpdate(anyString())).thenAnswer(invocation ->
                 "demo-nba-open".equals(invocation.getArgument(0)) ? Optional.of(event) : Optional.empty());
         when(markets.findByEventOrderByIdAsc(event)).thenReturn(List.of(market));
 
@@ -64,7 +64,7 @@ class ArenaDemoScheduleMaintainerTest {
         event.setStatus(EventStatus.FINISHED);
         event.setStartsAt(now.minus(Duration.ofHours(2)));
         event.setPredictionClosesAt(now.minus(Duration.ofHours(3)));
-        when(events.findByExternalKey(anyString())).thenAnswer(invocation ->
+        when(events.findByExternalKeyForUpdate(anyString())).thenAnswer(invocation ->
                 "demo-nba-open".equals(invocation.getArgument(0)) ? Optional.of(event) : Optional.empty());
 
         new ArenaDemoScheduleMaintainer(events, markets).refresh(now);

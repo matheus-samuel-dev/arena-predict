@@ -26,6 +26,10 @@ public class PredictionMarket {
     private MarketTimingMode timingMode = MarketTimingMode.PRE_MATCH_ONLY;
     private Instant opensAt;
     private Instant closesAt;
+    @Column(length = 500)
+    private String statusReason;
+    public String getStatusReason() { return statusReason; }
+    public void setStatusReason(String value) { statusReason=value; }
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
     private MarketStatus status = MarketStatus.DRAFT;
     @Column(nullable = false)

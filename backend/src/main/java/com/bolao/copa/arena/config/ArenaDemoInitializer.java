@@ -268,7 +268,7 @@ public class ArenaDemoInitializer {
     }
     private ArenaEvent event(String key, Championship championship, Competitor home, Competitor away, String title,
                              Instant starts, Instant closes, EventStatus status, EventFormat format, int bestOf, boolean featured) {
-        ArenaEvent value = events.findByExternalKey(key).orElse(null);
+        ArenaEvent value = events.findByExternalKeyForUpdate(key).orElse(null);
         if (value != null) {
             Instant previousStart = value.getStartsAt();
             if (refreshRollingDemoSchedule(value, status, starts, closes, Instant.now())) {

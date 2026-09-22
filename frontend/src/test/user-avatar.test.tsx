@@ -52,15 +52,14 @@ describe("UserAvatar", () => {
     expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("CS");
   });
 
-  it("mantém um avatar visual demo mesmo se o retrato e o fallback local falharem", () => {
+  it("tenta o fallback visual local antes das iniciais quando um avatar Arena falha", () => {
     const { container } = render(<UserAvatar name="Sofia Martins" avatarUrl="/assets/avatars/sofia-martins.webp" />);
     fireEvent.error(container.querySelector("img")!);
 
     expect(container.querySelector("img")).toHaveAttribute("src", "/assets/avatars/avatar-default.webp");
     fireEvent.error(container.querySelector("img")!);
-    expect(container.querySelector("svg.user-avatar__image")).toBeInTheDocument();
-    expect(container.querySelector(".user-avatar__initials")).not.toBeInTheDocument();
-    expect(container.textContent).toBe("");
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(container.querySelector(".user-avatar__initials")).toHaveTextContent("SM");
   });
 
   it("usa o asset local no perfil Jogador Demo e permite rótulo acessível quando isolado", () => {

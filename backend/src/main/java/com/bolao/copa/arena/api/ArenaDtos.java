@@ -34,7 +34,7 @@ public final class ArenaDtos {
     public record MarketResponse(Long id, String code, String name, MarketStatus status, int minimumPoints,
                                  String resultOptionKey, List<MarketOptionResponse> options, String category,
                                  String templateCode, MarketTimingMode timingMode, Instant opensAt, Instant closesAt,
-                                 MarketAvailability availability, String settlementDescription) { }
+                                 MarketAvailability availability, String settlementDescription, String pricingMode, String pricingReason) { }
     public record EventResponse(Long id, String externalKey, Long championshipId, String championship,
                                 SportResponse sport, String title, String stage, String venue, String broadcast,
                                 String imageUrl, CompetitorSummary homeCompetitor, CompetitorSummary awayCompetitor,
@@ -67,7 +67,7 @@ public final class ArenaDtos {
                                           @Positive Integer position, @Size(max = 80) String scoreLabel) { }
     public record MarketOptionRequest(@NotBlank @Size(max = 80) String key,
                                       @NotBlank @Size(max = 140) String label,
-                                      @NotNull @DecimalMin("1.001") @Digits(integer = 5, fraction = 3) BigDecimal multiplier,
+                                      @NotNull @DecimalMin("1.01") @DecimalMax("100.00") @Digits(integer = 3, fraction = 3) BigDecimal multiplier,
                                       Boolean active) { }
     public record MarketRequest(@NotNull Long eventId, @NotBlank @Size(max = 80) String code,
                                 @NotBlank @Size(max = 140) String name, MarketStatus status,
@@ -99,7 +99,12 @@ public final class ArenaDtos {
     public record PlacePredictionRequest(@NotNull Long eventId, @NotNull Long marketId, @NotNull Long optionId,
                                          @NotNull @Min(1) @Max(MAX_PREDICTION_STAKE_POINTS) Integer stakePoints,
                                          Long poolId,
-                                         @Size(max = MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH) String idempotencyKey) { }
+                                         @Size(max = MAX_CLIENT_IDEMPOTENCY_KEY_LENGTH) String idempotencyKey,
+                                         @DecimalMin("1.01") @DecimalMax("100.00") BigDecimal expectedMultiplier) {
+        public PlacePredictionRequest(Long eventId, Long marketId, Long optionId, Integer stakePoints, Long poolId, String idempotencyKey) {
+            this(eventId,marketId,optionId,stakePoints,poolId,idempotencyKey,null);
+        }
+    }
     public record PredictionResponse(Long id, Long eventId, String eventTitle, Long marketId, String marketName,
                                      Long optionId, String optionLabel, int stakePoints, BigDecimal multiplier,
                                      int potentialPoints, int rewardedPoints, PredictionStatus status, Long poolId,

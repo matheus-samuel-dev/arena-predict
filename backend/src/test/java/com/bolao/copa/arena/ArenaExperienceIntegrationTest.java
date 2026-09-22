@@ -8,6 +8,8 @@ import com.bolao.copa.arena.domain.ArenaEnums.ChallengeMetric;
 import com.bolao.copa.arena.domain.ArenaEnums.EventStatus;
 import com.bolao.copa.arena.domain.ChallengeDefinition;
 import com.bolao.copa.arena.api.ArenaDtos.RankingRow;
+import com.bolao.copa.arena.config.ArenaExperienceDemoInitializer;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.arena.repository.*;
@@ -45,25 +47,16 @@ class ArenaExperienceIntegrationTest {
     @Autowired CommunityPostRepository communityPosts;
     @Autowired CommunityLikeRepository communityLikes;
     @Autowired PlayerProfileRepository profileRecords;
+    @Autowired ArenaExperienceDemoInitializer demoProfiles;
 
     @Test
     @Transactional
     void demoCommunityStartsPopulatedAndEveryDemoIdentityHasAVisualAvatar() {
-        var demoEmails = List.of(
-                "jogador@arenapredict.com",
-                "beatriz.nunes@arenapredict.com",
-                "marina.costa@arenapredict.com",
-                "rafael.lima@arenapredict.com",
-                "camila.rocha@arenapredict.com",
-                "lucas.almeida@arenapredict.com",
-                "ana.ribeiro@arenapredict.com",
-                "diego.ferreira@arenapredict.com"
-        );
-
-        for (String email : demoEmails) {
-            var user = users.findByEmail(email).orElseThrow();
+        for (var participant : DemoParticipantCatalog.participants()) {
+            var user = users.findByEmail(participant.email()).orElseThrow();
             assertThat(profileRecords.findByUser(user).orElseThrow().getAvatarUrl())
-                    .startsWith("/assets/avatars/");
+                    .isEqualTo(participant.avatarUrl())
+                    .isIn(DemoParticipantCatalog.arenaAvatars());
         }
 
         var current = users.findByEmail("jogador@arenapredict.com").orElseThrow();
@@ -73,6 +66,27 @@ class ArenaExperienceIntegrationTest {
                 .allMatch(post -> post.author() != null
                         && post.author().avatarUrl() != null
                         && post.author().avatarUrl().startsWith("/assets/avatars/"));
+    }
+
+    @Test
+    @Transactional
+    void bootstrapRepairsLegacyDemoAvatarWithoutOverwritingAnArenaChoice() {
+        var sofia = users.findByEmail("sofia.martins@arenapredict.com").orElseThrow();
+        var sofiaProfile = profileRecords.findByUser(sofia).orElseThrow();
+        sofiaProfile.setAvatarUrl("/assets/avatars/sofia-martins.webp");
+
+        var jogador = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var jogadorProfile = profileRecords.findByUser(jogador).orElseThrow();
+        String chosenAvatar = "/assets/avatars/ana-ribeiro.webp";
+        jogadorProfile.setAvatarUrl(chosenAvatar);
+        profileRecords.saveAll(List.of(sofiaProfile, jogadorProfile));
+
+        demoProfiles.seed();
+
+        assertThat(profileRecords.findByUser(sofia).orElseThrow().getAvatarUrl())
+                .isEqualTo(DemoParticipantCatalog.byEmail().get(sofia.getEmail()).avatarUrl());
+        assertThat(profileRecords.findByUser(jogador).orElseThrow().getAvatarUrl())
+                .isEqualTo(chosenAvatar);
     }
 
     @Test

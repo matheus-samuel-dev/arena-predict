@@ -1,0 +1,44 @@
+{
+  "statusCounts": [
+    {
+      "status": 200,
+      "count": 84
+    },
+    {
+      "status": 201,
+      "count": 2
+    },
+    {
+      "status": 204,
+      "count": 1
+    },
+    {
+      "status": 304,
+      "count": 1
+    },
+    {
+      "status": 499,
+      "count": 1
+    },
+    {
+      "status": 504,
+      "count": 1
+    }
+  ],
+  "consoleErrors": 0,
+  "consoleWarnings": 0,
+  "timeouts": [
+    {
+      "method": "POST",
+      "path": "/api/predictions",
+      "status": 504
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/events/40/result",
+      "status": 499
+    }
+  ],
+  "networkSource": "Nginx access log",
+  "recoveredWithoutDuplicatePoints": true
+}

@@ -361,6 +361,7 @@ export const predictionsApi = {
     marketId: number | string;
     optionId: number | string;
     stakePoints: number;
+    expectedMultiplier?: number;
     poolId?: number | string;
     idempotencyKey?: string;
   }) =>

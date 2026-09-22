@@ -1,0 +1,22 @@
+[
+  {
+    "operation": "GET main event",
+    "milliseconds": 2108,
+    "openMarkets": 4
+  },
+  {
+    "operation": "GET main event",
+    "milliseconds": 2058,
+    "openMarkets": 4
+  },
+  {
+    "operation": "GET main event",
+    "milliseconds": 2144,
+    "openMarkets": 4
+  },
+  {
+    "eventStatus": "FINISHED",
+    "operation": "PUT settled result replay",
+    "milliseconds": 2150
+  }
+]

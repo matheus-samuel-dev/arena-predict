@@ -1,0 +1,32 @@
+[
+  {
+    "id": 580,
+    "type": "REFUND",
+    "amount": 40,
+    "balanceAfter": 8568,
+    "description": "Reembolso por evento cancelado: QA mercados · Boston Celtics x Dallas Mavericks",
+    "referenceType": "EVENT",
+    "referenceId": "31",
+    "createdAt": "2026-09-21T11:40:20.414827Z"
+  },
+  {
+    "id": 579,
+    "type": "REFUND",
+    "amount": 30,
+    "balanceAfter": 8528,
+    "description": "Reembolso por evento cancelado: QA mercados · Boston Celtics x Dallas Mavericks",
+    "referenceType": "EVENT",
+    "referenceId": "31",
+    "createdAt": "2026-09-21T11:40:20.402542Z"
+  },
+  {
+    "id": 578,
+    "type": "REFUND",
+    "amount": 40,
+    "balanceAfter": 8498,
+    "description": "Reembolso por evento cancelado: QA mercados · Boston Celtics x Dallas Mavericks",
+    "referenceType": "EVENT",
+    "referenceId": "31",
+    "createdAt": "2026-09-21T11:40:20.37322Z"
+  }
+]

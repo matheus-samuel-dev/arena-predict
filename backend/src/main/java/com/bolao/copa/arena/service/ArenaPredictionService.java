@@ -29,6 +29,7 @@ public class ArenaPredictionService {
     private final MarketDefinitionCatalog definitions;
     private final MarketSettlementEngine settlement;
     private final EventParticipantRepository participants;
+    private final DemoProbabilityEngine pricing;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository options,
@@ -36,7 +37,8 @@ public class ArenaPredictionService {
                                   PointWalletService wallets, ArenaNotificationService notifications,
                                   ProgressionService progression, AdminAuditService audit,
                                   MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
-                                  MarketSettlementEngine settlement, EventParticipantRepository participants) {
+                                  MarketSettlementEngine settlement, EventParticipantRepository participants, DemoProbabilityEngine pricing) {
+        this.pricing=pricing;
         this.predictions = predictions;
         this.events = events;
         this.markets = markets;
@@ -69,6 +71,9 @@ public class ArenaPredictionService {
         MarketOption option = options.findByIdAndMarket(request.optionId(), market)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção de palpite não encontrada."));
         validateOpen(event, market, option, request.stakePoints());
+        var confirmedMultiplier=pricing.quote(market,List.of(option)).multipliers().get(option.getKey());
+        if(request.expectedMultiplier()!=null && request.expectedMultiplier().compareTo(confirmedMultiplier)!=0)
+            throw new ArenaProblem.Conflict("O multiplicador foi atualizado. Atualize o evento e confira o novo valor antes de confirmar.");
 
         ArenaPool pool = null;
         if (request.poolId() != null) {
@@ -84,8 +89,8 @@ public class ArenaPredictionService {
         prediction.setOption(option);
         prediction.setPool(pool);
         prediction.setStakePoints(request.stakePoints());
-        prediction.setMultiplier(option.getMultiplier());
-        prediction.setPotentialPoints(option.getMultiplier().multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
+        prediction.setMultiplier(confirmedMultiplier);
+        prediction.setPotentialPoints(confirmedMultiplier.multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);
         prediction.setIdempotencyKey(key);

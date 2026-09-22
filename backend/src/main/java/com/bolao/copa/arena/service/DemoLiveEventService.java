@@ -12,7 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoLiveEventService {
     private final ArenaEventRepository events;
     private final List<SportsDataProvider> providers;
-    public DemoLiveEventService(ArenaEventRepository events, ObjectProvider<SportsDataProvider> providers) {
+    private final com.bolao.copa.arena.repository.PredictionMarketRepository markets;
+    private final MarketAvailabilityService availability;
+    public DemoLiveEventService(ArenaEventRepository events, ObjectProvider<SportsDataProvider> providers,
+            com.bolao.copa.arena.repository.PredictionMarketRepository markets,MarketAvailabilityService availability) {
+        this.markets=markets;this.availability=availability;
         this.events = events; this.providers = providers.orderedStream().toList();
     }
     @Transactional
@@ -27,6 +31,7 @@ public class DemoLiveEventService {
                 event.setHomeScore(update.homeScore()); event.setAwayScore(update.awayScore());
                 event.setClock(update.clock()); event.setPeriod(update.period()); event.setLiveData(update.structuredData());
                 event.setStatus(EventStatus.LIVE); updated++;
+                availability.closeDeterminedMarkets(markets.findByEventForUpdate(event));
             }
         }
         return Map.of("updated", updated, "demo", true, "providers", providers.stream().map(SportsDataProvider::providerName).toList());

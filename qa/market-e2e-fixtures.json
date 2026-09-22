@@ -1,0 +1,37 @@
+[
+  {
+    "source": "football-open",
+    "eventId": 40,
+    "code": "LIVE_RESULT"
+  },
+  {
+    "source": "nba-open",
+    "eventId": 41,
+    "code": "WINNER"
+  },
+  {
+    "source": "tennis-open",
+    "eventId": 42,
+    "code": "MATCH_WINNER"
+  },
+  {
+    "source": "cs2-open",
+    "eventId": 43,
+    "code": "SERIES_WINNER"
+  },
+  {
+    "source": "vct-open",
+    "eventId": 44,
+    "code": "SERIES_WINNER"
+  },
+  {
+    "source": "lol-open",
+    "eventId": 45,
+    "code": "SERIES_WINNER"
+  },
+  {
+    "source": "f1-open",
+    "eventId": 46,
+    "code": "RACE_WINNER"
+  }
+]
