@@ -41,6 +41,7 @@ public class ExperienceController {
     @PostMapping("/community/posts") @ResponseStatus(HttpStatus.CREATED)
     public PostResponse post(@Valid @RequestBody PostRequest request, @AuthenticationPrincipal UserDetails details) { return community.create(request, user(details)); }
     @PostMapping("/community/posts/{id}/like") public PostResponse like(@PathVariable Long id, @AuthenticationPrincipal UserDetails details) { return community.like(id, user(details)); }
+    @DeleteMapping("/community/posts/{id}/like") public PostResponse unlike(@PathVariable Long id, @AuthenticationPrincipal UserDetails details) { return community.unlike(id, user(details)); }
     @PostMapping("/community/posts/{id}/comments") @ResponseStatus(HttpStatus.CREATED)
     public CommentResponse comment(@PathVariable Long id, @Valid @RequestBody CommentRequest request, @AuthenticationPrincipal UserDetails details) { return community.comment(id, request, user(details)); }
     @GetMapping("/community/posts/{id}/comments") public List<CommentResponse> comments(@PathVariable Long id, @AuthenticationPrincipal UserDetails details) { return community.comments(id, user(details)); }

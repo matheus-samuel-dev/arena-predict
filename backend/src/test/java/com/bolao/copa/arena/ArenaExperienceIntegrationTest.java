@@ -190,7 +190,16 @@ class ArenaExperienceIntegrationTest {
         var other = users.findByEmail("marina.costa@arenapredict.com").orElseThrow();
         var post = community.create(new PostRequest("Uma análise original para o próximo evento.", "Análise"), author);
 
+        assertThat(community.like(post.id(), other)).satisfies(response -> {
+            assertThat(response.likeCount()).isEqualTo(1);
+            assertThat(response.likedByCurrentUser()).isTrue();
+        });
         assertThat(community.like(post.id(), other).likeCount()).isEqualTo(1);
+        assertThat(community.unlike(post.id(), other)).satisfies(response -> {
+            assertThat(response.likeCount()).isZero();
+            assertThat(response.likedByCurrentUser()).isFalse();
+        });
+        assertThat(community.unlike(post.id(), other).likeCount()).isZero();
         assertThat(community.like(post.id(), other).likeCount()).isEqualTo(1);
         assertThat(community.comment(post.id(), new CommentRequest("Boa leitura do confronto."), other).postId()).isEqualTo(post.id());
         community.report(post.id(), new ReportRequest("Revisão de moderação para teste"), other);
@@ -198,6 +207,32 @@ class ArenaExperienceIntegrationTest {
         assertThat(community.reports(0, 20).getTotalElements()).isPositive();
         assertThatThrownBy(() -> community.removeOwnPost(post.id(), other)).isInstanceOf(AccessDeniedException.class);
         community.removeOwnPost(post.id(), author);
+    }
+
+    @Test
+    @Transactional
+    void demoPostReactionPersistsInFeedAndCanBeRestored() {
+        var current = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var post = communityPosts.findBySourceKey("demo-community-analysis").orElseThrow();
+        long initialCount = communityLikes.countByPost(post);
+
+        assertThat(community.like(post.getId(), current).likedByCurrentUser()).isTrue();
+        assertThat(community.unlike(post.getId(), current)).satisfies(response -> {
+            assertThat(response.likeCount()).isEqualTo(initialCount - 1);
+            assertThat(response.likedByCurrentUser()).isFalse();
+        });
+        assertThat(community.feed(0, 20, current).getContent())
+                .filteredOn(response -> response.id().equals(post.getId()))
+                .singleElement()
+                .satisfies(response -> {
+                    assertThat(response.likeCount()).isEqualTo(initialCount - 1);
+                    assertThat(response.likedByCurrentUser()).isFalse();
+                });
+
+        assertThat(community.like(post.getId(), current)).satisfies(response -> {
+            assertThat(response.likeCount()).isEqualTo(initialCount);
+            assertThat(response.likedByCurrentUser()).isTrue();
+        });
     }
 
     @Test

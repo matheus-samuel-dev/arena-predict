@@ -7,6 +7,7 @@ import static com.bolao.copa.arena.api.ExperienceDtos.PostRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -49,6 +50,7 @@ class ArenaCreationContractsIntegrationTest {
     @Autowired ArenaPoolRepository pools;
     @Autowired ArenaPoolMemberRepository poolMembers;
     @Autowired CommunityPostRepository communityPosts;
+    @Autowired CommunityLikeRepository communityLikes;
     @Autowired CommunityCommentRepository communityComments;
     @Autowired AchievementDefinitionRepository achievements;
     @Autowired ChallengeDefinitionRepository challenges;
@@ -393,6 +395,43 @@ class ArenaCreationContractsIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/pools").contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @Transactional
+    void communityReactionEndpointsTogglePersistentlyAndRequireAuthentication() throws Exception {
+        var player = player();
+        long postId = responseId(mockMvc.perform(post("/api/community/posts")
+                        .header("Authorization", bearer(player)).contentType(MediaType.APPLICATION_JSON)
+                        .content(json(new PostRequest("Publicação para validar o ciclo completo da curtida.", "Teste"))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString());
+
+        mockMvc.perform(post("/api/community/posts/{id}/like", postId)
+                        .header("Authorization", bearer(player)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likeCount").value(1))
+                .andExpect(jsonPath("$.likedByCurrentUser").value(true));
+        mockMvc.perform(post("/api/community/posts/{id}/like", postId)
+                        .header("Authorization", bearer(player)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likeCount").value(1));
+
+        mockMvc.perform(delete("/api/community/posts/{id}/like", postId)
+                        .header("Authorization", bearer(player)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likeCount").value(0))
+                .andExpect(jsonPath("$.likedByCurrentUser").value(false));
+        mockMvc.perform(delete("/api/community/posts/{id}/like", postId)
+                        .header("Authorization", bearer(player)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likeCount").value(0));
+        assertThat(communityLikes.countByPost(communityPosts.findById(postId).orElseThrow())).isZero();
+
+        mockMvc.perform(post("/api/community/posts/{id}/like", postId))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/community/posts/{id}/like", postId))
                 .andExpect(status().isUnauthorized());
     }
 

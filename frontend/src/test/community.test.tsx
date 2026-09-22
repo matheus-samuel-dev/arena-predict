@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   feed: vi.fn(),
   createPost: vi.fn(),
   like: vi.fn(),
+  unlike: vi.fn(),
   comments: vi.fn(),
   comment: vi.fn(),
   report: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("../services/api", () => ({
     feed: mocks.feed,
     createPost: mocks.createPost,
     like: mocks.like,
+    unlike: mocks.unlike,
     comments: mocks.comments,
     comment: mocks.comment,
     report: mocks.report,
@@ -69,6 +71,7 @@ describe("página Comunidade", () => {
     mocks.feed.mockResolvedValue([post]);
     mocks.createPost.mockResolvedValue({ ...post, id: 8 });
     mocks.like.mockResolvedValue({ ...post, likeCount: 3, likedByCurrentUser: true });
+    mocks.unlike.mockResolvedValue({ ...post, likeCount: 2, likedByCurrentUser: false });
     mocks.report.mockResolvedValue(undefined);
   });
 
@@ -134,7 +137,7 @@ describe("página Comunidade", () => {
     expect(screen.getByRole("button", { name: /Publicar/i })).toBeEnabled();
   });
 
-  it("registra uma reação uma única vez e expõe o estado pressionado", async () => {
+  it("registra uma reação uma única vez e permite removê-la", async () => {
     const reaction = deferred<typeof post>();
     mocks.like.mockReturnValueOnce(reaction.promise);
     const user = userEvent.setup();
@@ -149,10 +152,17 @@ describe("página Comunidade", () => {
 
     await act(async () => reaction.resolve({ ...post, likeCount: 3, likedByCurrentUser: true }));
 
-    const liked = await screen.findByRole("button", { name: /Publicação curtida de Ana Arena, 3 curtidas/i });
+    const liked = await screen.findByRole("button", { name: /Remover curtida da publicação de Ana Arena, 3 curtidas/i });
     expect(liked).toHaveAttribute("aria-pressed", "true");
-    expect(liked).toBeDisabled();
+    expect(liked).toBeEnabled();
     expect(mocks.notify).toHaveBeenCalledWith("Reação registrada.", "success");
+
+    await user.click(liked);
+
+    expect(mocks.unlike).toHaveBeenCalledTimes(1);
+    const unliked = await screen.findByRole("button", { name: /Curtir publicação de Ana Arena, 2 curtidas/i });
+    expect(unliked).toHaveAttribute("aria-pressed", "false");
+    expect(mocks.notify).toHaveBeenCalledWith("Reação removida.", "success");
   });
 
   it("restaura a ação de curtir e informa o erro quando a reação falha", async () => {
@@ -166,6 +176,21 @@ describe("página Comunidade", () => {
     await waitFor(() => expect(mocks.notify).toHaveBeenCalledWith("Não foi possível registrar a reação.", "error"));
     expect(like).toBeEnabled();
     expect(like).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("mantém curtida e contador quando a remoção falha", async () => {
+    mocks.feed.mockResolvedValueOnce([{ ...post, likeCount: 3, likedByCurrentUser: true }]);
+    mocks.unlike.mockRejectedValueOnce(new Error("Não foi possível remover a reação."));
+    const user = userEvent.setup();
+
+    renderCommunity();
+    const liked = await screen.findByRole("button", { name: /Remover curtida da publicação de Ana Arena, 3 curtidas/i });
+    await user.click(liked);
+
+    await waitFor(() => expect(mocks.notify).toHaveBeenCalledWith("Não foi possível remover a reação.", "error"));
+    expect(liked).toBeEnabled();
+    expect(liked).toHaveAttribute("aria-pressed", "true");
+    expect(liked).toHaveTextContent("3");
   });
 
   it("apresenta loading, erro recuperável e empty state do feed", async () => {

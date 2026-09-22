@@ -439,6 +439,7 @@ export const communityApi = {
     body: { content, ...(topic?.trim() ? { topic: topic.trim() } : {}) },
   }),
   like: (id: number | string) => request<CommunityPost>(`/community/posts/${id}/like`, { method: "POST" }),
+  unlike: (id: number | string) => request<CommunityPost>(`/community/posts/${id}/like`, { method: "DELETE" }),
   comments: (id: number | string) =>
     request<CommunityComment[]>(`/community/posts/${id}/comments`),
   comment: (id: number | string, content: string) =>

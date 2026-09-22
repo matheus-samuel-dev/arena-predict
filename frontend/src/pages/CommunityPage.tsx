@@ -41,17 +41,19 @@ export function CommunityPage() {
     finally { postingRequestRef.current = false; setPosting(false); }
   }
 
-  async function like(post: CommunityPost) {
+  async function toggleLike(post: CommunityPost) {
     const postKey = String(post.id);
-    if (post.likedByCurrentUser || likingRequestIdsRef.current.has(postKey)) return;
+    if (likingRequestIdsRef.current.has(postKey)) return;
     likingRequestIdsRef.current.add(postKey);
     setLikingPostIds((current) => new Set(current).add(postKey));
     try {
-      const updated = await communityApi.like(post.id);
+      const updated = post.likedByCurrentUser
+        ? await communityApi.unlike(post.id)
+        : await communityApi.like(post.id);
       setData((current) => current?.map((item) => item.id === post.id ? { ...item, ...updated } : item) ?? current);
-      notify("Reação registrada.", "success");
+      notify(post.likedByCurrentUser ? "Reação removida." : "Reação registrada.", "success");
     } catch (reason) {
-      notify(reason instanceof Error ? reason.message : "Não foi possível curtir.", "error");
+      notify(reason instanceof Error ? reason.message : "Não foi possível atualizar a reação.", "error");
     } finally {
       setLikingPostIds((current) => {
         const next = new Set(current);
@@ -131,11 +133,11 @@ export function CommunityPage() {
                       <button
                         type="button"
                         className={post.likedByCurrentUser ? "active" : ""}
-                        onClick={() => void like(post)}
-                        aria-label={`${post.likedByCurrentUser ? "Publicação curtida de" : "Curtir publicação de"} ${author}, ${post.likeCount ?? 0} ${(post.likeCount ?? 0) === 1 ? "curtida" : "curtidas"}`}
+                        onClick={() => void toggleLike(post)}
+                        aria-label={`${post.likedByCurrentUser ? "Remover curtida da publicação de" : "Curtir publicação de"} ${author}, ${post.likeCount ?? 0} ${(post.likeCount ?? 0) === 1 ? "curtida" : "curtidas"}`}
                         aria-pressed={Boolean(post.likedByCurrentUser)}
                         aria-busy={likingPostIds.has(String(post.id)) || undefined}
-                        disabled={Boolean(post.likedByCurrentUser) || likingPostIds.has(String(post.id))}
+                        disabled={likingPostIds.has(String(post.id))}
                       >
                         {likingPostIds.has(String(post.id)) ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <Heart size={17} aria-hidden="true" />} {post.likeCount ?? 0}
                       </button>

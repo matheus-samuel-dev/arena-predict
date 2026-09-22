@@ -68,6 +68,14 @@ public class CommunityService {
     }
 
     @Transactional
+    public PostResponse unlike(Long postId, User user) {
+        CommunityPost post = publishedForUpdate(postId);
+        likes.findByPostAndUser(post, user).ifPresent(likes::delete);
+        likes.flush();
+        return response(post, user);
+    }
+
+    @Transactional
     public CommentResponse comment(Long postId, CommentRequest request, User author) {
         CommunityPost post = published(postId);
         CommunityComment comment = new CommunityComment(); comment.setPost(post); comment.setAuthor(author); comment.setContent(request.content().trim());
