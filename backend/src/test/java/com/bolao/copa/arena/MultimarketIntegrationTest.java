@@ -83,6 +83,31 @@ class MultimarketIntegrationTest {
         assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints());
     }
 
+    @Test void legacySnapshotAboveTheNewCeilingIsStillPaidExactlyOnce() {
+        var event=fixture("football-open");var market=market(event,"LIVE_RESULT");
+        event.setStatus(EventStatus.LIVE);event.setHomeScore(0);event.setAwayScore(0);event.setClock("20");
+        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var placed=place(event,market,"HOME",40);
+        // A persisted v1 prediction must retain its contractual virtual reward.
+        var legacy=predictions.findById(placed.id()).orElseThrow();
+        legacy.setMultiplier(new BigDecimal("100.00"));legacy.setPotentialPoints(4000);
+        Long eventId=event.getId(),marketId=market.getId();entityManager.flush();entityManager.clear();
+        event=events.findById(eventId).orElseThrow();event.setStatus(EventStatus.LIVE);
+        event.setHomeScore(3);event.setAwayScore(1);event.setClock("83");
+        market=markets.findById(marketId).orElseThrow();
+        assertThat(catalog.marketResponse(market).options()).allSatisfy(o -> assertThat(o.multiplier()).isLessThanOrEqualTo(DemoProbabilityEngine.MAX));
+        assertThat(predictions.findById(placed.id()).orElseThrow().getMultiplier()).isEqualByComparingTo("100.00");
+        long before=wallets.wallet(user).balance();
+        var result=new EventResultRequest(3,1,true,data("football-open"),true);
+        results.record(eventId,result,"legacy-snapshot-"+eventId);
+        results.record(eventId,result,"legacy-replay-"+eventId);
+        entityManager.flush();entityManager.clear();
+        var settled=predictions.findById(placed.id()).orElseThrow();
+        assertThat(settled.getRewardedPoints()).isEqualTo(4000);
+        assertThat(settled.getMultiplier()).isEqualByComparingTo("100.00");
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before+4000);
+    }
+
     @Test void suspensionCanReopenButClosureIsFinalAndAudited() {
         var event=fixture("nba-open");var market=market(event,"WINNER");
         catalog.changeMarketStatus(market.getId(),MarketStatus.SUSPENDED);

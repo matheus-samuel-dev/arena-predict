@@ -31,6 +31,114 @@ class DemoProbabilityEngineTest {
         return engine.quote(m,selections);
     }
     BigDecimal home(ArenaEvent e,String code) { return quote(market(e,code)).multipliers().get("HOME"); }
+    BigDecimal away(ArenaEvent e,String code) { return quote(market(e,code)).multipliers().get("AWAY"); }
+
+    @ParameterizedTest @CsvSource(delimiter='|', value={
+        "FOOTBALL|LIVE_RESULT|3|1|20|1|{}",
+        "FOOTBALL|LIVE_RESULT|3|1|60|1|{}",
+        "FOOTBALL|LIVE_RESULT|3|1|83:24|1|{}",
+        "FOOTBALL|LIVE_RESULT|3|1|90+3|1|{}",
+        "BASKETBALL|WINNER|20|10|08:00|1|{\"quarter\":1,\"quarterMinutes\":12}",
+        "BASKETBALL|WINNER|80|70|08:00|1|{\"quarter\":3,\"quarterMinutes\":12}",
+        "BASKETBALL|WINNER|100|90|05:00|1|{\"quarter\":4,\"quarterMinutes\":12}",
+        "BASKETBALL|WINNER|110|100|00:30|1|{\"quarter\":4,\"quarterMinutes\":12}",
+        "CS2|SERIES_WINNER|1|0||3|{}",
+        "CS2|SERIES_WINNER|1|0||3|{\"maps\":[{\"score\":\"13-8\"},{\"score\":\"9-7\"}]}",
+        "CS2|SERIES_WINNER|1|0||3|{\"currentRounds\":[12,3]}",
+        "TENNIS|MATCH_WINNER|1|0||3|{\"currentGames\":[5,3]}",
+        "VALORANT|SERIES_WINNER|1|0||3|{\"currentRounds\":[12,3]}"
+    })
+    void calibratedDemoExamples(String sport,String code,int h,int a,String clock,int bestOf,String data) {
+        var e=event(sport,h,a,clock,bestOf,data);var q=quote(market(e,code));
+        assertThat(q.mode()).isEqualTo("DYNAMIC");
+        assertThat(q.multipliers().get("HOME")).isLessThan(q.multipliers().get("AWAY"));
+        assertThat(q.multipliers().values()).allSatisfy(v -> assertThat(v).isGreaterThanOrEqualTo(DemoProbabilityEngine.MIN).isLessThan(DemoProbabilityEngine.MAX));
+        assertThat(quote(market(e,code))).isEqualTo(q);
+        System.out.printf("CALIBRATION %s %d:%d clock=%s BO%d %s -> %s%n",sport,h,a,clock,bestOf,data,q.multipliers());
+    }
+
+    @Test void conversionPreservesRareOutcomesInsteadOfClippingThemTogether() {
+        BigDecimal previous=DemoProbabilityEngine.multiplier(0.5);
+        assertThat(previous).isEqualByComparingTo("2.00");
+        for(double p:new double[]{0.08,0.05,0.02,0.005,0.00001,1e-9,1e-20}) {
+            BigDecimal value=DemoProbabilityEngine.multiplier(p);
+            assertThat(value).isGreaterThan(previous).isLessThan(DemoProbabilityEngine.MAX);
+            assertThat(DemoProbabilityEngine.multiplier(p)).isEqualTo(value);
+            previous=value;
+        }
+    }
+    @Test void strongFavoritesRemainDistinguishableUntilDisplayRounding() {
+        BigDecimal previous=DemoProbabilityEngine.multiplier(0.5);
+        for(double p:new double[]{0.75,0.9,0.95,0.99,0.999}) {
+            BigDecimal value=DemoProbabilityEngine.multiplier(p);
+            assertThat(value).isLessThan(previous).isGreaterThan(DemoProbabilityEngine.MIN);
+            previous=value;
+        }
+        assertThat(DemoProbabilityEngine.multiplier(1)).isEqualTo(DemoProbabilityEngine.MIN);
+    }
+    @Test void conversionIsMonotoneFiniteAndBoundedAcrossItsDomain() {
+        BigDecimal previous=DemoProbabilityEngine.MAX;
+        for(int i=0;i<=10000;i++) {
+            BigDecimal value=DemoProbabilityEngine.multiplier(i/10000.0);
+            assertThat(value).isLessThanOrEqualTo(previous).isBetween(DemoProbabilityEngine.MIN,DemoProbabilityEngine.MAX);
+            assertThat(value.scale()).isEqualTo(2);previous=value;
+        }
+        assertThat(DemoProbabilityEngine.multiplier(Double.MIN_VALUE)).isLessThanOrEqualTo(DemoProbabilityEngine.MAX);
+        assertThat(DemoProbabilityEngine.multiplier(-1e-15)).isEqualTo(DemoProbabilityEngine.MAX);
+        assertThat(DemoProbabilityEngine.multiplier(1+1e-15)).isEqualTo(DemoProbabilityEngine.MIN);
+        for(double invalid:new double[]{Double.NaN,Double.POSITIVE_INFINITY,Double.NEGATIVE_INFINITY})
+            assertThatIllegalArgumentException().isThrownBy(() -> DemoProbabilityEngine.multiplier(invalid));
+    }
+    @Test void footballSeparatesDrawFromComebackThroughoutTheMatch() {
+        var e=event("FOOTBALL",3,1,"20",1,null);
+        BigDecimal leader=DemoProbabilityEngine.MAX,draw=DemoProbabilityEngine.MIN,trailing=DemoProbabilityEngine.MIN;
+        for(String clock:List.of("20","60","83","90+3")) {
+            e.setClock(clock);var values=quote(market(e,"LIVE_RESULT")).multipliers();
+            assertThat(values.get("HOME")).isLessThan(leader);
+            assertThat(values.get("DRAW")).isGreaterThan(draw).isLessThan(values.get("AWAY"));
+            assertThat(values.get("AWAY")).isGreaterThan(trailing).isLessThan(DemoProbabilityEngine.MAX);
+            leader=values.get("HOME");draw=values.get("DRAW");trailing=values.get("AWAY");
+        }
+    }
+    @Test void basketballAdvantageGrowsProgressivelyAndRetainsRareComebackTail() {
+        var e=event("BASKETBALL",110,100,"08:00",1,null);
+        BigDecimal leader=DemoProbabilityEngine.MAX,trailing=DemoProbabilityEngine.MIN;
+        int[] quarters={1,3,4,4};String[] clocks={"08:00","08:00","05:00","00:30"};
+        for(int i=0;i<quarters.length;i++) {
+            e.setClock(clocks[i]);e.setLiveData("{\"quarter\":"+quarters[i]+",\"quarterMinutes\":12}");
+            var values=quote(market(e,"WINNER")).multipliers();
+            assertThat(values.get("HOME")).isLessThan(leader);
+            assertThat(values.get("AWAY")).isGreaterThan(trailing).isLessThan(DemoProbabilityEngine.MAX);
+            leader=values.get("HOME");trailing=values.get("AWAY");
+        }
+        e.setAwayScore(102);
+        assertThat(away(e,"WINNER")).isLessThan(trailing);
+    }
+    @ParameterizedTest @CsvSource({"CS2,3", "CS2,5", "VALORANT,3", "VALORANT,5"})
+    void aSeriesLeadWithWholeMapsRemainingIsNotMatchPoint(String sport,int bestOf) {
+        var e=event(sport,1,0,null,bestOf,null);
+        var betweenMaps=away(e,"SERIES_WINNER");
+        assertThat(betweenMaps).isLessThan(new BigDecimal("4.00"));
+        e.setLiveData("{\"currentRounds\":[12,3]}");
+        var mapPoint=away(e,"SERIES_WINNER");assertThat(mapPoint).isGreaterThan(betweenMaps);
+        if(bestOf==5) {e.setHomeScore(2);assertThat(away(e,"SERIES_WINNER")).isGreaterThan(mapPoint);}
+        assertThat(away(e,"SERIES_WINNER")).isLessThan(DemoProbabilityEngine.MAX);
+    }
+    @Test void tennisDistinguishesSetDisadvantageFromApproachingMatchEnd() {
+        var e=event("TENNIS",1,0,null,5,null);var early=away(e,"MATCH_WINNER");
+        assertThat(early).isLessThan(new BigDecimal("4.00"));
+        e.setHomeScore(2);var setLead=away(e,"MATCH_WINNER");assertThat(setLead).isGreaterThan(early);
+        e.setLiveData("{\"currentGames\":[4,2]}");var gamesLead=away(e,"MATCH_WINNER");assertThat(gamesLead).isGreaterThan(setLead);
+        e.setLiveData("{\"currentGames\":[5,1]}");assertThat(away(e,"MATCH_WINNER")).isGreaterThan(gamesLead).isLessThan(DemoProbabilityEngine.MAX);
+    }
+    @Test void volleyballAndLolSeriesDoNotSaturateAtDifferentDisadvantages() {
+        for(String sport:List.of("VOLLEYBALL","LEAGUE_OF_LEGENDS")) {
+            var e=event(sport,1,0,null,5,null);String code=sport.equals("VOLLEYBALL")?"MATCH_WINNER":"SERIES_WINNER";
+            var early=away(e,code);e.setHomeScore(2);
+            assertThat(away(e,code)).isGreaterThan(early).isLessThan(DemoProbabilityEngine.MAX);
+        }
+    }
+
     @ParameterizedTest @CsvSource({"0,0,5", "1,0,30", "1,0,88", "2,0,85", "3,1,20", "3,1,83", "3,1,90+3"})
     void footballIsDeterministicBoundedAndFavorsTheLeader(int h,int a,String clock) {
         var e=event("FOOTBALL",h,a,clock,1,null);var m=market(e,"LIVE_RESULT");var q=quote(m);

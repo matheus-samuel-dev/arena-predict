@@ -7,10 +7,11 @@ import java.math.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
 
-/** Pure virtual-points model v1. No market margin, random inputs, IO or entity writes. */
+/** Pure virtual-points model v2. No market margin, random inputs, IO or entity writes. */
 @Service
 public class DemoProbabilityEngine {
-    public static final BigDecimal MIN = new BigDecimal("1.01"), MAX = new BigDecimal("100.00");
+    public static final BigDecimal MIN = new BigDecimal("1.05"), MAX = new BigDecimal("15.00");
+    private static final double CURVE_ANCHOR = (MAX.doubleValue() - 2) / (2 - MIN.doubleValue());
     private final MarketDefinitionCatalog definitions;
     private final ObjectMapper json;
     public DemoProbabilityEngine(MarketDefinitionCatalog definitions, ObjectMapper json) { this.definitions=definitions; this.json=json; }
@@ -35,10 +36,20 @@ public class DemoProbabilityEngine {
             }
             values.put(option.getKey(),multiplier(probability));
         }
-        return new Quote(values,"DYNAMIC","Estimativa demonstrativa v1 calculada pelo placar e contexto esportivo disponíveis.");
+        return new Quote(values,"DYNAMIC","Estimativa demonstrativa v2 calculada pelo placar e contexto esportivo disponíveis.");
     }
     public static BigDecimal multiplier(double probability) {
-        return BigDecimal.valueOf(1 / Math.max(0.000001,Math.min(1,probability))).max(MIN).min(MAX).setScale(2,RoundingMode.HALF_UP);
+        if (!Double.isFinite(probability)) throw new IllegalArgumentException("Probability must be finite");
+        if (probability <= 0) return MAX;
+        if (probability >= 1) return MIN;
+        // Surprise in bits. The square root separates strong favorites; the cubic
+        // term distinguishes rare outcomes. Rational compression approaches the
+        // ceiling smoothly, with p=0.5 anchored at 2x. No inverse-price hard cut.
+        double surprise = -Math.log(probability) / Math.log(2);
+        double weight = Math.sqrt(surprise) * (1 + 3 * surprise) / 4;
+        double value = MIN.doubleValue() + (MAX.doubleValue() - MIN.doubleValue())
+                * weight / (CURVE_ANCHOR + weight);
+        return BigDecimal.valueOf(value).setScale(2,RoundingMode.HALF_UP);
     }
     private Boolean matches(MarketDefinitionCatalog.Definition d,String key,FinalScore s) {
         double line=d.line()==null?0:d.line().doubleValue();
@@ -77,8 +88,10 @@ public class DemoProbabilityEngine {
             List<FinalScore> result=new ArrayList<>();
             double expected=possessions*1.1;
             double sum=0;
-            int lower=Math.max(0,(int)Math.floor(expected-5*Math.sqrt(variance)));
-            int upper=(int)Math.ceil(expected+5*Math.sqrt(variance));
+            // Retain rare comeback tails: five standard deviations excluded even
+            // a tie when +10 with 30 seconds left, producing an artificial p=0.
+            int lower=Math.max(0,(int)Math.floor(expected-8*Math.sqrt(variance)));
+            int upper=(int)Math.ceil(expected+8*Math.sqrt(variance));
             for(int h=lower;h<=upper;h++) for(int a=lower;a<=upper;a++) {
                 double weight=Math.exp(-((h-expected)*(h-expected)+(a-expected)*(a-expected))/(2*variance));sum+=weight;
                 result.add(new FinalScore(current[0]+h,current[1]+a,weight));
