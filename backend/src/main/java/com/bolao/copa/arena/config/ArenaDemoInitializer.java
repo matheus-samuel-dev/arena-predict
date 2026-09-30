@@ -298,7 +298,8 @@ public class ArenaDemoInitializer {
 
     static boolean refreshRollingDemoSchedule(ArenaEvent event, EventStatus expectedStatus, Instant starts,
                                               Instant closes, Instant now) {
-        if (!event.isDemo() || event.getStatus() != expectedStatus) return false;
+        if (!event.isDemo() || event.isDemoManaged() || event.isDemoArchived()
+                || event.getExternalProvider() != null || event.getStatus() != expectedStatus) return false;
         boolean expiredPredictionWindow = (expectedStatus == EventStatus.OPEN_FOR_PREDICTIONS || expectedStatus == EventStatus.SCHEDULED)
                 && !now.isBefore(event.getPredictionClosesAt());
         boolean staleLiveWindow = expectedStatus == EventStatus.LIVE
@@ -374,7 +375,7 @@ public class ArenaDemoInitializer {
                 || market.getStatus() != MarketStatus.OPEN
                 || !Instant.now().isBefore(event.getPredictionClosesAt())) return;
         MarketOption option = options.findByMarketAndKey(market, optionKey).orElseThrow();
-        predictions.place(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
+        predictions.placeDemoSeed(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
                 pool == null ? null : pool.getId(), key), key, user);
     }
     private void seedNotifications(User user) {

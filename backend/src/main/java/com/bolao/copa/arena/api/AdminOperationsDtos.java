@@ -34,16 +34,19 @@ public final class AdminOperationsDtos {
 
     public record AdminChampionshipResponse(Long id, String name, String slug, String status,
                                             Long sportId, String sportName, String season,
-                                            String imageUrl, Instant startsAt, Instant endsAt) { }
+                                            String imageUrl, Instant startsAt, Instant endsAt, boolean demoManaged) { }
 
     public record AdminEventResponse(Long id, String title, String externalKey, String status,
                                      Long championshipId, String championship, String sport,
                                      CompetitorSummary homeCompetitor, CompetitorSummary awayCompetitor,
                                      String stage, String venue, String broadcast, String imageUrl, String format,
-                                     int bestOf, List<EventParticipantResponse> participants,
+                                     Integer bestOf, List<EventParticipantResponse> participants,
                                      Instant startsAt, Instant predictionClosesAt,
                                      Integer homeScore, Integer awayScore, boolean featured, boolean demo,
-                                     Map<String, String> resultData, List<ResultField> resultSchema) { }
+                                     Map<String, String> resultData, List<ResultField> resultSchema,
+                                     String externalProvider, String externalId, Instant lastSyncedAt,
+                                     Instant resultProcessedAt, String winnerExternalId, boolean liveScoreAvailable,
+                                     boolean resultReviewRequired, boolean demoManaged, boolean demoArchived) { }
 
     public record AdminMarketResponse(Long id, String name, String code, String status,
                                       Long eventId, String eventTitle, String eventStatus, int minimumPoints,
@@ -51,7 +54,7 @@ public final class AdminOperationsDtos {
                                       String resultOptionKey, Instant settledAt, String sport,
                                       String category, String templateCode, String timingMode,
                                       Instant opensAt, Instant closesAt, MarketAvailability availability,
-                                      String settlementDescription) { }
+                                      String settlementDescription, boolean demoManaged) { }
 
     public record ScoringRuleResponse(String id, String name, String description, String status,
                                       String calculation, String unit, Instant updatedAt) { }

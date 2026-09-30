@@ -7,6 +7,10 @@ import java.time.Instant;
 @Entity
 @Table(name = "arena_championships", uniqueConstraints = @UniqueConstraint(columnNames = {"sport_id", "slug", "season"}))
 public class Championship {
+    @Column(nullable = false)
+    private boolean demoManaged;
+    public boolean isDemoManaged() { return demoManaged; }
+    public void setDemoManaged(boolean value) { demoManaged = value; }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "sport_id")
@@ -15,12 +19,22 @@ public class Championship {
     private String name;
     @Column(nullable = false, length = 120)
     private String slug;
-    @Column(nullable = false, length = 40)
+    @Column(length = 40)
     private String season;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
     private ChampionshipStatus status = ChampionshipStatus.ACTIVE;
-    @Column(length = 300)
+    @Column(length = 2048)
     private String imageUrl;
+    @Column(length = 40)
+    private String externalProvider;
+    @Column(length = 100)
+    private String externalId;
+    @Column(nullable = false)
+    private boolean providerOwned;
+    @Column(length = 180)
+    private String leagueName;
+    @Column(length = 180)
+    private String seriesName;
     private Instant startsAt;
     private Instant endsAt;
 
@@ -41,4 +55,14 @@ public class Championship {
     public void setStartsAt(Instant startsAt) { this.startsAt = startsAt; }
     public Instant getEndsAt() { return endsAt; }
     public void setEndsAt(Instant endsAt) { this.endsAt = endsAt; }
+    public String getExternalProvider() { return externalProvider; }
+    public void setExternalProvider(String value) { externalProvider = value; providerOwned = value != null; }
+    public String getExternalId() { return externalId; }
+    public void setExternalId(String value) { externalId = value; }
+    public String getLeagueName() { return leagueName; }
+    public void setLeagueName(String value) { leagueName = value; }
+    public String getSeriesName() { return seriesName; }
+    public void setSeriesName(String value) { seriesName = value; }
+    @PrePersist @PreUpdate
+    private void deriveProviderOwnership() { providerOwned = externalProvider != null; }
 }

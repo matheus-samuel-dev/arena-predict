@@ -23,6 +23,8 @@ import type {
   Wallet,
   WalletTransaction,
   MarketTemplate,
+  SportsSyncStatus,
+  DemoScenario,
 } from "../types";
 
 const configuredApiBase = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
@@ -62,6 +64,7 @@ function normalizeSession(payload: Partial<AuthSession> & { id?: number }): Auth
     email: String(payload.email || ""),
     role: normalizeRole(payload.role),
     avatarUrl: payload.avatarUrl,
+    demoProfile: payload.demoProfile === "ADMIN" || payload.demoProfile === "PARTICIPANT" ? payload.demoProfile : null,
   };
 }
 
@@ -326,6 +329,7 @@ export const authApi = {
       email: result.email,
       role: normalizeRole(result.role),
       avatarUrl: result.avatarUrl,
+      demoProfile: result.demoProfile === "ADMIN" || result.demoProfile === "PARTICIPANT" ? result.demoProfile : null,
     };
   },
   logout: () => request<void>("/auth/logout", { method: "POST" }),
@@ -351,6 +355,17 @@ export const eventsApi = {
     request<ArenaEvent[] | PageResponse<ArenaEvent>>(`/events${query(filters)}`).then((result) => asList(result).map(normalizeEvent)),
   get: (id: number | string) => request<ArenaEvent>(`/events/${id}`).then(normalizeEvent),
   live: () => request<ArenaEvent[] | PageResponse<ArenaEvent>>("/events/live").then((result) => asList(result).map(normalizeEvent)),
+};
+
+function normalizeDemoScenario(value: DemoScenario): DemoScenario {
+  return { ...value, event: normalizeEvent(value.event), history: value.history.map(normalizeEvent), ranking: value.ranking.map(normalizeRanking) };
+}
+
+export const demoApi = {
+  scenario: () => request<DemoScenario>("/demo/scenario").then(normalizeDemoScenario),
+  start: (id: number | string) => request<DemoScenario>(`/demo/events/${id}/start`, { method: "POST" }).then(normalizeDemoScenario),
+  result: (id: number | string, homeScore: number, awayScore: number) => request<DemoScenario>(`/demo/events/${id}/result`, { method: "POST", body: { homeScore, awayScore }, timeoutMs: 30_000 }).then(normalizeDemoScenario),
+  reset: (expectedGeneration: number) => request<DemoScenario>("/demo/reset", { method: "POST", body: { expectedGeneration }, timeoutMs: 30_000 }).then(normalizeDemoScenario),
 };
 
 export const predictionsApi = {
@@ -477,6 +492,7 @@ export interface MarketSettlement {
 
 export const adminApi = {
   dashboard: () => request<AdminDashboard>("/admin/dashboard"),
+  sportsSyncStatus: () => request<SportsSyncStatus>("/admin/sports-sync/status"),
   async list<T>(resource: string, params: Record<string, string | number | boolean | undefined> = {}) {
     if (resource === "results") return request<T[] | PageResponse<T>>(`/admin/events${query(params)}`);
     const path = adminListPaths[resource];

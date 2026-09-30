@@ -5,10 +5,12 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface ChampionshipRepository extends JpaRepository<Championship, Long> {
+    List<Championship> findByExternalProviderAndExternalIdIn(String externalProvider, Collection<String> externalIds);
     boolean existsBySport(Sport sport);
     @Override @EntityGraph(attributePaths = "sport") Page<Championship> findAll(Pageable pageable);
     @EntityGraph(attributePaths = "sport") List<Championship> findAllByOrderByNameAsc();
     @EntityGraph(attributePaths = "sport") List<Championship> findBySportOrderByNameAsc(Sport sport);
+    @EntityGraph(attributePaths = "sport") List<Championship> findBySportAndExternalProviderIsNullOrderByNameAsc(Sport sport);
     @EntityGraph(attributePaths = "sport")
     @Query("select championship from Championship championship where " +
             "lower(championship.name) like lower(concat('%', :search, '%')) or " +

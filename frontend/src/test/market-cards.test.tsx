@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EventCard, isPredictionOpen, marketAvailabilityStatus, marketAvailabilityTooltip, marketDisplayName, MarketList } from "../components/EventCard";
+import { EventCard, isPredictionOpen, marketAvailabilityStatus, marketAvailabilityTooltip, marketDisplayName, MarketList, SportBadge } from "../components/EventCard";
 import type { ArenaEvent, PredictionMarket } from "../types";
 
 const openMarket: PredictionMarket = {
@@ -84,5 +84,14 @@ describe("disponibilidade de mercados retornada pelo servidor", () => {
     expect(screen.queryByText("Aberto para palpites")).not.toBeInTheDocument();
     expect(screen.getByText("Palpites encerrados")).toBeVisible();
     expect(screen.getByRole("link", { name: "Ver detalhes" })).toHaveAttribute("href", "/events/1");
+  });
+
+  it("usa o rótulo reutilizável para modalidades longas", () => {
+    const { rerender } = render(<SportBadge label="COUNTER-STRIKE 2" />);
+    expect(screen.getByText("COUNTER-STRIKE 2")).toHaveClass("sport-label", "sport-chip");
+
+    rerender(<SportBadge label="LEAGUE OF LEGENDS" plain />);
+    expect(screen.getByText("LEAGUE OF LEGENDS")).toHaveClass("sport-label");
+    expect(screen.getByText("LEAGUE OF LEGENDS")).not.toHaveClass("sport-chip");
   });
 });

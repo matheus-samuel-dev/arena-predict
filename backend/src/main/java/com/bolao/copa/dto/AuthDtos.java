@@ -81,13 +81,20 @@ public final class AuthDtos {
             String name,
             String email,
             UserRole role,
-            String avatarUrl
+            String avatarUrl,
+            DemoProfile demoProfile
     ) {
         public AuthResponse(String token, Long userId, String name, String email, UserRole role) {
-            this(token, userId, name, email, role, null);
+            this(token, userId, name, email, role, null, null);
+        }
+        public AuthResponse(String token, Long userId, String name, String email, UserRole role, String avatarUrl) {
+            this(token, userId, name, email, role, avatarUrl, null);
         }
     }
 
-    public record UserResponse(Long userId, String name, String email, UserRole role, String avatarUrl) {
+    public record UserResponse(Long userId, String name, String email, UserRole role, String avatarUrl, DemoProfile demoProfile) {
+        public UserResponse(Long userId, String name, String email, UserRole role, String avatarUrl) {
+            this(userId, name, email, role, avatarUrl, null);
+        }
     }
 }

@@ -3,9 +3,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
+import { eventFormatLabel, eventScore } from "../app/sportsData";
+import { sessionStorage } from "../services/api";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
 import { TeamLogo } from "./TeamLogo";
+import { EventDataSource } from "./EventDataSource";
 
 export interface EventParticipantView {
   id: number | string;
@@ -13,6 +16,10 @@ export interface EventParticipantView {
   displayOrder: number;
   position?: number | null;
   scoreLabel?: string | number | null;
+}
+
+export function SportBadge({ label, plain = false }: { label: string; plain?: boolean }) {
+  return <span className={plain ? "sport-label" : "sport-label sport-chip"}>{label}</span>;
 }
 
 export function eventParticipantViews(event: ArenaEvent): EventParticipantView[] {
@@ -90,15 +97,19 @@ export function EventCard({
 }) {
   const [home, away] = eventTeams(event);
   const isLive = ["LIVE", "AO_VIVO"].includes(String(event.status).toUpperCase());
+  const isFinished = ["FINISHED", "ENCERRADO"].includes(String(event.status).toUpperCase());
+  const score = eventScore(event);
+  const format = eventFormatLabel(event);
   const multiParticipant = isMultiParticipantEvent(event);
   const predictionOpen = isPredictionOpen(event);
-  const primaryMarket = predictionOpen ? event.markets?.find(isMarketOpen) : undefined;
+  const demoReadOnly = Boolean(event.demoManaged || sessionStorage.read()?.demoProfile);
+  const primaryMarket = predictionOpen && !demoReadOnly ? event.markets?.find(isMarketOpen) : undefined;
 
   return (
     <article className={`event-card ${compact ? "event-card--compact" : ""}`}>
       <header className="event-card__head">
         <div>
-          <span className="sport-chip">{sportName(event.sport || event.sportName)}</span>
+          <SportBadge label={sportName(event.sport || event.sportName)} />
           <strong>{championshipName(event.championship || event.championshipName)}</strong>
           {multiParticipant && event.title && <small>{event.title}</small>}
           {event.phase && !/^demonstra(?:ção|cao)$/i.test(String(event.phase)) && <small>{enumLabel(event.phase)}</small>}
@@ -114,16 +125,17 @@ export function EventCard({
           <strong>{home.shortName || home.name || home.code}</strong>
         </div>
         <div className="match-center">
-          {isLive ? (
+          {isLive || isFinished ? (
             <>
-              <span className="live-clock"><Radio size={13} /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span>
-              <b>{home.score ?? "0"}<i>:</i>{away.score ?? "0"}</b>
+              {isLive && <span className="live-clock"><Radio size={13} /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span>}
+              {score ? <b aria-label={`Placar ${score[0]} a ${score[1]}`}>{score[0]}<i>:</i>{score[1]}</b> : <span className="score-unavailable">{isLive ? event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor." : "Resultado aguardando confirmação"}</span>}
+              {format && <small>{format.startsWith("BO") ? format : enumLabel(format)}</small>}
             </>
           ) : (
             <>
               <span><CalendarClock size={14} /> {dateTime(event.startsAt)}</span>
               <b className="versus" aria-label="versus">×</b>
-              <small>{event.format ? enumLabel(event.format) : event.venue || "Evento programado"}</small>
+              <small>{format ? format.startsWith("BO") ? format : enumLabel(format) : event.venue || ""}</small>
             </>
           )}
         </div>
@@ -132,6 +144,8 @@ export function EventCard({
           <strong>{away.shortName || away.name || away.code}</strong>
         </div>
       </div>}
+
+      <EventDataSource event={event} />
 
       {!compact && showPreview && primaryMarket && (
         <div className="market-preview">
@@ -154,7 +168,7 @@ export function EventCard({
 
       <footer className="event-card__foot">
         <span className={predictionOpen ? "event-availability event-availability--open" : "event-availability"}><Clock3 size={14} /> {event.predictionAvailabilityLabel || "Mercados ainda não publicados"}</span>
-        <Link to={`/events/${event.id}`}>{predictionOpen ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
+        <Link to={event.demoManaged ? "/demo" : `/events/${event.id}`}>{event.demoManaged ? "Ir para a demonstração" : predictionOpen && !demoReadOnly ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
       </footer>
       {event.featured && <span className="featured-corner" title="Evento em destaque"><Sparkles size={13} /></span>}
     </article>
@@ -164,22 +178,28 @@ export function EventCard({
 export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
   const [home, away] = eventTeams(event);
   const multiParticipant = isMultiParticipantEvent(event);
+  const showScore = ["LIVE", "AO_VIVO", "FINISHED", "ENCERRADO"].includes(event.status);
+  const score = showScore ? eventScore(event) : null;
+  const format = eventFormatLabel(event);
   return (
     <article className="featured-event">
       <div className="featured-event__ambient" />
       <header>
-        <span>{sportName(event.sport || event.sportName)}</span>
+        <SportBadge label={sportName(event.sport || event.sportName)} plain />
         <StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} label={eventStatusLabel(event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status)} />
       </header>
       <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{multiParticipant && event.title ? ` · ${event.title}` : event.phase ? ` · ${enumLabel(event.phase)}` : ""}</div>
       {multiParticipant ? <ParticipantList event={event} compact limit={4} /> : <div className="featured-event__teams">
         <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="lg" /><strong>{home.shortName || home.name || home.code}</strong></div>
-        <b aria-label="versus">×</b>
+        <b className={score ? "featured-event__score" : undefined} aria-label={score ? `Placar ${score[0]} a ${score[1]}` : "versus"}>{score ? `${score[0]} : ${score[1]}` : "×"}</b>
         <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="lg" /><strong>{away.shortName || away.name || away.code}</strong></div>
       </div>}
+      {showScore && !score && !multiParticipant && <p className="score-unavailable">{["LIVE", "AO_VIVO"].includes(event.status) ? event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor." : "Resultado aguardando confirmação"}</p>}
+      {format && <span className="featured-event__format">{format.startsWith("BO") ? format : enumLabel(format)}</span>}
+      <EventDataSource event={event} />
       <footer>
         <span><MapPin size={14} /> {event.venue || dateTime(event.startsAt)}</span>
-        <Link to={`/events/${event.id}`}>{isPredictionOpen(event) ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={16} /></Link>
+        <Link to={event.demoManaged ? "/demo" : `/events/${event.id}`}>{event.demoManaged ? "Ir para a demonstração" : isPredictionOpen(event) && !sessionStorage.read()?.demoProfile ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={16} /></Link>
       </footer>
     </article>
   );
@@ -195,8 +215,10 @@ export function MarketList({
   onPredict: (draft: PredictionDraft) => void;
 }) {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const demoReadOnly = Boolean(event.demoManaged || sessionStorage.read()?.demoProfile);
   return (
     <div className="market-list">
+      {demoReadOnly && <p className="demo-guidance">{event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo nessa jornada para registrar um palpite." : "Esta conta registra palpites somente na rodada guiada."} <Link to="/demo">Ir para a demonstração</Link></p>}
       {markets.map((market) => {
         const disabled = !isMarketOpen(market);
         return (
@@ -210,7 +232,7 @@ export function MarketList({
                 <button
                   type="button"
                   key={option.id}
-                  disabled={disabled || !isOptionOpen(option)}
+                  disabled={demoReadOnly || disabled || !isOptionOpen(option)}
                   aria-pressed={selectedOptionId === String(option.id)}
                   onClick={() => {
                     setSelectedOptionId(String(option.id));

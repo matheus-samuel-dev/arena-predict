@@ -43,6 +43,12 @@ class MultimarketIntegrationTest {
     @Autowired ArenaPoolRankingService pools;
     @Autowired ArenaDashboardService dashboard;
     @jakarta.persistence.PersistenceContext jakarta.persistence.EntityManager entityManager;
+    private com.bolao.copa.entity.User participant;
+
+    @org.junit.jupiter.api.BeforeEach
+    void createIndependentParticipant() {
+        participant = com.bolao.copa.support.RegularTestUsers.freshParticipant(users);
+    }
 
     @ParameterizedTest
     @CsvSource({"football-open,LIVE_RESULT", "nba-open,WINNER", "tennis-open,MATCH_WINNER", "cs2-open,SERIES_WINNER", "vct-open,SERIES_WINNER", "lol-open,SERIES_WINNER"})
@@ -50,14 +56,17 @@ class MultimarketIntegrationTest {
         var event=fixture(source); event.setStatus(EventStatus.LIVE);event.setHomeScore(0);event.setAwayScore(0);
         if(source.equals("football-open")) { event.setHomeScore(3);event.setAwayScore(1);event.setClock("20"); }
         if(source.equals("nba-open")) { event.setHomeScore(20);event.setAwayScore(10);event.setClock("08:00");event.setLiveData("{\"quarter\":1,\"quarterMinutes\":12}"); }
-        var market=market(event,code);var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var market=market(event,code);var user=participant;
         long before=wallets.wallet(user).balance();
         var displayed=catalog.marketResponse(market).options().stream().filter(o -> o.key().equals("HOME")).findFirst().orElseThrow();
         String intent=UUID.randomUUID().toString();
         var request=new PlacePredictionRequest(event.getId(),market.getId(),displayed.id(),40,null,intent,displayed.multiplier());
         var win=commands.place(request,intent,user);var lose=place(event,market,"AWAY",30);
         assertThat(win.multiplier()).isEqualByComparingTo(displayed.multiplier());
-        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70);
+        // A fresh regular account also receives the existing first-prediction achievement.
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+100);
+        assertThat(wallets.transactions(user)).filteredOn(t -> t.type()==PointTransactionType.ACHIEVEMENT)
+                .extracting(PointTransactionResponse::amount).containsExactly(100L);
         Long eventId=event.getId(),marketId=market.getId();entityManager.flush();entityManager.clear();
         event=events.findById(eventId).orElseThrow();market=markets.findById(marketId).orElseThrow();
         if(source.equals("football-open")) event.setClock("83");
@@ -77,16 +86,20 @@ class MultimarketIntegrationTest {
         assertThat(predictions.findById(win.id()).orElseThrow().getRewardedPoints()).isEqualTo(win.potentialPoints());
         assertThat(predictions.findById(win.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.WON);
         assertThat(predictions.findById(lose.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.LOST);
-        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints());
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints()+300);
+        assertThat(wallets.transactions(user)).filteredOn(t -> t.type()==PointTransactionType.ACHIEVEMENT)
+                .extracting(PointTransactionResponse::amount).containsExactlyInAnyOrder(100L,200L);
+        var ledgerAfterSettlement=wallets.transactions(user);
         results.record(eventId,result,"snapshot-again-"+eventId);
         commands.settleDerived(events.findById(eventId).orElseThrow());
-        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints());
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before-70+win.potentialPoints()+300);
+        assertThat(wallets.transactions(user)).containsExactlyElementsOf(ledgerAfterSettlement);
     }
 
     @Test void legacySnapshotAboveTheNewCeilingIsStillPaidExactlyOnce() {
         var event=fixture("football-open");var market=market(event,"LIVE_RESULT");
         event.setStatus(EventStatus.LIVE);event.setHomeScore(0);event.setAwayScore(0);event.setClock("20");
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user=participant;
         var placed=place(event,market,"HOME",40);
         // A persisted v1 prediction must retain its contractual virtual reward.
         var legacy=predictions.findById(placed.id()).orElseThrow();
@@ -105,7 +118,14 @@ class MultimarketIntegrationTest {
         var settled=predictions.findById(placed.id()).orElseThrow();
         assertThat(settled.getRewardedPoints()).isEqualTo(4000);
         assertThat(settled.getMultiplier()).isEqualByComparingTo("100.00");
-        assertThat(wallets.wallet(user).balance()).isEqualTo(before+4000);
+        assertThat(wallets.wallet(user).balance()).isEqualTo(before+4000+200);
+        assertThat(wallets.transactions(user)).filteredOn(t -> t.type()==PointTransactionType.PREDICTION_WON)
+                .singleElement().satisfies(credit -> {
+                    assertThat(credit.referenceId()).isEqualTo(placed.id().toString());
+                    assertThat(credit.amount()).isEqualTo(4000);
+                });
+        assertThat(wallets.transactions(user)).filteredOn(t -> t.type()==PointTransactionType.ACHIEVEMENT)
+                .extracting(PointTransactionResponse::amount).containsExactlyInAnyOrder(100L,200L);
     }
 
     @Test void suspensionCanReopenButClosureIsFinalAndAudited() {
@@ -170,7 +190,7 @@ class MultimarketIntegrationTest {
         var event=fixture("football-open");
         var market=market(event,"TOTAL_GOALS");
         var placed=place(event,market,"OVER",20);
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user=participant;
         assertThat(dashboard.dashboard(user).recentPredictions().stream().filter(p -> p.id().equals(placed.id())).findFirst().orElseThrow().canCancel()).isTrue();
         market.setStatus(MarketStatus.SUSPENDED);
         assertThat(dashboard.dashboard(user).recentPredictions().stream().filter(p -> p.id().equals(placed.id())).findFirst().orElseThrow().canCancel()).isFalse();
@@ -195,8 +215,8 @@ class MultimarketIntegrationTest {
     @Test
     void leagueAutomaticallyCountsEligiblePredictionsWhileSocialPoolRequiresExplicitLink() {
         var event=fixture("football-open");
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
-        var admin=users.findByEmail("admin@arenapredict.com").orElseThrow();
+        var user=participant;
+        var admin=com.bolao.copa.support.RegularTestUsers.admin(users);
         place(event,market(event,"TOTAL_GOALS"),"OVER",20); // before membership: excluded
         var league=pools.create(new PoolRequest("Temporada teste",null,event.getChampionship().getSport().getId(),null,true,20,0,
                 "Acertos elegíveis após inscrição",Instant.now().minusSeconds(60),Instant.now().plusSeconds(3600),PoolType.LEAGUE,false),admin);
@@ -241,7 +261,7 @@ class MultimarketIntegrationTest {
     @CsvSource({"SUSPENDED", "CLOSED", "SETTLED", "CANCELLED"})
     void closedAndSuspendedMarketsRejectPredictionsWithoutDebit(MarketStatus status) {
         var event=fixture("football-open"); var market=market(event,"TOTAL_GOALS"); market.setStatus(status);
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user=participant;
         long before=wallets.wallet(user).balance(), count=predictions.count();
         assertThatThrownBy(() -> place(event,market,"OVER",40)).isInstanceOf(ArenaProblem.RuleViolation.class);
         assertThat(wallets.wallet(user).balance()).isEqualTo(before);
@@ -271,7 +291,7 @@ class MultimarketIntegrationTest {
         assertThat(result.markets()).allMatch(m -> m.status()==MarketStatus.SETTLED);
         assertThat(predictions.findById(win.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.WON);
         assertThat(predictions.findById(lose.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.LOST);
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user=participant;
         long after=wallets.wallet(user).balance();
         results.record(event.getId(),request,"result-"+event.getId());
         results.record(event.getId(),request,"repeat-"+event.getId());
@@ -297,7 +317,7 @@ class MultimarketIntegrationTest {
         assertThat(predictions.findById(first.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.WON);
         assertThat(predictions.findById(second.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.WON);
         assertThat(predictions.findById(last.id()).orElseThrow().getStatus()).isEqualTo(PredictionStatus.LOST);
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow(); long balance=wallets.wallet(user).balance();
+        var user=participant; long balance=wallets.wallet(user).balance();
         results.recordClassification(event.getId(),request,"race-"+event.getId());
         assertThat(wallets.wallet(user).balance()).isEqualTo(balance);
         assertThat(market(event,"TOP3").getResultOptionKey().split(",")).hasSize(3);
@@ -307,7 +327,7 @@ class MultimarketIntegrationTest {
     void cancellingEventRefundsEveryActiveMarketExactlyOnce() {
         var event=fixture("cs2-open"); var first=place(event,market(event,"PISTOL1"),"HOME",40);
         var second=place(event,market(event,"TOTAL_MAPS"),"OVER",30);
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow(); long balance=wallets.wallet(user).balance();
+        var user=participant; long balance=wallets.wallet(user).balance();
         assertThat(commands.cancelEvent(event.getId())).isEqualTo(2);
         assertThat(commands.cancelEvent(event.getId())).isZero();
         assertThat(wallets.wallet(user).balance()).isEqualTo(balance+70);
@@ -330,7 +350,7 @@ class MultimarketIntegrationTest {
     void incompleteResultRollsBackScoreMarketStatesAndAllCredits() {
         var tx=new TransactionTemplate(transactions);
         Long eventId=tx.execute(s -> { var e=fixture("football-open"); place(e,market(e,"TOTAL_GOALS"),"OVER",40); e.setStatus(EventStatus.LIVE); return e.getId(); });
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow(); long balance=wallets.wallet(user).balance();
+        var user=participant; long balance=wallets.wallet(user).balance();
         assertThatThrownBy(() -> results.record(eventId,new EventResultRequest(3,1,true,Map.of(),true),"incomplete-"+eventId)).hasMessageContaining("Informe");
         var persisted=catalog.eventResponse(eventId);
         assertThat(persisted.status()).isEqualTo(EventStatus.LIVE);
@@ -376,7 +396,7 @@ class MultimarketIntegrationTest {
     }
     private PredictionMarket market(ArenaEvent event,String code) { return markets.findByEventOrderByIdAsc(event).stream().filter(m -> code.equals(m.getTemplateCode())).findFirst().orElseThrow(); }
     private PredictionResponse place(ArenaEvent event,PredictionMarket market,String key,int stake) {
-        var user=users.findByEmail("jogador@arenapredict.com").orElseThrow();var option=options.findByMarketAndKey(market,key).orElseThrow();String intent=UUID.randomUUID().toString();
+        var user=participant;var option=options.findByMarketAndKey(market,key).orElseThrow();String intent=UUID.randomUUID().toString();
         return commands.place(new PlacePredictionRequest(event.getId(),market.getId(),option.getId(),stake,null,intent),intent,user);
     }
     private Map<String,String> data(String sport) {

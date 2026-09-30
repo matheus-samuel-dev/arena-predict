@@ -36,7 +36,7 @@ public class ArenaMarketDemoInitializer {
         for (String key : List.of("football-live", "cs2-live", "nba-open", "vct-open", "tennis-open", "lol-open",
                 "f1-open", "football-open", "cs2-open", "volleyball-open", "american-football-open", "dota2-open")) {
             ArenaEvent event = events.findByExternalKey("demo-"+key).orElse(null);
-            if (event==null || event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED) continue;
+            if (!legacyDemo(event) || event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED) continue;
             var catalog = definitions.definitions(event,participants.findByEventOrderByDisplayOrderAsc(event));
             for (var market : markets.findByEventOrderByIdAsc(event)) {
                 if (market.getTemplateCode()!=null || market.getStatus()==MarketStatus.SETTLED || market.getStatus()==MarketStatus.CANCELLED) continue;
@@ -71,6 +71,7 @@ public class ArenaMarketDemoInitializer {
     private void seedLiveExample(String key,String sourceKey,Integer home,Integer away,String clock,String period,String data) {
         if(events.findByExternalKey("demo-"+key+"-live").isPresent()) return;
         var source=events.findByExternalKey("demo-"+sourceKey).orElseThrow();
+        if (!legacyDemo(source)) return;
         var event=new ArenaEvent();event.setExternalKey("demo-"+key+"-live");event.setTitle(source.getTitle()+" · demonstração ao vivo");
         event.setChampionship(source.getChampionship());event.setHomeCompetitor(source.getHomeCompetitor());event.setAwayCompetitor(source.getAwayCompetitor());
         event.setFormat(source.getFormat());event.setBestOf(source.getBestOf());event.setDemo(true);event.setStatus(EventStatus.LIVE);
@@ -92,11 +93,13 @@ public class ArenaMarketDemoInitializer {
     private void seedTerminalExample(String key, String title, EventStatus status) {
         var existing = events.findByExternalKey(key);
         if (existing.isPresent()) {
+            if (!legacyDemo(existing.get())) return;
             existing.get().setTitle(title);
             existing.get().setStage("Validação dos estados de mercado");
             return;
         }
         ArenaEvent source=events.findByExternalKey("demo-football-open").orElseThrow();
+        if (!legacyDemo(source)) return;
         ArenaEvent event=new ArenaEvent();
         event.setExternalKey(key); event.setTitle(title); event.setChampionship(source.getChampionship());
         event.setHomeCompetitor(source.getHomeCompetitor()); event.setAwayCompetitor(source.getAwayCompetitor());
@@ -118,5 +121,10 @@ public class ArenaMarketDemoInitializer {
             market.setStatus(status==EventStatus.CANCELLED ? MarketStatus.CANCELLED : MarketStatus.CLOSED);
         event.setStatus(status);
         if (status==EventStatus.FINISHED) { event.setHomeScore(3); event.setAwayScore(1); }
+    }
+
+    private boolean legacyDemo(ArenaEvent event) {
+        return event != null && event.isDemo() && !event.isDemoManaged() && !event.isDemoArchived()
+                && event.getExternalProvider() == null;
     }
 }

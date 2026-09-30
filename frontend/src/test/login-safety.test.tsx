@@ -50,6 +50,7 @@ function renderLogin() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/app" element={<h1>Área do participante</h1>} />
         <Route path="/admin" element={<h1>Área administrativa</h1>} />
+        <Route path="/demo" element={<h1>Jornada Demo</h1>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -96,8 +97,8 @@ describe("segurança e demonstração do login", () => {
   });
 
   it.each([
-    ["participant", "PARTICIPANTE", "Área do participante", "participante"],
-    ["admin", "ADMIN", "Área administrativa", "administrador"],
+    ["participant", "PARTICIPANTE", "Jornada Demo", "participante"],
+    ["admin", "ADMIN", "Jornada Demo", "administrador"],
   ] as const)(
     "solicita somente o perfil previsto no acesso demonstrativo de %s",
     async (profile, role, destination, notificationProfile) => {

@@ -49,7 +49,9 @@ class AuthServiceTest {
                 authenticationManager,
                 jwtService,
                 currentUserService,
-                playerProfileRepository
+                playerProfileRepository,
+                new com.bolao.copa.security.DemoAccessPolicy(new com.bolao.copa.config.DemoProperties(
+                        true, "reserved-admin@example.test", "", "reserved-participant@example.test", ""))
         );
     }
 
@@ -94,6 +96,20 @@ class AuthServiceTest {
 
         assertThat(response.email()).isEqualTo("novo@arenapredict.com");
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);
+        assertThat(response.demoProfile()).isNull();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "reserved-admin@example.test", " RESERVED-ADMIN@EXAMPLE.TEST ",
+            "reserved-participant@example.test", " RESERVED-PARTICIPANT@EXAMPLE.TEST "})
+    void publicRegistrationCannotClaimReservedDemoIdentities(String email) {
+        assertThatThrownBy(() -> authService.register(new RegisterRequest(
+                "Visitante", email, "Password-test-123", UserRole.PARTICIPANTE)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Não foi possível concluir o cadastro com os dados informados.");
+        verify(userRepository, never()).save(any());
+        verify(jwtService, never()).generate(any());
     }
 
     @Test

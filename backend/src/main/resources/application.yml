@@ -42,6 +42,10 @@ app:
     name: ${APP_BRAND_NAME:ArenaPredict}
   demo:
     enabled: ${APP_DEMO_ENABLED:false}
+    controlled-enabled: ${APP_DEMO_CONTROLLED_ENABLED:true}
+    round-window-hours: ${APP_DEMO_ROUND_WINDOW_HOURS:24}
+    live-timeout-minutes: ${APP_DEMO_LIVE_TIMEOUT_MINUTES:15}
+    maintenance-ms: ${APP_DEMO_MAINTENANCE_MS:60000}
     admin-email: ${APP_DEMO_ADMIN_EMAIL:admin@arenapredict.com}
     admin-password: ${APP_DEMO_ADMIN_PASSWORD:}
     participant-email: ${APP_DEMO_PARTICIPANT_EMAIL:jogador@arenapredict.com}
@@ -54,6 +58,37 @@ app:
     schedule-initial-delay-ms: ${APP_DEMO_SCHEDULE_INITIAL_DELAY_MS:10000}
     history-refresh-ms: ${APP_DEMO_HISTORY_REFRESH_MS:21600000}
     history-initial-delay-ms: ${APP_DEMO_HISTORY_INITIAL_DELAY_MS:60000}
+
+sports:
+  sync:
+    enabled: ${SPORTS_SYNC_ENABLED:false}
+    provider: ${SPORTS_SYNC_PROVIDER:PANDASCORE}
+    interval-ms: ${SPORTS_SYNC_INTERVAL_MS:30000}
+    initial-delay-ms: ${SPORTS_SYNC_INITIAL_DELAY_MS:15000}
+    upcoming-interval-ms: ${SPORTS_SYNC_UPCOMING_INTERVAL_MS:900000}
+    running-interval-ms: ${SPORTS_SYNC_RUNNING_INTERVAL_MS:120000}
+    finished-interval-ms: ${SPORTS_SYNC_FINISHED_INTERVAL_MS:300000}
+    tracked-interval-ms: ${SPORTS_SYNC_TRACKED_INTERVAL_MS:120000}
+    near-start-minutes: ${SPORTS_SYNC_NEAR_START_MINUTES:30}
+    upcoming-days: ${SPORTS_SYNC_UPCOMING_DAYS:7}
+    correction-window-hours: ${SPORTS_SYNC_CORRECTION_WINDOW_HOURS:72}
+    tracked-batch-size: ${SPORTS_SYNC_TRACKED_BATCH_SIZE:20}
+    lease-ms: ${SPORTS_SYNC_LEASE_MS:900000}
+  pandascore:
+    api-token: ${PANDASCORE_API_TOKEN:}
+    base-url: ${PANDASCORE_BASE_URL:https://api.pandascore.co}
+    live-scores-enabled: ${PANDASCORE_LIVE_SCORES_ENABLED:false}
+    connect-timeout-ms: ${PANDASCORE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${PANDASCORE_READ_TIMEOUT_MS:8000}
+    max-retries: ${PANDASCORE_MAX_RETRIES:1}
+    retry-backoff-ms: ${PANDASCORE_RETRY_BACKOFF_MS:500}
+    failure-backoff-ms: ${PANDASCORE_FAILURE_BACKOFF_MS:60000}
+    rate-limit-backoff-ms: ${PANDASCORE_RATE_LIMIT_BACKOFF_MS:3600000}
+    max-requests-per-hour: ${PANDASCORE_MAX_REQUESTS_PER_HOUR:600}
+    remaining-reserve: ${PANDASCORE_REMAINING_RESERVE:20}
+    max-pages: ${PANDASCORE_MAX_PAGES:3}
+    page-size: ${PANDASCORE_PAGE_SIZE:100}
+    reference-cache-ttl-ms: ${PANDASCORE_REFERENCE_CACHE_TTL_MS:21600000}
 
 management:
   endpoints:

@@ -132,14 +132,14 @@ export function CommunityPage() {
                     <footer>
                       <button
                         type="button"
-                        className={post.likedByCurrentUser ? "active" : ""}
+                        className={`post__like-button${post.likedByCurrentUser ? " active" : ""}`}
                         onClick={() => void toggleLike(post)}
                         aria-label={`${post.likedByCurrentUser ? "Remover curtida da publicação de" : "Curtir publicação de"} ${author}, ${post.likeCount ?? 0} ${(post.likeCount ?? 0) === 1 ? "curtida" : "curtidas"}`}
                         aria-pressed={Boolean(post.likedByCurrentUser)}
                         aria-busy={likingPostIds.has(String(post.id)) || undefined}
                         disabled={likingPostIds.has(String(post.id))}
                       >
-                        {likingPostIds.has(String(post.id)) ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <Heart size={17} aria-hidden="true" />} {post.likeCount ?? 0}
+                        {likingPostIds.has(String(post.id)) ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <Heart size={17} fill={post.likedByCurrentUser ? "currentColor" : "none"} aria-hidden="true" />} {post.likeCount ?? 0}
                       </button>
                       <button type="button" onClick={() => setCommentTarget(post)} aria-label={`Abrir comentários de ${author}, ${commentCount} ${commentCount === 1 ? "comentário" : "comentários"}`}><MessageCircle size={17} aria-hidden="true" /> {commentCount}</button>
                       <button type="button" onClick={() => setReportTarget(post)}><Flag size={16} /> Denunciar</button>

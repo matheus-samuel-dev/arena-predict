@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-@EnableConfigurationProperties(DemoProperties.class)
+@EnableConfigurationProperties({DemoProperties.class, com.bolao.copa.arena.config.SportsSyncProperties.class})
 public class CopaApplication {
     public static void main(String[] args) {
         SpringApplication.run(CopaApplication.class, args);

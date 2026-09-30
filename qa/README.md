@@ -1,6 +1,15 @@
 # Evidências de finalização do ArenaPredict
 
-Revalidação local concluída em 12/9/2026, com pontos exclusivamente virtuais.
+O [relatório da demonstração controlada de 30/09/2026](demo-validation.md) reúne
+o inventário, isolamento de dados, reset, resultados de testes e builds desta evolução.
+A [evidência E2E da API](demo-api-e2e.json) registra o fluxo executado no Compose de QA;
+o [script](demo-api-e2e.ps1) permite reproduzi-lo. A [evidência do navegador](demo-browser-validation.json)
+registra a jornada, teclado, console e medidas DOM em cinco larguras. A captura
+de screenshots da rodada final teve timeout; esse limite fica explícito no relatório.
+
+A [validação da integração esportiva](sports-validation.md) documenta a etapa anterior.
+Os arquivos listados abaixo pertencem à revalidação local de **12/09/2026**, com
+pontos exclusivamente virtuais, e não comprovam a nova jornada Demo controlada.
 
 - `e2e-evidence.json`: cinco eventos preparados para o teste, seis palpites confirmados pelo navegador, resultados registrados pela interface administrativa, transações, ranking e repetição idempotente.
 - `browser-audit.json`: persistência em PostgreSQL, 128 combinações de páginas/resoluções/temas, medidas de overflow, labels, cores de selects e respostas de rede. A execução final encontrou zero overflow, campos sem label, falhas de página, erros de console ou respostas HTTP de erro.

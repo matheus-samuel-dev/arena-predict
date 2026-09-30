@@ -1,6 +1,7 @@
 package com.bolao.copa.arena.service;
 
 import static com.bolao.copa.arena.api.ArenaDtos.*;
+import static com.bolao.copa.arena.service.EventDataOwnership.requireManualEvent;
 
 import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
@@ -88,6 +89,9 @@ public class ArenaCatalogService {
     @Transactional
     public ChampionshipResponse saveChampionship(Long id, ChampionshipRequest request) {
         Championship championship = id == null ? new Championship() : championship(id);
+        EventDataOwnership.requireUnmanagedDemoChampionship(championship);
+        if (championship.getExternalProvider() != null)
+            throw new ArenaProblem.Conflict("Campeonatos sincronizados são atualizados pelo provedor esportivo.");
         Sport selectedSport = sport(request.sportId());
         String normalizedSlug = slug(request.slug());
         String season = request.season().trim();
@@ -124,6 +128,10 @@ public class ArenaCatalogService {
     @Transactional
     public CompetitorResponse saveCompetitor(Long id, CompetitorRequest request) {
         Competitor competitor = id == null ? new Competitor() : competitor(id);
+        if (id != null && events.isControlledDemoCompetitor(competitor))
+            throw new ArenaProblem.Conflict("As equipes da competição demonstrativa controlada são mantidas exclusivamente pelo fluxo Demo.");
+        if (competitor.getExternalProvider() != null)
+            throw new ArenaProblem.Conflict("Equipes sincronizadas são atualizadas pelo provedor esportivo.");
         Sport selectedSport = sport(request.sportId());
         String code = normalizeCode(request.code());
         if (code.isBlank())
@@ -153,6 +161,7 @@ public class ArenaCatalogService {
     @Transactional(readOnly = true)
     public List<EventResponse> listEvents(EventStatus status, String sportCode, Boolean featured) {
         List<ArenaEvent> selected=events.findAll().stream()
+                .filter(event -> !event.isDemoArchived())
                 .filter(event -> status == null || status==EventStatus.OPEN_FOR_PREDICTIONS || event.getStatus() == status)
                 .filter(event -> sportCode == null || sportCode.isBlank()
                         || event.getChampionship().getSport().getCode().equalsIgnoreCase(sportCode))
@@ -180,6 +189,8 @@ public class ArenaCatalogService {
     @Transactional
     public EventResponse saveEvent(Long id, EventRequest request) {
         ArenaEvent event = id == null ? new ArenaEvent() : eventForUpdate(id);
+        EventDataOwnership.requireUnmanagedDemoEvent(event);
+        requireManualEvent(event);
         Long previousHomeId = event.getHomeCompetitor() == null ? null : event.getHomeCompetitor().getId();
         Long previousAwayId = event.getAwayCompetitor() == null ? null : event.getAwayCompetitor().getId();
         EventFormat previousFormat = event.getFormat();
@@ -197,6 +208,7 @@ public class ArenaCatalogService {
             throw new ArenaProblem.RuleViolation("Use a ação de resultado para finalizar o evento.");
         if (id != null) validateEventTransition(event.getStatus(), requestedStatus);
         Championship championship = championship(request.championshipId());
+        EventDataOwnership.requireUnmanagedDemoChampionship(championship);
         if (id != null && !markets.findByEventOrderByIdAsc(event).isEmpty()) {
             var currentParticipants = eventParticipants.findByEventOrderByDisplayOrderAsc(event).stream().map(p -> p.getCompetitor().getId()).toList();
             boolean changedParticipants = request.participants() != null && !request.participants().isEmpty()
@@ -204,7 +216,7 @@ public class ArenaCatalogService {
             if (!Objects.equals(previousHomeId, request.homeCompetitorId()) || !Objects.equals(previousAwayId, request.awayCompetitorId())
                     || !event.getChampionship().getId().equals(request.championshipId())
                     || previousFormat != (request.format() == null ? EventFormat.STANDARD : request.format())
-                    || event.getBestOf() != (request.bestOf() == null ? 1 : request.bestOf()) || changedParticipants)
+                    || !Objects.equals(event.getBestOf(), request.bestOf() == null ? 1 : request.bestOf()) || changedParticipants)
                 throw new ArenaProblem.Conflict("Participantes, modalidade e formato não podem mudar após a publicação de mercados. Cancele o evento e cadastre a nova disputa.");
         }
         event.setExternalKey(externalKey);
@@ -213,6 +225,7 @@ public class ArenaCatalogService {
         event.setAwayCompetitor(request.awayCompetitorId() == null ? null : competitor(request.awayCompetitorId()));
         validateCompetitorSport(event.getHomeCompetitor(), championship);
         validateCompetitorSport(event.getAwayCompetitor(), championship);
+        EventDataOwnership.requireCompatibleCatalog(event);
         EventFormat format = request.format() == null ? EventFormat.STANDARD : request.format();
         boolean participantIdentityChanged = id != null
                 && (!Objects.equals(previousHomeId, request.homeCompetitorId())
@@ -310,6 +323,9 @@ public class ArenaCatalogService {
         if (id != null && isTerminal(market.getStatus()))
             throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser alterado.");
         ArenaEvent event = event(request.eventId());
+        EventDataOwnership.requireUnmanagedDemoEvent(event);
+        if (event.getExternalProvider() != null)
+            throw new ArenaProblem.Conflict("Partidas sincronizadas usam somente os mercados de placar publicados automaticamente.");
         String code = normalizeCode(request.code());
         if (code.isBlank()) throw new ArenaProblem.RuleViolation("O código do mercado precisa conter letras ou números.");
         markets.findByEventAndCode(event, code).filter(existing -> !Objects.equals(existing.getId(), id))
@@ -359,6 +375,7 @@ public class ArenaCatalogService {
     public MarketResponse changeMarketStatus(Long id, MarketStatus status) {
         eventForUpdate(markets.eventIdForMarket(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado.")));
         PredictionMarket market = marketForUpdate(id);
+        EventDataOwnership.requireUnmanagedDemoEvent(market.getEvent());
         if (isTerminal(market.getStatus()))
             throw new ArenaProblem.Conflict("Mercado liquidado ou cancelado não pode ser reaberto.");
         validateGenericMarketStatus(status);
@@ -387,12 +404,13 @@ public class ArenaCatalogService {
     public ChampionshipResponse championshipResponse(Championship value) {
         if (value == null) return null;
         return new ChampionshipResponse(value.getId(), value.getSport().getId(), value.getSport().getCode(), value.getName(),
-                value.getSlug(), value.getSeason(), value.getStatus(), value.getImageUrl(), value.getStartsAt(), value.getEndsAt());
+                value.getSlug(), value.getSeason(), value.getStatus(), value.getImageUrl(), value.getStartsAt(), value.getEndsAt(),
+                value.getExternalProvider(), value.getExternalId(), value.getLeagueName(), value.getSeriesName(), value.isDemoManaged());
     }
     public CompetitorResponse competitorResponse(Competitor value) {
         return new CompetitorResponse(value.getId(), value.getSport().getId(), value.getSport().getCode(),
                 value.getSport().getName(), value.getName(), value.getCode(), value.getImageUrl(),
-                value.getCountry(), value.isActive());
+                value.getCountry(), value.isActive(), value.getExternalProvider(), value.getExternalId(), value.getAcronym());
     }
     public EventResponse eventResponse(ArenaEvent value) {
         return eventResponses(List.of(value)).getFirst();
@@ -414,7 +432,10 @@ public class ArenaCatalogService {
                 value.getClock(), value.getPeriod(), value.getLiveData(), value.isFeatured(), value.isDemo(),
                 entries.stream().map(this::eventParticipantResponse).toList(), eventMarkets,
                 (int)eventMarkets.stream().filter(m -> m.availability().allowed()).count(),MarketAvailabilityService.eventLabel(eventMarkets),
-                settlement.data(value),definitions.resultSchema(value,entries,entities));
+                settlement.data(value),definitions.resultSchema(value,entries,entities),
+                value.getExternalProvider(), value.getExternalId(), value.getLastSyncedAt(),
+                value.getResultProcessedAt(), value.getWinnerExternalId(), value.isLiveScoreAvailable(),
+                value.isResultReviewRequired(), value.isDemoManaged(), value.isDemoArchived());
     }
     public MarketResponse marketResponse(PredictionMarket value) {
         return marketResponse(value,options.findByMarketOrderByIdAsc(value));
@@ -443,7 +464,8 @@ public class ArenaCatalogService {
         return new MarketOptionResponse(value.getId(), value.getKey(), value.getLabel(), value.getMultiplier(), value.isActive());
     }
     private CompetitorSummary competitorSummary(Competitor value) {
-        return value == null ? null : new CompetitorSummary(value.getId(), value.getName(), value.getCode(), value.getImageUrl());
+        return value == null ? null : new CompetitorSummary(value.getId(), value.getName(), value.getCode(), value.getImageUrl(),
+                value.getExternalProvider(), value.getExternalId(), value.getAcronym());
     }
     private EventParticipantResponse eventParticipantResponse(EventParticipant value) {
         return new EventParticipantResponse(value.getId(), competitorSummary(value.getCompetitor()), value.getDisplayOrder(),
@@ -459,6 +481,7 @@ public class ArenaCatalogService {
             if (!received.add(input.competitorId())) throw new ArenaProblem.RuleViolation("Não repita competidores no evento.");
             Competitor competitor = competitor(input.competitorId());
             validateCompetitorSport(competitor, event.getChampionship());
+            EventDataOwnership.requireCompatibleCompetitor(event, competitor);
             EventParticipant value = existing.getOrDefault(input.competitorId(), new EventParticipant());
             value.setEvent(event); value.setCompetitor(competitor);
             value.setDisplayOrder(input.displayOrder() == null ? index : input.displayOrder());
@@ -494,6 +517,7 @@ public class ArenaCatalogService {
                 || format == EventFormat.BO3 || format == EventFormat.BO5;
     }
     private void ensureResultMutable(ArenaEvent event) {
+        requireManualEvent(event);
         if (event.getStatus() == EventStatus.CANCELLED)
             throw new ArenaProblem.Conflict("Eventos cancelados não podem receber resultados.");
         if (event.getStatus() == EventStatus.POSTPONED)

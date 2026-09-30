@@ -9,7 +9,7 @@ const questions = [
   ["Como um palpite é calculado?", "Você escolhe um mercado, uma opção e uma quantidade de pontos. O coeficiente simulado mostra o potencial de recompensa, processado após o resultado oficial."],
   ["Posso cancelar um palpite?", "Somente quando a regra do mercado permitir e antes do limite do evento. O servidor valida o prazo e processa o reembolso elegível."],
   ["Como entro em um bolão privado?", "Use o código enviado pelo criador na página Bolões. O código identifica o grupo e respeita o limite de participantes."],
-  ["Os eventos ao vivo são reais?", "Quando dados reais não estão configurados, o serviço interno usa simulação e a interface exibe a identificação “demonstração”."],
+  ["Os eventos ao vivo são reais?", "Partidas identificadas com PandaScore ou Dados reais utilizam um provedor externo. Partidas Demo são simulações independentes. O placar ao vivo depende dos dados oferecidos pelo provedor e pelo plano contratado; quando não está disponível, a interface informa essa limitação. Todos os pontos e multiplicadores continuam virtuais."],
   ["Como funcionam conquistas e desafios?", "As regras são avaliadas pela plataforma após ações e resultados; conquistas não são concedidas apenas visualmente."],
 ];
 

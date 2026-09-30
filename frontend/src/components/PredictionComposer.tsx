@@ -1,9 +1,10 @@
 import { CheckCircle2, Coins, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
-import { createIdempotencyKey, poolsApi, predictionsApi } from "../services/api";
+import { createIdempotencyKey, poolsApi, predictionsApi, sessionStorage } from "../services/api";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
 import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
 import { Button, Modal } from "./UI";
@@ -42,11 +43,13 @@ export function PredictionComposer({
   currentEvent,
   onClose,
   onCreated,
+  demoScenario = false,
 }: {
   draft: PredictionDraft | null;
   currentEvent?: ArenaEvent | null;
   onClose: () => void;
   onCreated?: (prediction: Prediction) => void;
+  demoScenario?: boolean;
 }) {
   const [stake, setStake] = useState(MINIMUM_POINTS);
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +64,8 @@ export function PredictionComposer({
   const selectionKey = draft ? `${draft.event.id}:${draft.market.id}:${draft.option.id}` : "";
   const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
   const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
-  const selectionAllowed = currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
+  const demoRestricted = Boolean(draft?.event.demoManaged || currentEvent?.demoManaged || sessionStorage.read()?.demoProfile) && !demoScenario;
+  const selectionAllowed = !demoRestricted && currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
   const { wallet, refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
   const balance = getWalletBalance(wallet);
@@ -86,9 +90,10 @@ export function PredictionComposer({
   }, [selectionKey]);
 
   useEffect(() => {
-    if (!draft) {
+    if (!draft || demoScenario || demoRestricted) {
       setAvailablePools([]);
       setPoolsError("");
+      setPoolsLoading(false);
       return undefined;
     }
     let active = true;
@@ -106,7 +111,7 @@ export function PredictionComposer({
       })
       .finally(() => active && setPoolsLoading(false));
     return () => { active = false; };
-  }, [draft?.event.id]);
+  }, [draft?.event.id, demoScenario, demoRestricted]);
 
   useEffect(() => {
     if (draft && !confirmed) {
@@ -160,6 +165,8 @@ export function PredictionComposer({
     }
   }
 
+  if (draft && demoRestricted) return <Modal open onClose={onClose} title="Palpites da conta Demo" size="sm"><p>{draft.event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo nessa jornada para registrar um palpite." : "Esta conta participa somente da rodada guiada. Os outros eventos estão disponíveis para consulta."}</p><Link to="/demo" className="button button--primary button--md" onClick={onClose}>Ir para a demonstração</Link></Modal>;
+
   return (
     <Modal open={Boolean(draft)} onClose={closeComposer} title={confirmed ? "Palpite confirmado" : "Confirmar palpite"} size="sm">
       {draft && !confirmed && (
@@ -181,13 +188,13 @@ export function PredictionComposer({
             <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
             <small id="prediction-stake-help">Saldo disponível: <strong>{points(balance)} pts</strong></small>
           </label>
-          <label className="prediction-pool-field">
+          {!demoScenario && <label className="prediction-pool-field">
             <span>Vincular a um bolão <small>(opcional)</small></span>
             <div><Trophy size={17} /><select value={poolId} onChange={(event) => setPoolId(event.target.value)} disabled={poolsLoading || submitting}><option value="">Palpite individual</option>{availablePools.map((pool) => <option value={String(pool.id)} key={pool.id}>{pool.name}</option>)}</select></div>
             {poolsLoading && <small>Carregando seus grupos...</small>}
             {poolsError && <small className="field-error">{poolsError}</small>}
             {!poolsLoading && !poolsError && availablePools.length === 0 && <small>Entre em um bolão compatível para pontuar no ranking do grupo.</small>}
-          </label>
+          </label>}
           <div className="quick-stakes" aria-label="Valores rápidos">
             {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={submitting || balance < value || value > MAXIMUM_STAKE_POINTS}>{points(value)} pts</button>)}
             <button type="button" onClick={() => setStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={submitting || balance < minimumPoints}>25%</button>
@@ -211,7 +218,7 @@ export function PredictionComposer({
         <div className="prediction-success">
           <span><CheckCircle2 size={34} /></span>
           <h3>Sua leitura está registrada</h3>
-          <p>Acompanhe o evento e o processamento da recompensa em “Meus palpites”.</p>
+          <p>{demoScenario ? "Continue a jornada: troque para Administrador Demo, inicie a partida e simule o resultado." : "Acompanhe o evento e o processamento da recompensa em “Meus palpites”."}</p>
           <dl className="prediction-receipt">
             <div className="prediction-receipt__wide"><dt>Evento</dt><dd>{confirmed.eventTitle || matchupLabel}</dd></div>
             <div className="prediction-receipt__wide"><dt>Escolha</dt><dd>{confirmed.optionLabel || confirmed.optionName || draft?.option.label || draft?.option.name || "Opção registrada"}</dd></div>
@@ -222,7 +229,7 @@ export function PredictionComposer({
           </dl>
           <div className="prediction-success__actions">
             <Button variant="secondary" onClick={closeComposer}>Continuar na Arena</Button>
-            <a className="button button--primary button--md" href="/predictions" onClick={closeComposer}>Ver meus palpites</a>
+            {!demoScenario && <a className="button button--primary button--md" href="/predictions" onClick={closeComposer}>Ver meus palpites</a>}
           </div>
         </div>
       )}

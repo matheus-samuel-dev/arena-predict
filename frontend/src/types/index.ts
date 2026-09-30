@@ -1,4 +1,5 @@
 export type UserRole = "ADMIN" | "PARTICIPANTE";
+export type DemoProfile = "ADMIN" | "PARTICIPANT";
 
 export interface User {
   userId: number;
@@ -6,6 +7,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl?: string | null;
+  demoProfile?: DemoProfile | null;
 }
 
 export interface AuthSession extends User {
@@ -42,6 +44,7 @@ export interface Championship {
   sportId?: number | string;
   season?: string;
   logoUrl?: string | null;
+  demoManaged?: boolean;
 }
 
 export interface PredictionOption {
@@ -142,6 +145,16 @@ export interface ArenaEvent {
   featured?: boolean;
   demoLiveData?: boolean;
   demo?: boolean;
+  demoManaged?: boolean;
+  demoArchived?: boolean;
+  externalProvider?: string | null;
+  externalId?: string | null;
+  lastSyncedAt?: string | null;
+  resultProcessedAt?: string | null;
+  winnerExternalId?: string | null;
+  liveScoreAvailable?: boolean;
+  resultReviewRequired?: boolean;
+  bestOf?: number | null;
   venue?: string;
   broadcast?: string;
   phase?: string;
@@ -422,4 +435,30 @@ export interface AdminDashboard {
   pendingResults?: number;
   eventsAwaitingResult?: number;
   recentAudit?: Array<{ id: number | string; action: string; actor?: string; createdAt?: string }>;
+}
+
+export interface SportsSyncStatus {
+  provider: string;
+  enabled: boolean;
+  configured: boolean;
+  status: "DISABLED" | "UNCONFIGURED" | "ONLINE" | "UNAVAILABLE" | "RATE_LIMITED";
+  lastAttemptAt?: string | null;
+  lastSuccessAt?: string | null;
+  nextAllowedRequestAt?: string | null;
+  requestsRemaining?: number | null;
+  message?: string;
+  reviewRequiredCount?: number;
+}
+
+export interface DemoScenario {
+  generation: number;
+  championship: Championship;
+  event: ArenaEvent;
+  history: ArenaEvent[];
+  predictions: Prediction[];
+  ranking: RankingRow[];
+  canManage: boolean;
+  canPredict: boolean;
+  updatedAt: string;
+  notice: string;
 }

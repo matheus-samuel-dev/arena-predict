@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bolao.copa.arena.domain.ArenaEnums.EventStatus;
 import com.bolao.copa.arena.domain.ArenaEvent;
+import com.bolao.copa.arena.domain.Championship;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -75,5 +76,30 @@ class ArenaDemoScheduleTest {
         event.setStartsAt(startsAt);
         event.setPredictionClosesAt(closesAt);
         return event;
+    }
+
+    @Test
+    void legacyScheduleCannotPostponeTheControlledDemoTimeout() {
+        ArenaEvent event = demoEvent(EventStatus.LIVE,
+                now.minus(Duration.ofHours(7)), now.minus(Duration.ofHours(8)));
+        var championship = new Championship(); championship.setDemoManaged(true);
+        event.setChampionship(championship);
+        Instant originalStart = event.getStartsAt();
+
+        assertThat(ArenaDemoInitializer.refreshRollingDemoSchedule(event, EventStatus.LIVE,
+                now.minusSeconds(30), now.minusSeconds(60), now)).isFalse();
+        assertThat(event.getStartsAt()).isEqualTo(originalStart);
+    }
+
+    @Test
+    void legacyScheduleNeverReschedulesAProviderOwnedEvent() {
+        ArenaEvent event = demoEvent(EventStatus.SCHEDULED,
+                now.minus(Duration.ofHours(8)), now.minus(Duration.ofHours(9)));
+        event.setExternalProvider("PANDASCORE");
+        Instant originalStart = event.getStartsAt();
+
+        assertThat(ArenaDemoInitializer.refreshRollingDemoSchedule(event, EventStatus.SCHEDULED,
+                now.plusSeconds(3600), now.plusSeconds(3000), now)).isFalse();
+        assertThat(event.getStartsAt()).isEqualTo(originalStart);
     }
 }

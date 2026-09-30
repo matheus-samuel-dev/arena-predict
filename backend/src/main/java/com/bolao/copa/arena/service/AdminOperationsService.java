@@ -231,7 +231,7 @@ public class AdminOperationsService {
     private AdminChampionshipResponse championshipResponse(Championship championship) {
         return new AdminChampionshipResponse(championship.getId(), championship.getName(), championship.getSlug(),
                 championship.getStatus().name(), championship.getSport().getId(), championship.getSport().getName(),
-                championship.getSeason(), championship.getImageUrl(), championship.getStartsAt(), championship.getEndsAt());
+                championship.getSeason(), championship.getImageUrl(), championship.getStartsAt(), championship.getEndsAt(), championship.isDemoManaged());
     }
 
     private AdminEventResponse eventResponse(ArenaEvent event, List<EventParticipantResponse> participants, com.bolao.copa.arena.api.ArenaDtos.EventResponse detail) {
@@ -241,7 +241,9 @@ public class AdminOperationsService {
                 competitorSummary(event.getHomeCompetitor()), competitorSummary(event.getAwayCompetitor()),
                 event.getStage(), event.getVenue(), event.getBroadcast(), event.getImageUrl(), event.getFormat().name(),
                 event.getBestOf(), participants, event.getStartsAt(),
-                event.getPredictionClosesAt(), event.getHomeScore(), event.getAwayScore(), event.isFeatured(), event.isDemo(), detail.resultData(), detail.resultSchema());
+                event.getPredictionClosesAt(), event.getHomeScore(), event.getAwayScore(), event.isFeatured(), event.isDemo(), detail.resultData(), detail.resultSchema(),
+                event.getExternalProvider(), event.getExternalId(), event.getLastSyncedAt(), event.getResultProcessedAt(),
+                event.getWinnerExternalId(), event.isLiveScoreAvailable(), event.isResultReviewRequired(), event.isDemoManaged(), event.isDemoArchived());
     }
 
     private AdminMarketResponse marketResponse(PredictionMarket market, List<MarketOptionResponse> options) {
@@ -252,7 +254,7 @@ public class AdminOperationsService {
                 market.getTimingMode().name(), market.getOpensAt(), market.getClosesAt(),
                 options.stream().anyMatch(MarketOptionResponse::active) ? availability.evaluate(market, Instant.now())
                         : new com.bolao.copa.arena.api.ArenaDtos.MarketAvailability(false, "NO_OPTIONS", "Opções suspensas", "Nenhuma opção ativa neste mercado."),
-                definitions.definition(market, List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Liquidação manual por opção."));
+                definitions.definition(market, List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Liquidação manual por opção."), market.getEvent().isDemoManaged());
     }
 
     private MarketOptionResponse marketOptionResponse(MarketOption option) {
@@ -262,7 +264,7 @@ public class AdminOperationsService {
 
     private CompetitorSummary competitorSummary(Competitor competitor) {
         return competitor == null ? null : new CompetitorSummary(competitor.getId(), competitor.getName(),
-                competitor.getCode(), competitor.getImageUrl());
+                competitor.getCode(), competitor.getImageUrl(), competitor.getExternalProvider(), competitor.getExternalId(), competitor.getAcronym());
     }
 
     private AuditEntryResponse auditResponse(AdminAuditEvent entry) {

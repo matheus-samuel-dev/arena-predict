@@ -13,7 +13,7 @@ export interface TeamLogoProps {
 
 /**
  * Shared local marks for the seeded teams; asset sources are documented in
- * public/assets/teams/README.md. No runtime third-party hotlinks.
+ * public/assets/teams/README.md. Provider logos take precedence over these fallbacks.
  */
 export const TEAM_PLACEHOLDER_PATH = "/assets/teams/team-placeholder.svg";
 export const TEAM_LOGO_MAP: Record<string, string> = {

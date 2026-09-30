@@ -3,6 +3,7 @@ import com.bolao.copa.arena.domain.*;
 import java.util.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 public interface CompetitorRepository extends JpaRepository<Competitor, Long> {
+    List<Competitor> findByExternalProviderAndExternalIdIn(String externalProvider, Collection<String> externalIds);
     Optional<Competitor> findBySportAndCodeIgnoreCase(Sport sport, String code);
     List<Competitor> findBySportOrderByNameAsc(Sport sport);
 }

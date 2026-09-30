@@ -21,7 +21,8 @@ import { Button } from "../components/UI";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 
-export function postLoginDestination(role: string, requestedPath: string) {
+export function postLoginDestination(role: string, requestedPath: string, demoProfile?: string | null) {
+  if (demoProfile === "ADMIN" || demoProfile === "PARTICIPANT") return "/demo";
   if (role === "ADMIN") return "/admin";
   if (!requestedPath.startsWith("/") || requestedPath.startsWith("/admin") || requestedPath === "/login") return "/app";
   return requestedPath;
@@ -46,7 +47,7 @@ export function LoginPage() {
 
   useEffect(() => {
     document.title = `${brand.name} — ${brand.tagline}`;
-    if (session) navigate(postLoginDestination(session.role, redirectTo), { replace: true });
+    if (session) navigate(postLoginDestination(session.role, redirectTo, session.demoProfile), { replace: true });
   }, [session, navigate, redirectTo]);
 
   function showValidationError(field: "name" | "email" | "password", message: string) {
@@ -101,7 +102,7 @@ export function LoginPage() {
         ? await login(email, password)
         : await register({ name, email, password });
       notify(mode === "login" ? `Bem-vindo de volta, ${authenticated.name.split(" ")[0]}!` : "Conta criada. Sua arena já está pronta.", "success");
-      navigate(postLoginDestination(authenticated.role, redirectTo), { replace: true });
+      navigate(postLoginDestination(authenticated.role, redirectTo, authenticated.demoProfile), { replace: true });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Não foi possível concluir o acesso. Tente novamente.");
     }
@@ -113,9 +114,9 @@ export function LoginPage() {
     setFormError(null);
     setErrorField(null);
     try {
-      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
+      await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
       notify(`Acesso demonstrativo como ${profile === "admin" ? "administrador" : "participante"} iniciado.`, "success");
-      navigate(postLoginDestination(authenticated.role, "/app"), { replace: true });
+      navigate("/demo", { replace: true });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Não foi possível iniciar o acesso demonstrativo.");
     }
@@ -133,7 +134,7 @@ export function LoginPage() {
           <h1>Leia o jogo.<br /><em>Domine a arena.</em></h1>
           <p>Transforme sua análise em pontos, desafie amigos e acompanhe sua evolução em esportes e eSports.</p>
           <div className="showcase-features">
-            <div><span><Activity size={19} /></span><p><strong>Eventos ao vivo</strong><small>Acompanhamento demonstrativo transparente</small></p></div>
+            <div><span><Activity size={19} /></span><p><strong>Eventos ao vivo</strong><small>Origem dos dados indicada em cada evento</small></p></div>
             <div><span><BarChart3 size={19} /></span><p><strong>Análise de desempenho</strong><small>Dados para evoluir a cada palpite</small></p></div>
             <div><span><Trophy size={19} /></span><p><strong>Bolões e ligas</strong><small>Competição saudável entre amigos</small></p></div>
           </div>

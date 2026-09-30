@@ -32,8 +32,10 @@ import { Link, useParams } from "react-router-dom";
 import { brand } from "../app/branding";
 import { dateTime, multiplier, points } from "../app/format";
 import { auditSummaryLabel, enumLabel, presentationCode } from "../app/presentation";
+import { isExternalEvent } from "../app/sportsData";
 import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, StatusBadge, UserAvatar } from "../components/UI";
 import { TeamLogo } from "../components/TeamLogo";
+import { SportsSyncSummary } from "../components/SportsSyncSummary";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { adminApi, ApiError, asList, createIdempotencyKey } from "../services/api";
@@ -51,6 +53,7 @@ type AdminRecord = Record<string, unknown> & {
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  externalProvider?: string | null;
 };
 
 type FieldConfig = {
@@ -312,6 +315,7 @@ export function AdminDashboardPage() {
           </article>
         ))}
       </section>
+      <SportsSyncSummary />
       <section className="admin-dashboard-grid">
         <article className="surface operations-panel">
           <div className="section-header"><div><h2>Fila operacional</h2><p>Prioridades calculadas a partir do estado real da aplicação.</p></div></div>
@@ -447,6 +451,7 @@ export function AdminResourcePage() {
                   <span role="cell" data-label={adminHeaders(resource)[cellIndex]} key={cellIndex}>{cell}</span>
                 ))}
                 <span role="cell" data-label="Ações" className="admin-row-actions">
+                  {row.demoManaged === true ? <><small>Somente leitura · Demo guiada</small><Link className="admin-result-link" to="/demo">Ir para a demonstração</Link></> : <>
                   {resource === "results" && resultRegistrationAvailability(row).allowed && <Button size="sm" onClick={() => setScoring(row)}><ClipboardCheck size={15} /> {resultActionLabel(row)}</Button>}
                   {resource === "results" && !resultRegistrationAvailability(row).allowed && <small className="availability-note" tabIndex={0} title={resultRegistrationAvailability(row).reason} aria-label={`${resultRegistrationAvailability(row).label}. ${resultRegistrationAvailability(row).reason}`}>{resultRegistrationAvailability(row).label}</small>}
                   {resource === "markets" && Boolean(row.templateCode) && !["SETTLED", "CANCELLED"].includes(String(row.status)) && <Link className="admin-result-link" to="/admin/results">Registrar resultado</Link>}
@@ -455,6 +460,7 @@ export function AdminResourcePage() {
                   {resource === "moderation" && <Button size="sm" variant="secondary" onClick={() => setModerating(row)}><ShieldCheck size={15} /> Revisar</Button>}
                   {config.editable && !(resource === "markets" && String(row.status).toUpperCase() === "SETTLED") && <button type="button" onClick={() => setEditing(row)} aria-label={`Editar ${recordLabel(row, config, index)}`}><Edit3 size={16} /></button>}
                   {!config.editable && resource !== "results" && resource !== "moderation" && <small>Somente leitura</small>}
+                  </>}
                 </span>
               </div>
             ))}
@@ -542,6 +548,7 @@ function settingValue(value: unknown) {
 }
 
 function resultActionLabel(row: AdminRecord) {
+  if (row.demo === true && !isExternalEvent(row)) return "Simular resultado";
   const classificationMode = ["INDIVIDUAL", "RACE"].includes(String(row.format || "").toUpperCase());
   if (classificationMode) {
     const hasClassification = Array.isArray(row.participants)
@@ -758,6 +765,7 @@ function marketOptions(record: AdminRecord | null) {
 }
 
 export function marketSettlementAvailability(record: AdminRecord) {
+  if (record.demoManaged === true) return { allowed: false, label: "Demo guiada", reason: "Esta rodada é conduzida exclusivamente na jornada Demo." };
   const marketStatus = String(record.status || "").toUpperCase();
   const nestedEvent = record.event && typeof record.event === "object" ? record.event as Record<string, unknown> : null;
   const eventStatus = String(record.eventStatus || nestedEvent?.status || "").toUpperCase();
@@ -771,7 +779,9 @@ export function marketSettlementAvailability(record: AdminRecord) {
   return { allowed: true, label: "Disponível", reason: "Mercado pronto para liquidação." };
 }
 
-function resultRegistrationAvailability(record: AdminRecord) {
+export function resultRegistrationAvailability(record: AdminRecord) {
+  if (record.demoManaged === true) return { allowed: false, label: "Demo guiada", reason: "Esta rodada é conduzida exclusivamente na jornada Demo." };
+  if (isExternalEvent(record)) return { allowed: false, label: record.resultReviewRequired ? "Resultado sob revisão" : "Resultado via provedor", reason: "Partidas sincronizadas recebem resultado do provedor e não podem ser simuladas." };
   const status = String(record.status || "").toUpperCase();
   const classificationMode = ["INDIVIDUAL", "RACE"].includes(String(record.format || "").toUpperCase());
   const resultName = classificationMode ? "classificação" : "placar";
@@ -844,7 +854,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (savingRequestRef.current) return;
+    if (savingRequestRef.current || (record && record !== "new" && record.demoManaged === true)) return;
     const validation = validateResourceForm(resource, config, form);
     setFieldErrors(validation);
     const firstError = Object.values(validation)[0];
@@ -935,7 +945,7 @@ function ResourceForm({ resource, config, record, lookups, onClose, onSaved }: {
               {field.reference ? (
                 <select {...commonProps} value={String(form[field.key] ?? "")} required={field.required} onChange={(event) => setForm((value) => ({ ...value, [field.key]: event.target.value ? Number(event.target.value) : "" }))}>
                   <option value="">{field.required ? "Selecione uma opção" : "Nenhum / todos"}</option>
-                  {(lookups[field.reference] || []).map((option) => <option value={String(option.id)} key={String(option.id)}>{lookupLabel(field.reference!, option)}</option>)}
+                  {(lookups[field.reference] || []).filter((option) => option.demoManaged !== true).map((option) => <option value={String(option.id)} key={String(option.id)}>{lookupLabel(field.reference!, option)}</option>)}
                 </select>
               ) : field.type === "select" ? (
                 <select {...commonProps} value={String(form[field.key] ?? "")} required={field.required} onChange={(event) => { const next = field.numeric ? Number(event.target.value) : event.target.value; setForm((value) => ({ ...value, [field.key]: next })); if (["events", "markets"].includes(resource) && field.key === "status" && next !== "CANCELLED") setConfirmingCancellation(false); }}>
@@ -1154,7 +1164,7 @@ function GenerateMarketsModal({ open, events, onClose, onSaved }: { open: boolea
   return <Modal open={open} onClose={() => !saving && onClose()} title="Catálogo de mercados da modalidade">
     <form className="stack-form" onSubmit={generate}>
       <p>Selecione o evento para revisar opções, multiplicadores e regras de resultado da modalidade.</p>
-      <label><span>Evento *</span><select required value={eventId} disabled={saving} onChange={(event) => setEventId(event.target.value)}><option value="">Selecione um evento</option>{events.filter((event) => !["FINISHED", "CANCELLED"].includes(String(event.status))).map((event) => <option key={String(event.id)} value={String(event.id)}>{String(event.title || event.name)}</option>)}</select></label>
+      <label><span>Evento *</span><select required value={eventId} disabled={saving} onChange={(event) => setEventId(event.target.value)}><option value="">Selecione um evento</option>{events.filter((event) => event.demoManaged !== true && !["FINISHED", "CANCELLED"].includes(String(event.status))).map((event) => <option key={String(event.id)} value={String(event.id)}>{String(event.title || event.name)}</option>)}</select></label>
       {loading && <p role="status">Carregando catálogo da modalidade...</p>}
       <div className="admin-template-list">{templates.map((template) => <article key={template.code}><strong>{template.name}</strong><small>{template.category} · {enumLabel(template.timingMode)}</small>{template.settlementDescription && <p>{template.settlementDescription}</p>}</article>)}</div>
       {error && <p role="alert" className="field-error">{error}</p>}
@@ -1187,6 +1197,8 @@ export function ScoreModal({ record, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const external = record ? isExternalEvent(record) : false;
+  const demo = record?.demo === true && !external;
   const classificationMode = ["INDIVIDUAL", "RACE"].includes(String(record?.format || "").toUpperCase());
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
@@ -1220,7 +1232,11 @@ export function ScoreModal({ record, onClose, onSaved }: {
 
   async function saveScore(event: FormEvent) {
     event.preventDefault();
-    if (record?.id == null || savingRef.current) return;
+    if (record?.id == null || savingRef.current || record.demoManaged === true) return;
+    if (external) {
+      setValidationError("Partidas sincronizadas recebem resultado do provedor e não podem ser simuladas.");
+      return;
+    }
     const fieldErrors = validateResultFields(resultSchema, resultData, settleMarkets && finishEvent);
     setResultErrors(fieldErrors);
     if (Object.keys(fieldErrors).length) {
@@ -1290,15 +1306,26 @@ export function ScoreModal({ record, onClose, onSaved }: {
     }
   }
 
+  if (record?.demoManaged === true) return <Modal open onClose={onClose} title="Demo guiada" size="sm">
+    <p role="note">Esta rodada é conduzida exclusivamente na jornada Demo, usando Administrador Demo.</p>
+    <div className="modal-actions"><Button onClick={onClose}>Fechar</Button></div>
+  </Modal>;
+
+  if (external) return <Modal open={Boolean(record)} onClose={onClose} title="Resultado via provedor" size="sm">
+    <p className="event-result-review" role="note">Partidas sincronizadas recebem resultado do provedor e não podem ser simuladas.</p>
+    <div className="modal-actions"><Button onClick={onClose}>Fechar</Button></div>
+  </Modal>;
+
   return (
     <Modal
       open={Boolean(record)}
       onClose={() => !savingRef.current && onClose()}
-      title={classificationMode ? "Registrar classificação oficial" : "Registrar resultado da modalidade"}
+      title={demo ? "Simular resultado Demo" : classificationMode ? "Registrar classificação oficial" : "Registrar resultado da modalidade"}
       size={classificationMode || resultSchema.length ? "lg" : "sm"}
     >
       <form className="result-form" onSubmit={saveScore}>
-        <fieldset className="result-form__fields" disabled={saving}>
+        {demo && <p className="event-source--demo">Esta simulação afeta somente a partida Demo selecionada.</p>}
+        <fieldset className="result-form__fields" disabled={saving || external}>
         <div className="result-form__event">
           <span className="eyebrow">{classificationMode ? "CLASSIFICAÇÃO DO EVENTO" : "RESULTADO DO EVENTO"}</span>
           <h2>{String(record?.title || "Evento selecionado")}</h2>

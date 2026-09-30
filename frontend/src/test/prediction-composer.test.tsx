@@ -16,6 +16,7 @@ vi.mock("../services/api", () => ({
   createIdempotencyKey: () => "prediction-intent-fixed",
   poolsApi: { list: mocks.listPools },
   predictionsApi: { create: mocks.create },
+  sessionStorage: { read: () => null },
 }));
 
 vi.mock("../contexts/AppDataContext", () => ({

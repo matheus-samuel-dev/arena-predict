@@ -34,7 +34,7 @@ class BackendInvariantIntegrationTest {
     @Test
     @Transactional
     void marketCannotBeReassignedAfterFirstPrediction() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var otherEvent = events.findByExternalKey("demo-lol-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
@@ -53,7 +53,7 @@ class BackendInvariantIntegrationTest {
     @Test
     @Transactional
     void marketOptionsCannotChangeAfterFirstPrediction() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -120,7 +120,7 @@ class BackendInvariantIntegrationTest {
     @Test
     @Transactional
     void pointLedgerKeyIsIdempotentOnlyForCompatiblePayload() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         String key = "wallet-idempotency-" + UUID.randomUUID();
 
         PointLedgerEntry first = wallets.apply(user, 25, PointTransactionType.ADMIN_ADJUSTMENT,

@@ -161,6 +161,7 @@ const adminExperienceNavigation: NavGroup = {
 };
 
 const pageTitles: Record<string, string> = {
+  "/demo": "Experimente a Arena",
   "/app": "Visão geral",
   "/events": "Eventos",
   "/live": "Eventos ao vivo",
@@ -183,10 +184,16 @@ const pageTitles: Record<string, string> = {
 function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const { user } = useAuth();
   const location = useLocation();
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN" && !user?.demoProfile;
+  const isDemo = Boolean(user?.demoProfile);
   const groups = useMemo(
-    () => (isAdmin ? [adminExperienceNavigation, ...adminNavigation] : playerNavigation),
-    [isAdmin],
+    () => (isDemo ? [{ id: "demo", title: "Demonstração", defaultOpen: true, items: [
+      { label: "Experimente a Arena", to: "/demo", icon: Gamepad2 },
+      { label: "Explorar eventos", to: "/events", icon: Compass },
+      { label: "Rankings", to: "/rankings", icon: Trophy },
+      { label: "Meus palpites", to: "/predictions", icon: Target },
+    ] }] : isAdmin ? [adminExperienceNavigation, ...adminNavigation] : playerNavigation),
+    [isAdmin, isDemo],
   );
   const storageKey = `arenapredict.sidebar.${isAdmin ? "admin" : "participant"}`;
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -420,7 +427,7 @@ export function AppShell() {
             <X size={19} aria-hidden="true" />
           </button>
         </div>
-        {user?.role === "ADMIN" && (
+        {user?.role === "ADMIN" && !user?.demoProfile && (
           <div className="sidebar-role-context" role="status">
             <span><ShieldCheck size={16} aria-hidden="true" /></span>
             <div><strong>Modo administrativo</strong><small>Experiência e operação no mesmo produto</small></div>
@@ -446,8 +453,8 @@ export function AppShell() {
 
       <div className="app-main">
         {isExplicitDemoMode && (
-          <div className="demo-banner" role="note" title="Este ambiente usa dados de demonstração e pode simular atualizações de eventos." aria-label="Ambiente demonstrativo. Este ambiente usa dados de demonstração e pode simular atualizações de eventos.">
-            <Sparkles size={15} aria-hidden="true" /> <span>Ambiente demonstrativo <b aria-hidden="true">•</b> dados e eventos simulados</span>
+          <div className="demo-banner" role="note" title="Partidas Demo são simuladas. Partidas com provedor identificado utilizam dados externos. Todos os pontos são virtuais." aria-label="Ambiente demonstrativo. Partidas Demo são simuladas; a origem dos dados aparece em cada evento.">
+            <Sparkles size={15} aria-hidden="true" /> <span>Ambiente demonstrativo <b aria-hidden="true">•</b> origem dos dados indicada em cada evento</span>
           </div>
         )}
         <header className="topbar">
@@ -491,8 +498,7 @@ export function AppShell() {
               </button>
               {accountOpen && (
                 <div className="dropdown dropdown--account" id="account-dropdown" role="group" aria-label="Opções da conta">
-                  <NavLink to="/account"><UserCircle size={17} aria-hidden="true" /> Minha conta</NavLink>
-                  <NavLink to="/account?tab=preferences"><Cog size={17} aria-hidden="true" /> Preferências</NavLink>
+                  {user?.demoProfile ? <NavLink to="/demo"><Gamepad2 size={17} aria-hidden="true" /> Experimente a Arena</NavLink> : <><NavLink to="/account"><UserCircle size={17} aria-hidden="true" /> Minha conta</NavLink><NavLink to="/account?tab=preferences"><Cog size={17} aria-hidden="true" /> Preferências</NavLink></>}
                   <ThemeSelector compact />
                   <NavLink to="/points"><WalletCards size={17} aria-hidden="true" /> Pontos virtuais</NavLink>
                   <button type="button" onClick={() => void logout()}><LogOut size={17} aria-hidden="true" /> Sair</button>
@@ -503,11 +509,17 @@ export function AppShell() {
         </header>
 
         <main className="content" id="main-content">
+          {user?.demoProfile && location.pathname !== "/demo" && <div className="surface demo-browse-notice" role="note"><Gamepad2 size={18} /><span>Você está consultando o catálogo. A conta Demo registra palpites e conduz partidas somente na demonstração guiada.</span><NavLink to="/demo">Ir para a demonstração <ChevronRight size={16} /></NavLink></div>}
           <Outlet />
         </main>
 
         <nav className="mobile-bottom-nav" aria-label="Navegação móvel">
-          {(user?.role === "ADMIN" && isAdminArea ? [
+          {(user?.demoProfile ? [
+            { label: "Demo", to: "/demo", icon: Gamepad2 },
+            { label: "Eventos", to: "/events", icon: Compass },
+            { label: "Rankings", to: "/rankings", icon: Trophy },
+            { label: "Palpites", to: "/predictions", icon: Target },
+          ] : user?.role === "ADMIN" && isAdminArea ? [
             { label: "Painel", to: "/admin", icon: ShieldCheck },
             { label: "Eventos", to: "/admin/events", icon: CalendarRange },
             { label: "Mercados", to: "/admin/markets", icon: SlidersHorizontal },

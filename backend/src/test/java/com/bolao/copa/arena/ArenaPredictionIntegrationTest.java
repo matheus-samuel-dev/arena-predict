@@ -65,7 +65,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void placingPredictionDebitsVirtualPointsAndIsIdempotent() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -87,7 +87,7 @@ class ArenaPredictionIntegrationTest {
 
     @Test
     void insufficientBalanceRollsBackPredictionAndLedger() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-lol-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -104,7 +104,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void settlingSameMarketTwiceDoesNotRewardTwice() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         // Legacy manual markets remain supported; typed markets are covered by result settlement tests.
         var manual = catalogService.saveMarket(null, new MarketRequest(event.getId(), "LEGACY_" + UUID.randomUUID(),
@@ -146,7 +146,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void refundRestoresBalanceWithoutIncreasingLifetimeEarningsOrXp() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -165,7 +165,7 @@ class ArenaPredictionIntegrationTest {
 
     @Test
     void concurrentCancellationRefundsExactlyOnce() throws Exception {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -204,7 +204,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void cancellationIsUnavailableAfterEventLeavesPredictionPhase() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -225,7 +225,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void reusedIdempotencyKeyWithDifferentPayloadIsRejected() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -241,7 +241,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void dedicatedMarketCancellationRefundsActivePredictionsAndIsAudited() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-tennis-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();
@@ -261,7 +261,7 @@ class ArenaPredictionIntegrationTest {
     @Test
     @Transactional
     void unsafeGenericMarketStatusesAndOversizedStakeAreRejected() {
-        var user = users.findByEmail("jogador@arenapredict.com").orElseThrow();
+        var user = com.bolao.copa.support.RegularTestUsers.participant(users);
         var event = events.findByExternalKey("demo-lol-open").orElseThrow();
         var market = markets.findByEventOrderByIdAsc(event).getFirst();
         var option = options.findByMarketOrderByIdAsc(market).getFirst();

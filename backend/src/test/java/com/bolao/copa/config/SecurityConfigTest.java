@@ -95,10 +95,10 @@ class SecurityConfigTest {
 
     @Test
     void protectedEndpointWithoutOrWithInvalidTokenReturns401Json() throws Exception {
-        mockMvc.perform(get("/probe/admin"))
+        mockMvc.perform(get("/api/admin/probe"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
-        mockMvc.perform(get("/probe/admin").header("Authorization", "Bearer invalid.token"))
+        mockMvc.perform(get("/api/admin/probe").header("Authorization", "Bearer invalid.token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
     }
@@ -108,16 +108,16 @@ class SecurityConfigTest {
         var token = tokenFor("jogador@arenapredict.com", UserRole.PARTICIPANTE);
         mockUser("jogador@arenapredict.com", "ROLE_PARTICIPANTE", "ROLE_USER");
 
-        mockMvc.perform(get("/probe/admin").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/admin/probe").header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void administratorCanAccessAdminEndpoint() throws Exception {
-        var token = tokenFor("admin@arenapredict.com", UserRole.ADMIN);
-        mockUser("admin@arenapredict.com", "ROLE_ADMIN");
+        var token = tokenFor("administrator@example.test", UserRole.ADMIN);
+        mockUser("administrator@example.test", "ROLE_ADMIN");
 
-        mockMvc.perform(get("/probe/admin").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/admin/probe").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
     }
@@ -162,7 +162,7 @@ class SecurityConfigTest {
 
 @RestController
 class RbacProbeController {
-    @GetMapping("/probe/admin")
+    @GetMapping("/api/admin/probe")
     @PreAuthorize("hasRole('ADMIN')")
     java.util.Map<String, Boolean> admin() {
         return java.util.Map.of("ok", true);

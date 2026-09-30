@@ -1596,6 +1596,12 @@ select:focus {
   text-transform: uppercase;
 }
 
+.sport-label {
+  max-width: 100%;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .event-card__matchup {
   min-height: 104px;
   padding: 15px;
@@ -5892,6 +5898,20 @@ html[data-theme="dark"] .showcase-features > div { background: rgba(255,255,255,
   border-radius: var(--radius-xs);
 }
 
+.post > footer .post__like-button {
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.post > footer .post__like-button:hover,
+.post > footer .post__like-button.active {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.post__like-button svg {
+  transition: fill 120ms ease, stroke 120ms ease;
+}
+
 .composer .button--sm,
 .comment-composer .button--sm {
   min-height: 2.75rem;
@@ -6686,6 +6706,9 @@ select { min-width: 0; max-width: 100%; }
 @media (max-width: 620px) {
   .market-block__options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .event-card__head { align-items: flex-start; flex-wrap: wrap; }
+  .event-card__head > div,
+  .live-event-panel > header > div { flex-wrap: wrap; }
+  .live-event-panel > header { align-items: flex-start; flex-wrap: wrap; }
   .event-card__foot { gap: var(--space-2); }
   .competition-explainer { padding: var(--space-4); }
 }
@@ -6956,6 +6979,119 @@ select { min-width: 0; max-width: 100%; }
   height: 82%;
   object-fit: contain;
 }
+
+/* Sports data provenance stays visible in both the compact and detailed views. */
+.event-data-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.event-card > .event-data-source {
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.event-source {
+  padding: .125rem var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.event-source--demo {
+  color: var(--muted);
+}
+
+.event-source.event-source--demo {
+  background: var(--panel-3);
+}
+
+.event-result-review {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--orange);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.event-result-review > svg { flex: none; }
+
+.score-unavailable,
+.match-center > .score-unavailable {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.featured-event__teams {
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+}
+
+.featured-event__teams > div,
+.live-scoreboard > div { min-width: 0; }
+
+.featured-event__teams strong {
+  overflow-wrap: anywhere;
+}
+
+.featured-event__teams > .featured-event__score {
+  color: var(--text);
+  font-size: var(--font-size-card);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.featured-event__format {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.sports-sync-summary {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.sports-sync-summary > svg {
+  margin-top: .125rem;
+  color: var(--blue);
+  flex: none;
+}
+
+.sports-sync-summary > div {
+  display: grid;
+  flex: 1 1 14rem;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.sports-sync-summary strong { font-size: var(--font-size-sm); }
+.sports-sync-summary span,
+.sports-sync-summary small { color: var(--muted); font-size: var(--font-size-xs); }
+.sports-sync-summary > .event-result-review { color: var(--orange); }
+
+.demo-browse-notice { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-4); margin-bottom: var(--space-4); font-size: var(--font-size-sm); line-height: 1.5; }
+.demo-browse-notice > svg { flex: none; color: var(--violet); }
+.demo-browse-notice > span { flex: 1 1 16rem; }
+.demo-browse-notice > a { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--violet); font-weight: 700; }
+
+.event-results-summary { align-items: center; flex-wrap: wrap; }
+.event-source-filter { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.event-source-filter select { width: auto; font-size: var(--font-size-xs); }
 
 .prediction-receipt {
   margin: var(--space-5) 0 0;

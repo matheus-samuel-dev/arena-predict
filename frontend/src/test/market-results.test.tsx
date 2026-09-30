@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ScoreModal, validateResultFields } from "../pages/AdminPages";
+import { marketSettlementAvailability, resultRegistrationAvailability, ScoreModal, validateResultFields } from "../pages/AdminPages";
 import type { ResultField } from "../types";
 
 const mocks = vi.hoisted(() => ({ result: vi.fn(), classification: vi.fn(), notify: vi.fn() }));
@@ -18,6 +18,39 @@ function save() { fireEvent.submit(screen.getByRole("button", { name: /Salvar (p
 describe("registro de resultados por modalidade", () => {
   beforeEach(() => { Object.values(mocks).forEach((mock) => mock.mockReset()); mocks.result.mockResolvedValue({}); mocks.classification.mockResolvedValue({}); });
   afterEach(cleanup);
+
+  it("mantém partida controlada somente leitura até no modal administrativo aberto diretamente", () => {
+    const controlled = { ...base, demo: true, demoManaged: true };
+    expect(resultRegistrationAvailability(controlled)).toMatchObject({ allowed: false, label: "Demo guiada" });
+    expect(marketSettlementAvailability({ id: 8, demoManaged: true, status: "CLOSED", eventStatus: "FINISHED", options: [{ key: "HOME" }] })).toMatchObject({ allowed: false });
+    render(<ScoreModal record={controlled} onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(screen.getByRole("note")).toHaveTextContent("exclusivamente na jornada Demo");
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Salvar/ })).not.toBeInTheDocument();
+    expect(mocks.result).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia simulação de partida real mesmo quando o modal é aberto diretamente", () => {
+    const official = { ...base, externalProvider: "PANDASCORE", demo: true };
+    expect(resultRegistrationAvailability(official)).toMatchObject({ allowed: false, label: "Resultado via provedor" });
+    const close = vi.fn();
+    render(<ScoreModal record={official} onClose={close} onSaved={vi.fn()} />);
+    expect(screen.getByRole("note")).toHaveTextContent("não podem ser simuladas");
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Salvar/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Fechar"));
+    expect(close).toHaveBeenCalled();
+    expect(mocks.result).not.toHaveBeenCalled();
+    expect(mocks.classification).not.toHaveBeenCalled();
+  });
+
+  it("mantém o fluxo de simulação explicitamente identificado para partida Demo", async () => {
+    render(<ScoreModal record={{ ...base, demo: true, externalProvider: "DEMO" }} onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Simular resultado Demo" })).toBeVisible();
+    expect(screen.getByText(/afeta somente a partida Demo/)).toBeVisible();
+    confirm(); save();
+    await waitFor(() => expect(mocks.result).toHaveBeenCalledTimes(1));
+  });
 
   it.each([
     ["futebol", metric("cornersHome", "Escanteios do mandante", "Escanteios")],

@@ -15,6 +15,7 @@ import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
 import com.bolao.copa.security.JwtService;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,17 +37,19 @@ class DemoAuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DemoAuthService(
-                users,
-                jwtService,
-                new DemoProperties(
+        var properties = new DemoProperties(
                         true,
                         "portfolio-admin@example.test",
                         "",
                         "portfolio-player@example.test",
                         ""
-                ),
-                playerProfiles
+                );
+        service = new DemoAuthService(
+                users,
+                jwtService,
+                properties,
+                playerProfiles,
+                new DemoAccessPolicy(properties)
         );
     }
 
@@ -67,6 +70,7 @@ class DemoAuthServiceTest {
         assertThat(response.email()).isEqualTo("portfolio-player@example.test");
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);
         assertThat(response.avatarUrl()).isEqualTo("/assets/avatars/jogador-demo.webp");
+        assertThat(response.demoProfile()).isEqualTo(DemoProfile.PARTICIPANT);
     }
 
     @Test
@@ -102,6 +106,7 @@ class DemoAuthServiceTest {
 
     private User user(String email, UserRole role) {
         var user = new User();
+        org.springframework.test.util.ReflectionTestUtils.setField(user, "id", 1L);
         user.setName("Conta de portfólio");
         user.setEmail(email);
         user.setPasswordHash("irrelevant-hash");

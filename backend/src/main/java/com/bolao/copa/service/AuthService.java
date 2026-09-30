@@ -9,6 +9,7 @@ import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
 import com.bolao.copa.repository.UserRepository;
 import com.bolao.copa.security.JwtService;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.util.Locale;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,25 +27,28 @@ public class AuthService {
     private final JwtService jwtService;
     private final CurrentUserService currentUserService;
     private final PlayerProfileRepository playerProfiles;
+    private final DemoAccessPolicy demoAccess;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        CurrentUserService currentUserService,
-                       PlayerProfileRepository playerProfiles) {
+                       PlayerProfileRepository playerProfiles,
+                       DemoAccessPolicy demoAccess) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.currentUserService = currentUserService;
         this.playerProfiles = playerProfiles;
+        this.demoAccess = demoAccess;
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         var email = normalizeEmail(request.email());
-        if (userRepository.existsByEmailIgnoreCase(email)) {
+        if (demoAccess.isReservedDemoEmail(email) || userRepository.existsByEmailIgnoreCase(email)) {
             throw new IllegalArgumentException("Não foi possível concluir o cadastro com os dados informados.");
         }
 
@@ -83,7 +87,8 @@ public class AuthService {
                 user.getName(),
                 user.getEmail(),
                 canonicalRole,
-                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null),
+                demoAccess.demoProfile(user)
         );
     }
 
@@ -93,7 +98,8 @@ public class AuthService {
                 user.getName(),
                 user.getEmail(),
                 user.getRole().canonical(),
-                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null),
+                demoAccess.demoProfile(user)
         );
     }
 

@@ -8,6 +8,9 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface ArenaPredictionRepository extends JpaRepository<ArenaPrediction, Long> {
+    @EntityGraph(attributePaths = {"user", "event", "event.championship", "market", "option"})
+    @Query("select p from ArenaPrediction p where p.event.championship.id = :championshipId and p.event.demoArchived = false order by p.placedAt desc, p.id desc")
+    List<ArenaPrediction> findCurrentChampionshipPredictions(@Param("championshipId") Long championshipId);
     interface CommandContext { Long getEventId(); Long getMarketId(); }
     @Query("select p.event.id as eventId, p.market.id as marketId from ArenaPrediction p where p.id = :id and p.user = :user")
     Optional<CommandContext> commandContext(@Param("id") Long id, @Param("user") User user);

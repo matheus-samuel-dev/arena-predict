@@ -6,6 +6,7 @@ import { AppDataProvider } from "./contexts/AppDataContext";
 import { useAuth } from "./contexts/AuthContext";
 
 const LoginPage = lazy(() => import("./pages/LoginPage").then((module) => ({ default: module.LoginPage })));
+const DemoPage = lazy(() => import("./pages/DemoPage").then((module) => ({ default: module.DemoPage })));
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const EventsPage = lazy(() => import("./pages/EventsPage").then((module) => ({ default: module.EventsPage })));
 const EventDetailsPage = lazy(() => import("./pages/EventsPage").then((module) => ({ default: module.EventDetailsPage })));
@@ -30,15 +31,16 @@ function RouteLoader() {
 }
 
 function ProtectedRoute() {
-  const { session, initializing } = useAuth();
+  const { session, initializing, authenticating } = useAuth();
   const location = useLocation();
-  if (initializing) return <div className="app-loader"><Brand /><span className="loader-orbit" /><p>Preparando sua arena...</p></div>;
+  if (initializing || (!session && authenticating)) return <div className="app-loader"><Brand /><span className="loader-orbit" /><p>Preparando sua arena...</p></div>;
   if (!session) return <Navigate to="/login" replace state={{ from: location }} />;
   return <Outlet />;
 }
 
-function AdminRoute() {
+export function AdminRoute() {
   const { user } = useAuth();
+  if (user?.demoProfile) return <Navigate to="/demo" replace />;
   return user?.role === "ADMIN" ? <Outlet /> : <AccessDenied />;
 }
 
@@ -58,6 +60,7 @@ export default function App() {
           <Route element={<AppDataProvider><AppShell /></AppDataProvider>}>
             <Route index element={<Navigate to="/app" replace />} />
             <Route path="/app" element={<DashboardPage />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/events/:id" element={<EventDetailsPage />} />
             <Route path="/live" element={<LiveEventsPage />} />

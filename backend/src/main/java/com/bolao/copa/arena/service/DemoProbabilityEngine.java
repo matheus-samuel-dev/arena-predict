@@ -23,6 +23,8 @@ public class DemoProbabilityEngine {
         options.forEach(o -> values.put(o.getKey(), o.getMultiplier().max(MIN).min(MAX).setScale(2,RoundingMode.HALF_UP)));
         var definition=definitions.definition(market,List.of()).orElse(null);
         ArenaEvent event=market.getEvent();
+        if (event.getExternalProvider() != null)
+            return new Quote(values,"STATIC","Multiplicadores de pontos virtuais definidos pelo Arena Predict; não são odds do provedor.");
         if (event.getStatus()!=EventStatus.LIVE || definition==null || market.getStatus()!=MarketStatus.OPEN || market.getTimingMode()==MarketTimingMode.PRE_MATCH_ONLY)
             return new Quote(values,"STATIC","Multiplicadores demonstrativos estáticos.");
         List<FinalScore> scores=distribution(event,definition.metric());
@@ -106,6 +108,7 @@ public class DemoProbabilityEngine {
             return normalized;
         }
         if (List.of("TENNIS","VOLLEYBALL","CS2","VALORANT","LEAGUE_OF_LEGENDS","DOTA2").contains(sport)) {
+            if (event.getBestOf() == null) return List.of();
             int bestOf=event.getBestOf();
             if (sport.equals("VOLLEYBALL")) bestOf=5;
             if (bestOf!=1 && bestOf!=3 && bestOf!=5) return List.of();

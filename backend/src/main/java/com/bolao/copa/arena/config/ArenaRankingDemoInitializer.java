@@ -111,9 +111,10 @@ public class ArenaRankingDemoInitializer {
 
     private boolean scenarioReferencesExist(Scenario scenario) {
         return sports.findByCodeIgnoreCase(scenario.sportCode())
-                .map(sport -> !championships.findBySportOrderByNameAsc(sport).isEmpty()
-                        && competitors.findBySportAndCodeIgnoreCase(sport, scenario.homeCode()).isPresent()
-                        && competitors.findBySportAndCodeIgnoreCase(sport, scenario.awayCode()).isPresent())
+                .map(sport -> championships.findBySportAndExternalProviderIsNullOrderByNameAsc(sport).stream()
+                        .anyMatch(championship -> !championship.isDemoManaged())
+                        && competitors.findBySportAndCodeIgnoreCase(sport, scenario.homeCode()).filter(team -> team.getExternalProvider() == null).isPresent()
+                        && competitors.findBySportAndCodeIgnoreCase(sport, scenario.awayCode()).filter(team -> team.getExternalProvider() == null).isPresent())
                 .orElse(false);
     }
 
@@ -128,7 +129,8 @@ public class ArenaRankingDemoInitializer {
     // The old history used a football-shaped score for a two-driver comparison.
     // Preserve its predictions and payouts while presenting the actual racing result.
     private void normalizeRacingHistory() {
-        events.findByExternalKey(KEY_PREFIX + "motorsport-week").filter(ArenaEvent::isDemo).ifPresent(event -> {
+        events.findByExternalKey(KEY_PREFIX + "motorsport-week").filter(ArenaEvent::isDemo)
+                .filter(event -> !event.isDemoManaged() && !event.isDemoArchived() && event.getExternalProvider() == null).ifPresent(event -> {
             event.setFormat(EventFormat.RACE);
             event.setTitle("GP demonstrativo · classificação histórica");
             event.setHomeScore(null);
@@ -143,10 +145,16 @@ public class ArenaRankingDemoInitializer {
     private void seedScenario(Scenario scenario, List<User> participants, Instant now) {
         String externalKey = KEY_PREFIX + scenario.key();
         Sport sport = sports.findByCodeIgnoreCase(scenario.sportCode()).orElseThrow();
-        Championship championship = championships.findBySportOrderByNameAsc(sport).stream().findFirst().orElseThrow();
+        Championship championship = championships.findBySportAndExternalProviderIsNullOrderByNameAsc(sport).stream()
+                .filter(value -> !value.isDemoManaged()).findFirst().orElseThrow();
         Competitor home = competitors.findBySportAndCodeIgnoreCase(sport, scenario.homeCode()).orElseThrow();
         Competitor away = competitors.findBySportAndCodeIgnoreCase(sport, scenario.awayCode()).orElseThrow();
         ArenaEvent event = events.findByExternalKey(externalKey).orElse(null);
+        if (home.getExternalProvider() != null || away.getExternalProvider() != null
+                || (event != null && (!event.isDemo() || event.isDemoManaged() || event.isDemoArchived()
+                    || event.getExternalProvider() != null))) {
+            throw new IllegalStateException("O histórico Demo não pode reutilizar identidades do catálogo externo ou de eventos manuais: " + externalKey);
+        }
         boolean created = event == null;
         if (created) {
             event = new ArenaEvent();
@@ -200,7 +208,7 @@ public class ArenaRankingDemoInitializer {
             int stake = stakeFor(participant, scenario);
             ArenaPrediction prediction = predictionRepository.findByIdempotencyKey(persistedKey).orElse(null);
             if (prediction == null && created) {
-                var response = predictionService.place(new PlacePredictionRequest(event.getId(), market.getId(),
+                var response = predictionService.placeDemoSeed(new PlacePredictionRequest(event.getId(), market.getId(),
                         selected.getId(), stake, null, clientKey), clientKey, participant);
                 prediction = predictionRepository.findById(response.id()).orElseThrow();
             } else if (prediction == null) {
@@ -273,7 +281,8 @@ public class ArenaRankingDemoInitializer {
 
     private void normalizeLegacyHistory(Instant now, List<User> participants) {
         ArenaEvent legacy = events.findByExternalKey("demo-football-settled").orElse(null);
-        if (legacy == null || !legacy.isDemo()) return;
+        if (legacy == null || !legacy.isDemo() || legacy.isDemoManaged() || legacy.isDemoArchived()
+                || legacy.getExternalProvider() != null) return;
         Instant historicalAt = now.minus(Duration.ofDays(90));
         boolean changed = false;
         for (User participant : participants) {

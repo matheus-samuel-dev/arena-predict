@@ -1,3 +1,9 @@
+sports:
+  sync:
+    enabled: false
+  pandascore:
+    api-token: ""
+
 spring:
   datasource:
     url: jdbc:h2:mem:arena;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
@@ -17,6 +23,9 @@ spring:
 app:
   demo:
     enabled: true
+    # Legacy domain suites exercise the original multi-sport fixtures. The controlled
+    # journey has its own integration context with this option explicitly enabled.
+    controlled-enabled: false
     live-provider-enabled: true
     live-scheduler-enabled: false
     # Scheduled demo maintenance is covered by focused unit tests. Keep its

@@ -147,6 +147,15 @@ public class ArenaPoolRankingService {
         return ranking(current, RankingPeriod.ALL, RankingScope.GLOBAL, null);
     }
 
+    /** Scoped projection with the same scoring and tie breakers as the global/pool rankings. */
+    @Transactional(readOnly = true)
+    public List<RankingRow> championshipRanking(Long championshipId, User current) {
+        Map<Long, List<ArenaPrediction>> byUser = predictions.findCurrentChampionshipPredictions(championshipId).stream()
+                .filter(p -> p.getStatus() == PredictionStatus.WON || p.getStatus() == PredictionStatus.LOST)
+                .collect(java.util.stream.Collectors.groupingBy(p -> p.getUser().getId()));
+        return rows(byUser.values().stream().map(values -> predictionStats(values.getFirst().getUser(), values)).toList(), current);
+    }
+
     @Transactional(readOnly = true)
     public List<RankingRow> ranking(User current, RankingPeriod period, RankingScope scope, String sport) {
         RankingPeriod effectivePeriod = period == null ? RankingPeriod.ALL : period;
@@ -162,6 +171,7 @@ public class ArenaPoolRankingService {
                         .collect(java.util.stream.Collectors.toSet())
                 : null;
         Map<Long, List<ArenaPrediction>> byUser = predictions.findForRankingSince(since).stream()
+                .filter(value -> !value.getEvent().isDemoArchived())
                 // A ranking is a performance table, therefore only finalized
                 // predictions count. Active predictions remain visible in the
                 // participant dashboard without diluting accuracy with 0/0 rows.

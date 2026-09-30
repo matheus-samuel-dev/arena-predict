@@ -22,6 +22,7 @@ import { PredictionComposer } from "../components/PredictionComposer";
 import { EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, SectionHeader, StatusBadge, UserAvatar } from "../components/UI";
 import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import { dashboardApi } from "../services/api";
 import type { ArenaEvent, DashboardData, PredictionDraft } from "../types";
 
@@ -64,7 +65,8 @@ export function localDashboardLevelProgress(data: ReturnType<typeof normalizeDas
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { data, loading, error, reload } = useApiResource<LooseDashboard>(() => dashboardApi.get(), []);
+  const { data, loading, error, reload, refresh } = useApiResource<LooseDashboard>(() => dashboardApi.get(), []);
+  useVisibleRefresh(refresh);
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
 
   const content = useMemo(() => {

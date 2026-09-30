@@ -25,6 +25,10 @@ public class MarketDefinitionCatalog {
     private static final MarketTimingMode LIVE = MarketTimingMode.LIVE_ENABLED;
 
     public List<Definition> definitions(ArenaEvent event, List<EventParticipant> participants) {
+        // External matches publish only series-score markets. No map, round or
+        // pistol contract may be sold when the provider cannot settle it.
+        if (event.getExternalProvider() != null && (event.getBestOf() == null
+                || !List.of(1, 3, 5).contains(event.getBestOf()))) return List.of();
         String home = event.getHomeCompetitor() == null ? "Participante 1" : event.getHomeCompetitor().getName();
         String away = event.getAwayCompetitor() == null ? "Participante 2" : event.getAwayCompetitor().getName();
         Builder b = new Builder(home, away, event.getChampionship().getSport().getCode());
@@ -56,7 +60,7 @@ public class MarketDefinitionCatalog {
             }
             case "TENNIS", "VOLLEYBALL" -> {
                 boolean tennis = event.getChampionship().getSport().getCode().equals("TENNIS");
-                int bestOf = tennis ? Math.max(3, event.getBestOf()) : 5;
+                int bestOf = tennis ? Math.max(3, event.getBestOf() == null ? 3 : event.getBestOf()) : 5;
                 b.winner("MATCH_WINNER", "Vencedor da partida", "Principais", "score", false, LIVE);
                 b.winner("FIRST_SET_WINNER", "Vencedor do primeiro set", "Sets", "set1", false, PRE);
                 b.total("TOTAL_SETS", "Total de sets · " + (bestOf == 5 ? "3,5" : "2,5"), "Sets", "score", bestOf == 5 ? "3.5" : "2.5", LIVE);
@@ -73,7 +77,7 @@ public class MarketDefinitionCatalog {
                 boolean shooter = sport.equals("CS2") || sport.equals("VALORANT");
                 b.winner("SERIES_WINNER", "Vencedor da série", "Série", "score", false, LIVE);
                 b.winner("MAP1_WINNER", "Vencedor do primeiro " + (shooter ? "mapa" : "jogo"), "Mapas", "map1", false, PRE);
-                if (event.getBestOf() > 1) {
+                if (event.getBestOf() != null && event.getBestOf() > 1) {
                     String line = event.getBestOf() == 5 ? "4.5" : "2.5";
                     b.total("TOTAL_MAPS", "Total de mapas · " + line.replace('.', ','), "Série", "score", line, LIVE);
                     b.handicap("MAP_HANDICAP", "Handicap de mapas · " + home + " −1,5", "Handicap", "score", "-1.5", LIVE);
@@ -109,6 +113,14 @@ public class MarketDefinitionCatalog {
                 b.selection("DRIVER_CLASSIFIED", drivers.getFirst().label() + " será classificado", "Classificação", "driverClassified", yesNo(), PRE);
             }
             default -> { return List.of(); }
+        }
+        if (event.getExternalProvider() != null || event.isDemoManaged()) {
+            return b.definitions.stream().filter(d -> d.metric().equals("score") && d.fields().isEmpty())
+                    .map(d -> new Definition(d.code(), d.name(), d.category(), d.strategy(), d.metric(), d.line(),
+                            PRE, d.options(), d.fields(), d.settlementDescription()
+                            + (event.isDemoManaged() ? " Resultado demonstrativo processado pelo domínio do Arena Predict."
+                            : " Resultado oficial do provedor. Multiplicadores de pontos virtuais definidos pelo Arena Predict, sem odds externas.")))
+                    .toList();
         }
         return List.copyOf(b.definitions);
     }

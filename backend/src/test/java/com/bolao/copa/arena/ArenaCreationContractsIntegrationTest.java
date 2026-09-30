@@ -220,13 +220,13 @@ class ArenaCreationContractsIntegrationTest {
 
         mockMvc.perform(patch("/api/profile")
                         .header("Authorization", bearer(player)).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Jogador Demo\",\"email\":\"jogador@arenapredict.com\",\"favoriteSports\":[null]}"))
+                        .content("{\"name\":\"Jogador Demo\",\"email\":\"participant.contracts@example.test\",\"favoriteSports\":[null]}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors").isMap());
 
         mockMvc.perform(patch("/api/profile")
                         .header("Authorization", bearer(player)).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Jogador Demo\",\"email\":\"jogador@arenapredict.com\","
+                        .content("{\"name\":\"Jogador Demo\",\"email\":\"participant.contracts@example.test\","
                                 + "\"avatarUrl\":\"https://tracker.invalid/avatar.png\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error", containsString("galeria")));
@@ -443,8 +443,8 @@ class ArenaCreationContractsIntegrationTest {
                 .andReturn().getResponse().getContentAsString());
     }
 
-    private User admin() { return users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow(); }
-    private User player() { return users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow(); }
+    private User admin() { return com.bolao.copa.support.RegularTestUsers.admin(users); }
+    private User player() { return com.bolao.copa.support.RegularTestUsers.participant(users); }
     private String bearer(User user) { return "Bearer " + jwtService.generate(user); }
     private String json(Object value) throws Exception { return objectMapper.writeValueAsString(value); }
     private long responseId(String body) throws Exception { return objectMapper.readTree(body).path("id").asLong(); }

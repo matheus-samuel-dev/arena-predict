@@ -19,11 +19,13 @@ public final class ArenaDtos {
                                 boolean active, int displayOrder) { }
     public record ChampionshipResponse(Long id, Long sportId, String sportCode, String name, String slug,
                                        String season, ChampionshipStatus status, String imageUrl,
-                                       Instant startsAt, Instant endsAt) { }
+                                       Instant startsAt, Instant endsAt, String externalProvider, String externalId,
+                                       String leagueName, String seriesName, boolean demoManaged) { }
     public record CompetitorResponse(Long id, Long sportId, String sportCode, String sportName,
                                      String name, String code, String imageUrl, String country,
-                                     boolean active) { }
-    public record CompetitorSummary(Long id, String name, String code, String imageUrl) { }
+                                     boolean active, String externalProvider, String externalId, String acronym) { }
+    public record CompetitorSummary(Long id, String name, String code, String imageUrl,
+                                    String externalProvider, String externalId, String acronym) { }
     public record EventParticipantResponse(Long id, CompetitorSummary competitor, int displayOrder,
                                            Integer position, String scoreLabel) { }
     public record MarketOptionResponse(Long id, String key, String label, BigDecimal multiplier, boolean active) { }
@@ -39,11 +41,14 @@ public final class ArenaDtos {
                                 SportResponse sport, String title, String stage, String venue, String broadcast,
                                 String imageUrl, CompetitorSummary homeCompetitor, CompetitorSummary awayCompetitor,
                                 Instant startsAt, Instant predictionClosesAt, EventStatus status, EventFormat format,
-                                int bestOf, Integer homeScore, Integer awayScore, String clock, String period,
+                                Integer bestOf, Integer homeScore, Integer awayScore, String clock, String period,
                                 String liveData, boolean featured, boolean demo,
                                 List<EventParticipantResponse> participants, List<MarketResponse> markets,
                                 int availableMarketCount, String predictionAvailabilityLabel,
-                                Map<String, String> resultData, List<ResultField> resultSchema) { }
+                                Map<String, String> resultData, List<ResultField> resultSchema,
+                                String externalProvider, String externalId, Instant lastSyncedAt,
+                                Instant resultProcessedAt, String winnerExternalId, boolean liveScoreAvailable,
+                                boolean resultReviewRequired, boolean demoManaged, boolean demoArchived) { }
 
     public record SportRequest(@NotBlank @Size(max = 40) String code, @NotBlank @Size(max = 100) String name,
                                @NotNull SportCategory category, @Size(max = 80) String icon,

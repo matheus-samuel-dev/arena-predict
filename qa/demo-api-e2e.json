@@ -1,0 +1,196 @@
+{
+  "checkedAt": "2026-09-30T07:41:02.7494078Z",
+  "baseUrl": "http://127.0.0.1:5176/api",
+  "result": "PASS",
+  "completedEventId": 30,
+  "predictionId": 316,
+  "score": "2-1",
+  "reward": 35,
+  "rankingPosition": 1,
+  "newRoundEventId": 32,
+  "refundedPredictionId": 317,
+  "officialEventsCompared": 0,
+  "realProviderCredentialValidated": false,
+  "requests": [
+    {
+      "path": "/auth/demo",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/auth/demo",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/scenario",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/reset",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/events",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/admin/dashboard",
+      "method": "GET",
+      "status": 403,
+      "expected": 403
+    },
+    {
+      "path": "/demo/events/30/start",
+      "method": "POST",
+      "status": 403,
+      "expected": 403
+    },
+    {
+      "path": "/demo/reset",
+      "method": "POST",
+      "status": 403,
+      "expected": 403
+    },
+    {
+      "path": "/demo/events/30/result",
+      "method": "POST",
+      "status": 422,
+      "expected": 422
+    },
+    {
+      "path": "/demo/scenario",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/predictions",
+      "method": "POST",
+      "status": 201,
+      "expected": 201
+    },
+    {
+      "path": "/demo/scenario",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/events/30/start",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/predictions/316/cancel",
+      "method": "POST",
+      "status": 422,
+      "expected": 422
+    },
+    {
+      "path": "/predictions",
+      "method": "POST",
+      "status": 422,
+      "expected": 422
+    },
+    {
+      "path": "/demo/events/30/result",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/scenario",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/wallet",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/wallet/transactions",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/events/30/result",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/wallet",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/wallet/transactions",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/events/30/result",
+      "method": "POST",
+      "status": 409,
+      "expected": 409
+    },
+    {
+      "path": "/demo/reset",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/reset",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/demo/events/30/result",
+      "method": "POST",
+      "status": 409,
+      "expected": 409
+    },
+    {
+      "path": "/predictions",
+      "method": "POST",
+      "status": 201,
+      "expected": 201
+    },
+    {
+      "path": "/demo/reset",
+      "method": "POST",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/predictions",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/events",
+      "method": "GET",
+      "status": 200,
+      "expected": 200
+    }
+  ]
+}

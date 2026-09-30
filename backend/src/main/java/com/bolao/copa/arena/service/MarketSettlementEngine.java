@@ -56,6 +56,8 @@ public class MarketSettlementEngine {
         if (home < 0 || away < 0 || home > 1000 || away > 1000) throw new ArenaProblem.RuleViolation("Placar fora dos limites permitidos.");
         Set<String> seriesSports = Set.of("CS2", "VALORANT", "LEAGUE_OF_LEGENDS", "DOTA2", "TENNIS", "VOLLEYBALL");
         if (finished && seriesSports.contains(sport)) {
+            if (event.getBestOf() == null && !sport.equals("VOLLEYBALL"))
+                throw new ArenaProblem.RuleViolation("O formato da série precisa ser confirmado antes de processar os palpites.");
             int bestOf = sport.equals("VOLLEYBALL") ? 5 : sport.equals("TENNIS") ? Math.max(3, event.getBestOf()) : event.getBestOf();
             int target = bestOf / 2 + 1;
             if (Math.max(home, away) != target || Math.min(home, away) >= target)

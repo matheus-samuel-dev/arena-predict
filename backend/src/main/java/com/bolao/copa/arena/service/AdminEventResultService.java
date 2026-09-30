@@ -5,6 +5,7 @@ import static com.bolao.copa.arena.api.ArenaDtos.EventClassificationRequest;
 import static com.bolao.copa.arena.api.ArenaDtos.EventParticipantRequest;
 import static com.bolao.copa.arena.api.ArenaDtos.EventParticipantResponse;
 import static com.bolao.copa.arena.api.ArenaDtos.EventResultRequest;
+import static com.bolao.copa.arena.service.EventDataOwnership.requireManualEvent;
 
 import com.bolao.copa.arena.domain.AdminOperationKey;
 import com.bolao.copa.arena.domain.ArenaEvent;
@@ -43,10 +44,31 @@ public class AdminEventResultService {
         this.catalog = catalog;
     }
 
+    /** Public administrative commands cannot bypass the controlled Demo lifecycle. */
+    @Transactional
+    public EventResponse recordFromAdministration(Long eventId, EventResultRequest request, String headerKey) {
+        requireGenericAdministration(eventId);
+        return record(eventId, request, headerKey);
+    }
+
+    @Transactional
+    public EventResponse recordClassificationFromAdministration(Long eventId, EventClassificationRequest request, String headerKey) {
+        requireGenericAdministration(eventId);
+        return recordClassification(eventId, request, headerKey);
+    }
+
+    private void requireGenericAdministration(Long eventId) {
+        ArenaEvent event = events.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        EventDataOwnership.requireUnmanagedDemoEvent(event);
+    }
+
+    /** Shared result domain entry point, also invoked by the authorized Demo orchestrator. */
     @Transactional
     public EventResponse record(Long eventId, EventResultRequest request, String headerKey) {
         ArenaEvent event = events.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        requireManualEvent(event);
         String key = normalizedKey(headerKey);
         String fingerprint = fingerprint(request);
 
@@ -80,6 +102,7 @@ public class AdminEventResultService {
     public EventResponse recordClassification(Long eventId, EventClassificationRequest request, String headerKey) {
         ArenaEvent event = events.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        requireManualEvent(event);
         String key = normalizedKey(headerKey);
         String fingerprint = classificationFingerprint(request);
 

@@ -22,7 +22,8 @@ Principais capacidades:
 - dashboards para participante e administrador;
 - resultados e liquidação idempotente;
 - API documentada com OpenAPI;
-- dados ao vivo simulados, sempre identificados como demonstração.
+- integração CS2 com PandaScore: calendário, equipes, campeonatos e resultados automáticos;
+- eventos reais e Demo identificados separadamente; placar de série ao vivo quando fornecido pelo plano.
 
 ## Screenshots
 
@@ -39,9 +40,9 @@ Principais capacidades:
 O tema claro é o padrão, com superfícies neutras, acentos índigo e feedbacks
 semânticos. O tema escuro continua disponível pelo menu do perfil e a escolha
 fica persistida no navegador. Eventos usam o componente reutilizável
-`TeamLogo`: ele prioriza assets locais do catálogo e transforma qualquer
+`TeamLogo`: ele prioriza o logo fornecido pela API, usa assets locais como fallback e transforma qualquer
 identidade sem arquivo distribuível em um escudo determinístico com iniciais
-acessíveis. O ambiente publicado não depende de hotlinks. A política dos assets
+acessíveis. Falhas de imagens externas não deixam imagens quebradas. A política dos assets
 está documentada em
 [`frontend/public/assets/teams/README.md`](frontend/public/assets/teams/README.md).
 
@@ -55,6 +56,7 @@ flowchart LR
     S --> P[(PostgreSQL)]
     S --> F[Flyway]
     S --> D[Provider interno demo]
+    S --> X[SportsDataProvider / PandaScore]
 ```
 
 O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução.
@@ -124,13 +126,42 @@ XP, nível, sequência, precisão, desafios e conquistas são calculados a parti
 
 ## Modo demonstração
 
-O modo demo é explícito e controlado por `APP_DEMO_ENABLED`. Ele cria dez modalidades, 24 participantes de ranking, eventos, mercados, palpites, ligas, notificações e conteúdo comunitário. O runtime do backend e o `docker-compose.yml` mantêm o modo demo desativado por padrão; o `.env.example` o ativa deliberadamente como referência para a apresentação local. A interface usa `VITE_DEMO_MODE`, que deve permanecer alinhada ao backend.
+O acesso rápido reutiliza duas contas persistidas e o mesmo JWT do login convencional, sem enviar senhas ao navegador. A jornada guiada fica em `/demo`, com uma **Competição de Demonstração** exclusiva:
 
-O provider ao vivo incluído é interno e simulado. O projeto não afirma integração com ESPN, Sportradar, FIFA, Riot, Steam ou provedores de odds.
+1. Entre como **Participante Demo** e escolha um placar na partida disponível.
+2. Revise os pontos virtuais e confirme o palpite; ele permanece salvo após atualizar a página.
+3. Troque para **Administrador Demo** na própria jornada e use **Iniciar partida Demo**. O backend encerra os palpites.
+4. Use **Simular resultado**, escolha o placar final e confirme.
+5. Retorne ao participante e confira o palpite processado, os pontos recebidos e o ranking.
+6. Como administrador Demo, use **Começar nova rodada** para repetir a experiência.
 
-O seed pode ser executado novamente sem duplicar os registros conhecidos. Uma manutenção temporal idempotente reposiciona apenas as janelas dos fixtures estruturais não encerrados, preservando palpites, estados administrativos e registros criados pelo visitante. O histórico do ranking também é ancorado relativamente ao relógio, mantendo recortes semanal, mensal e geral populados. O acesso rápido da tela de login é resolvido pelo backend somente quando o modo demo está habilitado; nenhuma senha é enviada ao navegador ou incorporada ao bundle.
+**O modo demonstração simula apenas o evento externo de conclusão da partida. Resultado, processamento dos palpites, pontuação e ranking utilizam as mesmas regras de negócio da aplicação.** O reset arquiva a rodada anterior, reembolsa palpites ativos e cria uma nova rodada. Preserva histórico e lançamentos de pontos; o ranking da competição volta ao histórico de exemplo. As contas e a rodada são compartilhadas entre visitantes, com proteção transacional contra comandos repetidos ou desatualizados.
 
-Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique uma instância com credenciais demo, segredo JWT ou senha de banco padrão.
+Ative `APP_DEMO_ENABLED=true`, `APP_DEMO_CONTROLLED_ENABLED=true` e `VITE_DEMO_MODE=true`. Backend e Compose mantêm `APP_DEMO_ENABLED=false` por padrão; o `.env.example` o ativa para apresentação local. O catálogo demonstrativo existente permanece disponível para consulta. Partidas Demo ao vivo expiram em 15 minutos sem inventar resultado, com reembolso dos palpites ativos.
+
+O provider Demo continua interno e simulado. A integração opcional PandaScore sincroniza partidas reais de CS2 exclusivamente pelo backend. Os dois fluxos têm identidades separadas: o Demo nunca simula resultados de partidas externas. Multiplicadores e pontos continuam sendo regras virtuais da aplicação, não odds da PandaScore.
+
+Veja [arquitetura, permissões, reset, migrations e roteiro de teste da demonstração](docs/demo-flow.md).
+
+## Integração esportiva CS2
+
+Configure no `.env` privado do backend/Compose:
+
+```dotenv
+PANDASCORE_API_TOKEN=YOUR_TOKEN_HERE
+SPORTS_SYNC_ENABLED=true
+PANDASCORE_LIVE_SCORES_ENABLED=false
+```
+
+Obtenha a credencial no [painel PandaScore](https://app.pandascore.co/). O token nunca é uma variável `VITE_*`. Sem token, a aplicação e o modo Demo continuam funcionando e a área administrativa informa a indisponibilidade da sincronização.
+
+Por padrão: próximas partidas a cada 15 minutos; jogos ao vivo e próximos de começar a cada 2 minutos; resultados recentes a cada 5 minutos. As frequências, timeouts, orçamento de requisições e janela de correções são configuráveis. Resultados válidos reutilizam a pontuação e o ranking existentes, com processamento transacional e idempotente.
+
+O placar ao vivo não é garantido pelo plano de calendário. A opção de live score aceita apenas placares de série presentes na resposta REST; não implementa o stream de rounds/mapas via WebSocket. Nunca preenche ausência com `0 × 0`.
+
+Veja [configuração, arquitetura, limitações, testes e atualização na EC2](docs/sports-integration.md). Correções de resultados já processados ficam em revisão auditável, sem duplicar créditos.
+
+Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique segredo JWT ou senha de banco padrão. As identidades públicas Demo têm permissões restritas no backend e não acessam a administração operacional.
 
 ## Execução com Docker
 
@@ -159,7 +190,7 @@ Serviços:
 - saúde da API: <http://localhost:8080/actuator/health>
 - saúde do frontend: <http://localhost:5173/health>
 
-Por segurança, as portas da aplicação e da API são vinculadas a `127.0.0.1` por padrão. Para um teste deliberado em outro dispositivo da rede local, defina `APP_BIND_ADDRESS=0.0.0.0` e ajuste também `CORS_ALLOWED_ORIGINS`; não exponha a configuração demo à internet.
+Por segurança, as portas da aplicação e da API são vinculadas a `127.0.0.1` por padrão. Para um teste deliberado em outro dispositivo da rede local, defina `APP_BIND_ADDRESS=0.0.0.0` e ajuste também `CORS_ALLOWED_ORIGINS`. Para um portfólio público, publique por proxy HTTPS com segredos exclusivos, origens explícitas e proteção de tráfego.
 
 Logs:
 
@@ -213,7 +244,7 @@ Use `.env.example` como referência. O arquivo `.env` local não deve ser versio
 | Grupo | Variáveis principais |
 |---|---|
 | Produto | `APP_BRAND_NAME`, `VITE_APP_NAME`, `VITE_APP_SHORT_NAME`, `VITE_APP_TAGLINE`, `VITE_APP_DESCRIPTION`, `VITE_APP_STORAGE_NAMESPACE`, `VITE_SUPPORT_EMAIL` |
-| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_ADMIN_EMAIL`, `APP_DEMO_ADMIN_PASSWORD`, `APP_DEMO_PARTICIPANT_EMAIL`, `APP_DEMO_PARTICIPANT_PASSWORD`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `APP_DEMO_SCHEDULE_REFRESH_MS`, `APP_DEMO_SCHEDULE_INITIAL_DELAY_MS`, `APP_DEMO_HISTORY_REFRESH_MS`, `APP_DEMO_HISTORY_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
+| Demonstração | `APP_DEMO_ENABLED`, `APP_DEMO_CONTROLLED_ENABLED`, `APP_DEMO_ROUND_WINDOW_HOURS`, `APP_DEMO_LIVE_TIMEOUT_MINUTES`, `APP_DEMO_MAINTENANCE_MS`, `APP_DEMO_ADMIN_EMAIL`, `APP_DEMO_ADMIN_PASSWORD`, `APP_DEMO_PARTICIPANT_EMAIL`, `APP_DEMO_PARTICIPANT_PASSWORD`, `APP_DEMO_LIVE_PROVIDER_ENABLED`, `APP_DEMO_LIVE_SCHEDULER_ENABLED`, `APP_DEMO_LIVE_REFRESH_MS`, `APP_DEMO_LIVE_INITIAL_DELAY_MS`, `APP_DEMO_SCHEDULE_REFRESH_MS`, `APP_DEMO_SCHEDULE_INITIAL_DELAY_MS`, `APP_DEMO_HISTORY_REFRESH_MS`, `APP_DEMO_HISTORY_INITIAL_DELAY_MS`, `VITE_DEMO_MODE` |
 | Segurança | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES`, `CORS_ALLOWED_ORIGINS` |
 | Banco | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_VOLUME_NAME`, `POSTGRES_HOST_PORT` |
 | Rede/frontend | `APP_BIND_ADDRESS`, `FRONTEND_PORT`, `BACKEND_PORT`, `VITE_API_URL`, `VITE_BACKEND_PROXY`, `VITE_API_TIMEOUT_MS` |
@@ -241,7 +272,7 @@ Em produção, mantenha as quatro variáveis de identidade/credencial demo no se
 - headers de segurança no Nginx;
 - mensagens inesperadas não expõem stack trace ao cliente.
 
-O endpoint `POST /api/auth/demo` só existe quando `APP_DEMO_ENABLED=true`. Ele aceita exclusivamente o perfil demonstrativo permitido, resolve no servidor uma das duas identidades configuradas e emite o mesmo JWT/RBAC do login convencional; não recebe e-mail, senha, papel arbitrário ou autoridade do navegador.
+O endpoint `POST /api/auth/demo` só existe quando `APP_DEMO_ENABLED=true`. Ele aceita exclusivamente o perfil demonstrativo permitido, resolve no servidor uma das duas identidades configuradas e emite o mesmo JWT/RBAC do login convencional; não recebe e-mail, senha, papel arbitrário ou autoridade do navegador. As duas contas Demo não podem acessar `/api/admin/**`. O participante só registra/cancela seus palpites na competição controlada; o administrador Demo só escreve nos comandos explícitos dessa jornada. Identidades Demo reservadas não podem ser capturadas pelo cadastro público.
 
 Para uma implantação pública ainda são necessários gestão externa e rotação de segredos, TLS no proxy de borda, rate limiting distribuído, política de backup e monitoramento centralizado.
 
@@ -258,6 +289,12 @@ O Flyway é a fonte de verdade do schema. O Hibernate usa `ddl-auto=validate`, p
 | V5 | Participantes genéricos de evento, incluindo formatos além de confronto casa/fora |
 | V6 | Auditoria administrativa e correção da progressão derivada do razão de pontos |
 | V7 | Recibos idempotentes de resultados/classificações, recorrência de desafios e XP baseado em atividade |
+| V8 | Regras de mercados e resultados estruturados |
+| V9 | Origem e motivo da suspensão de mercados |
+| V10 | Correção de suspensão do mercado Demo de pistol round |
+| V11 | Identidade externa única, sincronização esportiva e controle de processamento de resultados |
+| V12 | Migração Java: isolamento relacional entre catálogo interno e catálogo de provedores; reparo conservador de referências legadas |
+| V13 | Competição Demo controlada, arquivamento de rodadas e estado transacional da jornada |
 
 Instalações existentes preservam estruturas legadas apenas para compatibilidade de migração; fora do alias de autenticação documentado acima, elas não fazem parte da superfície funcional atual.
 
@@ -283,26 +320,42 @@ npm run build
 
 Os testes existentes exercitam autenticação, claims JWT, 401/403, permissões, seed, carteira, saldo insuficiente, débito, cancelamento, idempotência, resultados por placar e classificação, liquidação, recompensa única, progressão recorrente, comunidade e formatos seguros dos recursos administrativos.
 
-A validação final de produto, incluindo a matriz real de navegador e as
-contagens do ambiente PostgreSQL, está em
+O registro da validação de produto de 12/09/2026, anterior à integração
+esportiva e à jornada Demo controlada, incluindo navegador e PostgreSQL, está em
 [`docs/final-product-audit-2026-09-12.md`](docs/final-product-audit-2026-09-12.md).
+
+A evolução atual tem um [relatório de entrega da demonstração controlada](qa/demo-validation.md),
+com arquitetura, isolamento, reset, inventário, testes, builds e os limites das evidências.
+O [roteiro de uso e configuração](docs/demo-flow.md) explica como repetir a jornada.
 
 O workflow `.github/workflows/ci.yml` executa backend e frontend em jobs independentes, com Java 21 e Node.js 22. O pipeline apenas valida o código; não publica artefatos nem realiza deploy.
 
 ## Atualização de uma implantação Docker/AWS
 
-Depois de atualizar no gerenciador de segredos ou no `.env` privado da instância as variáveis necessárias, reconstrua somente os serviços sem remover o volume PostgreSQL:
+Preserve o `.env` e o volume PostgreSQL existentes. As novas variáveis da jornada são `APP_DEMO_CONTROLLED_ENABLED=true`, `APP_DEMO_ROUND_WINDOW_HOURS=24`, `APP_DEMO_LIVE_TIMEOUT_MINUTES=15` e `APP_DEMO_MAINTENANCE_MS=60000`. Os valores são encaminhados ao backend pelo Compose.
+
+Depois de publicar o commit, execute no checkout da EC2. O backup antecede o startup com migrations:
 
 ```bash
+set -e
+umask 077
+cd "$(git rev-parse --show-toplevel)"
+cp .env ".env.backup.$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p backups
+docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
+  > "backups/arena-before-demo-$(date -u +%Y%m%dT%H%M%SZ).dump"
 git pull --ff-only
+nano .env
 docker compose config --quiet
-docker compose up -d --build
+docker compose build backend frontend
+docker compose up -d --no-deps backend frontend
 docker compose ps
-curl --fail http://127.0.0.1:8080/actuator/health
-curl --fail http://127.0.0.1:5173/health
+docker compose logs --tail=100 backend
 ```
 
-Para disponibilizar o acesso rápido do portfólio, configure `APP_DEMO_ENABLED=true`, `VITE_DEMO_MODE=true` e injete `APP_DEMO_ADMIN_PASSWORD` e `APP_DEMO_PARTICIPANT_PASSWORD` apenas pelo mecanismo privado do ambiente. Não use `docker compose down -v`: esse comando apagaria o banco persistido.
+Para disponibilizar a jornada do portfólio, configure `APP_DEMO_ENABLED=true`, `APP_DEMO_CONTROLLED_ENABLED=true` e `VITE_DEMO_MODE=true`. As senhas Demo são opcionais para o acesso rápido; se definidas, injete-as apenas pelo mecanismo privado do ambiente. Mantenha as identidades Demo separadas das contas operacionais. Não use `docker compose down -v`: esse comando apagaria o banco persistido.
+
+Mantenha `APP_DEMO_LIVE_PROVIDER_ENABLED=false` e `APP_DEMO_LIVE_SCHEDULER_ENABLED=false`; a jornada controla suas próprias transições. Preserve token e flags da integração esportiva. O painel **Dados esportivos** exige administrador operacional: Administrador Demo é restrito à jornada `/demo`. Confira o [procedimento completo de atualização e diagnóstico das migrations](docs/sports-integration.md#atualização-da-ec2-depois-de-publicar-o-commit).
 
 ## API
 
@@ -310,11 +363,14 @@ Rotas de participante incluem dashboard, modalidades, campeonatos, eventos, palp
 
 Rotas sob `/api/admin/**` cobrem dashboard, catálogo, eventos, mercados, resultados, usuários, bolões, pontuação, engajamento, moderação, relatórios, auditoria e configurações.
 
+Rotas sob `/api/demo/**` consultam a jornada e permitem iniciar, finalizar ou restaurar somente a rodada controlada; o palpite reutiliza `POST /api/predictions`. Consulte [os contratos e as permissões](docs/demo-flow.md#endpoints).
+
 Consulte o Swagger UI para payloads, validações, enums internos e respostas atuais. Faça login em `/api/auth/login` e use o botão **Authorize** com o JWT retornado para testar rotas protegidas.
 
 ## Limitações conhecidas
 
-- o provider esportivo incluído é demonstrativo e não consome fonte externa;
+- a integração PandaScore precisa de credencial válida e plano compatível; live score e cobertura dependem do provedor, sem fallback fictício;
+- a jornada Demo usa duas contas e uma rodada compartilhadas; outro visitante pode conduzir ou restaurar a mesma rodada. O histórico arquivado e o ledger crescem conforme o uso, sem limpeza destrutiva automática;
 - o perfil automatizado de integração usa H2 em modo compatível com PostgreSQL; o smoke test final também foi executado contra PostgreSQL real, mas essa paridade ainda deve entrar no CI com Testcontainers;
 - a auditoria Chromium em `qa/browser-audit.cjs` cobre regressão visual, rede e
   persistência do ambiente demo; ela é executada localmente e ainda não faz
@@ -332,7 +388,7 @@ Consulte o Swagger UI para payloads, validações, enums internos e respostas at
 - ampliar cobertura de auditoria e correlação de requisições;
 - adicionar métricas, tracing e dashboards operacionais;
 - automatizar backup e restauração testada;
-- integrar um provider esportivo apenas quando houver contrato real e configuração explícita;
+- validar cobertura e quota da credencial PandaScore no ambiente de implantação;
 - adotar rotação de segredos e rate limiting para cenários públicos.
 
 ## Posicionamento técnico

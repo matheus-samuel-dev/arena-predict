@@ -3,12 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList } from "../components/EventCard";
+import { eventFormatLabel, eventScore, eventSourceLabel, isExternalEvent } from "../app/sportsData";
+import { EventDataSource } from "../components/EventDataSource";
+import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList, SportBadge } from "../components/EventCard";
 import { TeamLogo } from "../components/TeamLogo";
 import { PredictionComposer } from "../components/PredictionComposer";
 import { Button, EmptyState, ErrorState, NoResults, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
 import { useApiResource } from "../hooks/useApiResource";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import { asList, catalogApi, eventsApi } from "../services/api";
 import type { ArenaEvent, PredictionDraft, PredictionMarket, Sport } from "../types";
 import "../markets.css";
@@ -21,10 +24,12 @@ const statuses = [
   { value: "FINISHED", label: "Encerrados" },
 ];
 
-export function filterEventCatalog(events: ArenaEvent[], search: string, featuredOnly: boolean) {
+export function filterEventCatalog(events: ArenaEvent[], search: string, featuredOnly: boolean, source = "") {
   const term = search.toLocaleLowerCase("pt-BR").trim();
   return events.filter((event) => {
     if (featuredOnly && !event.featured) return false;
+    if (source === "REAL" && !isExternalEvent(event)) return false;
+    if (source === "DEMO" && eventSourceLabel(event) !== "Demo") return false;
     if (!term) return true;
     const [home, away] = eventTeams(event);
     const participantTerms = (event.participants || []).flatMap((item) => [item.competitor.name, item.competitor.code]);
@@ -42,9 +47,10 @@ export function EventsPage() {
   const status = params.get("status") || "";
   const sport = params.get("sport") || "";
   const featured = params.get("featured") === "true";
+  const source = params.get("source") || "";
   const [searchInput, setSearchInput] = useState(search);
 
-  const { data, loading, error, reload } = useApiResource(
+  const { data, loading, error, reload, refresh } = useApiResource(
     async () => {
       const [eventResponse, sportResponse] = await Promise.all([
         eventsApi.list({ status: status || undefined, sport: sport || undefined, featured: featured || undefined, size: 48 }),
@@ -54,12 +60,13 @@ export function EventsPage() {
     },
     [status, sport, featured],
   );
+  useVisibleRefresh(refresh);
 
   useEffect(() => setSearchInput(search), [search]);
 
   const events = useMemo(() => {
-    return filterEventCatalog(data?.events || [], search, featured);
-  }, [data?.events, search, featured]);
+    return filterEventCatalog(data?.events || [], search, featured, source);
+  }, [data?.events, search, featured, source]);
 
   function update(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -99,7 +106,10 @@ export function EventsPage() {
         {statuses.map((item) => <button type="button" aria-pressed={status === item.value} className={status === item.value ? "active" : ""} onClick={() => update("status", item.value)} key={item.value}>{item.value === "LIVE" && <Radio size={13} aria-hidden="true" />}{item.label}</button>)}
       </div>
 
-      <div className="results-summary"><span><Filter size={15} /> {events.length} {events.length === 1 ? "evento encontrado" : "eventos encontrados"}</span>{(search || status || sport || featured) && <button type="button" onClick={clear}>Limpar filtros</button>}</div>
+      <div className="results-summary event-results-summary"><span><Filter size={15} /> {events.length} {events.length === 1 ? "evento encontrado" : "eventos encontrados"}</span>
+        <label className="event-source-filter">Origem<select aria-label="Filtrar origem dos eventos" value={source} onChange={(event) => update("source", event.target.value)}><option value="">Todas</option><option value="REAL">Dados reais</option><option value="DEMO">Demo</option></select></label>
+        {(search || status || sport || featured || source) && <button type="button" onClick={clear}>Limpar filtros</button>}
+      </div>
 
       {events.length ? <div className="events-grid">{events.map((event) => <EventCard event={event} onPredict={setDraft} key={event.id} />)}</div> : <NoResults onClear={clear} />}
 
@@ -131,15 +141,7 @@ export function LiveEventsPage() {
     }
   }, [notify, refresh]);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => refreshLive().catch(() => undefined), 30_000);
-    const onVisibility = () => document.visibilityState === "visible" && refreshLive().catch(() => undefined);
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [refreshLive]);
+  useVisibleRefresh(refreshLive, 30_000);
 
   if (loading) return <PageSkeleton cards={3} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
@@ -177,21 +179,25 @@ export function LiveEventsPage() {
   );
 }
 
-function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
+export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
   const [home, away] = eventTeams(event);
   const multiParticipant = isMultiParticipantEvent(event);
+  const score = eventScore(event);
+  const format = eventFormatLabel(event);
   const previewMarkets = [...(event.markets || [])].sort((left, right) => Number(Boolean(right.availability?.allowed)) - Number(Boolean(left.availability?.allowed))).slice(0, 2);
   return (
     <article className="surface live-event-panel">
-      <header><div><span className="sport-chip">{sportName(event.sport || event.sportName)}</span><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
+      <header><div><SportBadge label={sportName(event.sport || event.sportName)} /><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
       {multiParticipant ? <ParticipantList event={event} limit={12} /> : <div className="live-scoreboard">
         <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="md" /><strong>{home.name || home.code}</strong></div>
-        <b>{home.score ?? 0}<i>:</i>{away.score ?? 0}<small>{enumLabel(event.format || event.phase || "LIVE")}</small></b>
+        <b aria-label={score ? `Placar ${score[0]} a ${score[1]}` : "Placar indisponível"}>{score ? <>{score[0]}<i>:</i>{score[1]}</> : "—"}{format && <small>{format.startsWith("BO") ? format : enumLabel(format)}</small>}</b>
         <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" /><strong>{away.name || away.code}</strong></div>
       </div>}
+      {!multiParticipant && !score && <p className="score-unavailable">{event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor."}</p>}
+      <EventDataSource event={event} />
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
       {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label="Mercados ainda não publicados" />}
-      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>Explorar todos ({event.markets?.length || 0})</Link></footer>
+      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={event.demoManaged ? "/demo" : `/events/${event.id}`}>{event.demoManaged ? "Ir para a demonstração" : `Explorar todos (${event.markets?.length || 0})`}</Link></footer>
     </article>
   );
 }
@@ -200,7 +206,8 @@ export function EventDetailsPage() {
   const { id = "" } = useParams();
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
   const { data: event, loading, error, reload, refresh } = useApiResource(() => eventsApi.get(id), [id]);
-  useEffect(() => { const timer = window.setInterval(() => { if (!document.hidden) refresh().catch(() => undefined); }, 30000); return () => window.clearInterval(timer); }, [refresh]);
+  useVisibleRefresh(refresh, ["LIVE", "AO_VIVO"].includes(event?.status || "") ? 30_000 : 60_000,
+    !event || !["FINISHED", "CANCELLED"].includes(event.status) || (isExternalEvent(event) && !event.resultProcessedAt && event.status === "FINISHED") || Boolean(event.resultReviewRequired));
   if (loading) return <PageSkeleton cards={3} />;
   if (error || !event) return <ErrorState message={error || "Evento não encontrado."} onRetry={() => reload().catch(() => undefined)} />;
   const [home, away] = eventTeams(event);
@@ -208,6 +215,7 @@ export function EventDetailsPage() {
   const participantCount = event.participants?.length || event.competitors?.length || 0;
   const phaseIsDemo = /^demonstra(?:ção|cao)$/i.test(String(event.phase || ""));
   const broadcastLabel = /\b(?:demo|demonstra)/i.test(String(event.broadcast || "")) ? "Atualização interna" : event.broadcast;
+  const format = eventFormatLabel(event);
   const eventTitle = multiParticipant
     ? event.title || `${championshipName(event.championship || event.championshipName)} · ${participantCount ? `${participantCount} participantes` : enumLabel(event.format)}`
     : `${home.name || home.code} × ${away.name || away.code}`;
@@ -217,7 +225,15 @@ export function EventDetailsPage() {
       <EventCard event={event} compact />
       <section className="event-detail-grid">
         <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <CategorizedMarkets event={event} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title="Mercados ainda não publicados" description="A organização adicionará as opções antes do início do evento." />}</div>
-        <aside className="surface event-info"><h2>Informações</h2><dl><div><dt>Local</dt><dd>{event.venue || "A definir"}</dd></div><div><dt>Transmissão</dt><dd>{broadcastLabel || "Consulte a programação oficial"}</dd></div><div><dt>Formato</dt><dd>{event.format ? enumLabel(event.format) : "Padrão da modalidade"}</dd></div>{multiParticipant && <div><dt>Participantes</dt><dd>{participantCount || "A definir"}</dd></div>}{!phaseIsDemo && <div><dt>Fase</dt><dd>{event.phase ? enumLabel(event.phase) : "Fase regular"}</dd></div>}</dl><div className="virtual-disclaimer"><ShieldCheck size={16} /> Todos os coeficientes calculam somente recompensas em pontos.</div></aside>
+        <aside className="surface event-info"><h2>Informações</h2><dl>
+          <div><dt>Horário local</dt><dd>{dateTime(event.startsAt)}</dd></div>
+          <div><dt>Local</dt><dd>{event.venue || "Não informado"}</dd></div>
+          <div><dt>Transmissão</dt><dd>{broadcastLabel || "Consulte a programação oficial"}</dd></div>
+          <div><dt>Formato</dt><dd>{format ? format.startsWith("BO") ? `${format} · ${enumLabel(format)}` : enumLabel(format) : "Não informado"}</dd></div>
+          {multiParticipant && <div><dt>Participantes</dt><dd>{participantCount || "A definir"}</dd></div>}
+          {!phaseIsDemo && <div><dt>Fase</dt><dd>{event.phase ? enumLabel(event.phase) : "Não informada"}</dd></div>}
+          {isExternalEvent(event) && <div><dt>Dados sincronizados</dt><dd>{event.lastSyncedAt ? dateTime(event.lastSyncedAt) : "Aguardando sincronização"}</dd></div>}
+        </dl>{event.resultReviewRequired && <p className="event-result-review">O provedor enviou uma correção. O placar e a pontuação anteriores permanecem sob revisão administrativa.</p>}<div className="virtual-disclaimer"><ShieldCheck size={16} /> Todos os coeficientes calculam somente recompensas em pontos.</div></aside>
       </section>
       <PredictionComposer draft={draft} currentEvent={event} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>

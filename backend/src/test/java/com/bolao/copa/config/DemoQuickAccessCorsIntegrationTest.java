@@ -71,7 +71,7 @@ class DemoQuickAccessCorsIntegrationTest {
     }
 
     @Test
-    void publicOriginCanQuickLoginAsAdministratorAndUseAdminSession() throws Exception {
+    void publicOriginCanQuickLoginAsDemoAdministratorWithoutAdministrativeAccess() throws Exception {
         var login = quickLogin("ADMIN", UserRole.ADMIN);
         var claims = jwtService.parse(login.token());
 
@@ -86,12 +86,13 @@ class DemoQuickAccessCorsIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PUBLIC_ORIGIN))
                 .andExpect(jsonPath("$.email").value(login.email()))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.demoProfile").value("ADMIN"));
 
         mockMvc.perform(get("/api/admin/dashboard")
                         .header(HttpHeaders.ORIGIN, PUBLIC_ORIGIN)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + login.token()))
-                .andExpect(status().isOk())
+                .andExpect(status().isForbidden())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PUBLIC_ORIGIN));
     }
 
@@ -114,6 +115,7 @@ class DemoQuickAccessCorsIntegrationTest {
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PUBLIC_ORIGIN))
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.role").value(expectedRole.name()))
+                .andExpect(jsonPath("$.demoProfile").value(profile))
                 .andReturn();
 
         var body = objectMapper.readTree(result.getResponse().getContentAsByteArray());

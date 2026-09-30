@@ -8,6 +8,13 @@ import java.time.Instant;
 @Entity
 @Table(name = "arena_events")
 public class ArenaEvent {
+    @Column(nullable = false)
+    private boolean demoManaged;
+    @Column(nullable = false)
+    private boolean demoArchived;
+    public boolean isDemoManaged() { return demoManaged; }
+    public boolean isDemoArchived() { return demoArchived; }
+    public void setDemoArchived(boolean value) { demoArchived = value; }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, unique = true, length = 100)
@@ -36,8 +43,7 @@ public class ArenaEvent {
     private EventStatus status = EventStatus.SCHEDULED;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
     private EventFormat format = EventFormat.STANDARD;
-    @Column(nullable = false)
-    private int bestOf = 1;
+    private Integer bestOf = 1;
     private Integer homeScore;
     private Integer awayScore;
     @Column(length = 80)
@@ -52,6 +58,25 @@ public class ArenaEvent {
     private boolean featured;
     @Column(nullable = false)
     private boolean demo;
+    @Column(length = 40)
+    private String externalProvider;
+    @Column(length = 100)
+    private String externalId;
+    @Column(nullable = false)
+    private boolean providerOwned;
+    private Instant lastSyncedAt;
+    private Instant finishedAt;
+    private Instant resultProcessedAt;
+    @Column(length = 100)
+    private String winnerExternalId;
+    @Column(nullable = false)
+    private boolean liveScoreAvailable;
+    @Column(length = 64)
+    private String resultFingerprint;
+    @Column(length = 4000)
+    private String pendingResultData;
+    @Column(nullable = false)
+    private boolean resultReviewRequired;
     @Version
     private long version;
 
@@ -59,7 +84,10 @@ public class ArenaEvent {
     public String getExternalKey() { return externalKey; }
     public void setExternalKey(String externalKey) { this.externalKey = externalKey; }
     public Championship getChampionship() { return championship; }
-    public void setChampionship(Championship championship) { this.championship = championship; }
+    public void setChampionship(Championship championship) {
+        this.championship = championship;
+        this.demoManaged = championship != null && championship.isDemoManaged();
+    }
     public Competitor getHomeCompetitor() { return homeCompetitor; }
     public void setHomeCompetitor(Competitor homeCompetitor) { this.homeCompetitor = homeCompetitor; }
     public Competitor getAwayCompetitor() { return awayCompetitor; }
@@ -82,8 +110,8 @@ public class ArenaEvent {
     public void setStatus(EventStatus status) { this.status = status; }
     public EventFormat getFormat() { return format; }
     public void setFormat(EventFormat format) { this.format = format; }
-    public int getBestOf() { return bestOf; }
-    public void setBestOf(int bestOf) { this.bestOf = bestOf; }
+    public Integer getBestOf() { return bestOf; }
+    public void setBestOf(Integer bestOf) { this.bestOf = bestOf; }
     public Integer getHomeScore() { return homeScore; }
     public void setHomeScore(Integer homeScore) { this.homeScore = homeScore; }
     public Integer getAwayScore() { return awayScore; }
@@ -100,4 +128,29 @@ public class ArenaEvent {
     public void setFeatured(boolean featured) { this.featured = featured; }
     public boolean isDemo() { return demo; }
     public void setDemo(boolean demo) { this.demo = demo; }
+    public String getExternalProvider() { return externalProvider; }
+    public void setExternalProvider(String value) { externalProvider = value; providerOwned = value != null; }
+    public String getExternalId() { return externalId; }
+    public void setExternalId(String value) { externalId = value; }
+    public Instant getLastSyncedAt() { return lastSyncedAt; }
+    public void setLastSyncedAt(Instant value) { lastSyncedAt = value; }
+    public Instant getFinishedAt() { return finishedAt; }
+    public void setFinishedAt(Instant value) { finishedAt = value; }
+    public Instant getResultProcessedAt() { return resultProcessedAt; }
+    public void setResultProcessedAt(Instant value) { resultProcessedAt = value; }
+    public String getWinnerExternalId() { return winnerExternalId; }
+    public void setWinnerExternalId(String value) { winnerExternalId = value; }
+    public boolean isLiveScoreAvailable() { return liveScoreAvailable; }
+    public void setLiveScoreAvailable(boolean value) { liveScoreAvailable = value; }
+    public String getResultFingerprint() { return resultFingerprint; }
+    public void setResultFingerprint(String value) { resultFingerprint = value; }
+    public String getPendingResultData() { return pendingResultData; }
+    public void setPendingResultData(String value) { pendingResultData = value; }
+    public boolean isResultReviewRequired() { return resultReviewRequired; }
+    public void setResultReviewRequired(boolean value) { resultReviewRequired = value; }
+    @PrePersist @PreUpdate
+    private void deriveProviderOwnership() {
+        providerOwned = externalProvider != null;
+        demoManaged = championship != null && championship.isDemoManaged();
+    }
 }

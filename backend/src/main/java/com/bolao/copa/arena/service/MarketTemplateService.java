@@ -20,6 +20,14 @@ public class MarketTemplateService {
         this.events=events; this.markets=markets; this.options=options; this.participants=participants; this.definitions=definitions;
     }
     @Transactional
+    public List<PredictionMarket> generateFromAdministration(Long eventId) {
+        ArenaEvent event = events.findByIdForUpdate(eventId).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        EventDataOwnership.requireUnmanagedDemoEvent(event);
+        return generate(eventId);
+    }
+
+    /** Shared generation used by catalog initialization and provider synchronization. */
+    @Transactional
     public List<PredictionMarket> generate(Long eventId) {
         ArenaEvent event = events.findByIdForUpdate(eventId).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         if (event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED)

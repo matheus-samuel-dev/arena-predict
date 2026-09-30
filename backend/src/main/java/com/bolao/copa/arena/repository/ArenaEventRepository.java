@@ -8,6 +8,22 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
+    Optional<ArenaEvent> findByExternalProviderAndExternalId(String externalProvider, String externalId);
+    long countByExternalProviderAndResultReviewRequiredTrue(String externalProvider);
+    @Query("select e.externalId from ArenaEvent e where e.externalProvider = :provider and e.resultReviewRequired = false and " +
+            "((e.resultProcessedAt is null and e.status = :finished and coalesce(e.finishedAt, e.startsAt) >= :oldest) or " +
+            "(e.status not in :terminal " +
+            "and e.startsAt <= :near and e.startsAt >= :oldest)) order by e.lastSyncedAt asc, e.id asc")
+    List<String> findTrackedExternalIds(@Param("provider") String provider, @Param("near") Instant near,
+                                       @Param("oldest") Instant oldest, @Param("finished") EventStatus finished,
+                                       @Param("terminal") Collection<EventStatus> terminal, Pageable pageable);
+    @Query("select e.externalId from ArenaEvent e where e.externalProvider = :provider " +
+            "and e.resultReviewRequired = false and e.resultProcessedAt is null and e.status = :finished " +
+            "and coalesce(e.finishedAt, e.startsAt) < :oldest order by coalesce(e.finishedAt, e.startsAt), e.id")
+    List<String> findExpiredIncompleteExternalIds(@Param("provider") String provider, @Param("oldest") Instant oldest,
+                                                @Param("finished") EventStatus finished, Pageable pageable);
     @Override @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     List<ArenaEvent> findAll();
     @Override @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
@@ -33,6 +49,9 @@ public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
     List<ArenaEvent> findTop12ByStartsAtAfterAndStatusInOrderByStartsAtAsc(Instant startsAt, Collection<EventStatus> statuses);
     boolean existsByChampionship(Championship championship);
     boolean existsByHomeCompetitorOrAwayCompetitor(Competitor homeCompetitor, Competitor awayCompetitor);
+    @Query("select count(event) > 0 from ArenaEvent event where event.demoManaged = true " +
+            "and (event.homeCompetitor = :competitor or event.awayCompetitor = :competitor)")
+    boolean isControlledDemoCompetitor(@Param("competitor") Competitor competitor);
     long countByStatus(EventStatus status);
     @Query("select count(distinct event) from ArenaEvent event join PredictionMarket market on market.event = event " +
             "where event.status = :eventStatus and market.status <> :settledStatus")

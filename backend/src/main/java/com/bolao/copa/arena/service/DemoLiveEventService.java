@@ -17,7 +17,7 @@ public class DemoLiveEventService {
     public DemoLiveEventService(ArenaEventRepository events, ObjectProvider<SportsDataProvider> providers,
             com.bolao.copa.arena.repository.PredictionMarketRepository markets,MarketAvailabilityService availability) {
         this.markets=markets;this.availability=availability;
-        this.events = events; this.providers = providers.orderedStream().toList();
+        this.events = events; this.providers = providers.orderedStream().filter(SportsDataProvider::demo).toList();
     }
     @Transactional
     public Map<String, Object> refresh() {
@@ -27,7 +27,8 @@ public class DemoLiveEventService {
                 var event = events.findByExternalKeyForUpdate(update.externalKey()).orElse(null);
                 // A provider update must never resurrect a cancelled or finished
                 // demo event. Lifecycle transitions remain explicit admin actions.
-                if (event == null || !event.isDemo() || event.getStatus() != EventStatus.LIVE) continue;
+                if (event == null || !event.isDemo() || event.isDemoManaged() || event.isDemoArchived()
+                        || event.getExternalProvider() != null || event.getStatus() != EventStatus.LIVE) continue;
                 event.setHomeScore(update.homeScore()); event.setAwayScore(update.awayScore());
                 event.setClock(update.clock()); event.setPeriod(update.period()); event.setLiveData(update.structuredData());
                 event.setStatus(EventStatus.LIVE); updated++;

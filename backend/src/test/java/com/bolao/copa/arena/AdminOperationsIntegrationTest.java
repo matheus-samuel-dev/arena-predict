@@ -29,6 +29,7 @@ import java.util.UUID;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class AdminOperationsIntegrationTest {
     @Autowired MockMvc mockMvc;
     @Autowired JwtService jwtService;
@@ -39,8 +40,8 @@ class AdminOperationsIntegrationTest {
 
     @Test
     void administratorReadsEveryOperationalResourceWithSafeShapes() throws Exception {
-        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
-        User player = users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        User admin = com.bolao.copa.support.RegularTestUsers.admin(users);
+        User player = com.bolao.copa.support.RegularTestUsers.participant(users);
         var post = community.create(new PostRequest(
                 "Publicação criada para validar a fila administrativa.", "Validação"), player);
         community.report(post.id(), new ReportRequest("Conteúdo enviado para revisão administrativa."), admin);
@@ -133,7 +134,7 @@ class AdminOperationsIntegrationTest {
 
     @Test
     void participantGets403AndAnonymousGets401() throws Exception {
-        User player = users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        User player = com.bolao.copa.support.RegularTestUsers.participant(users);
 
         mockMvc.perform(get("/api/admin/users").header("Authorization", bearer(player)))
                 .andExpect(status().isForbidden());
@@ -143,7 +144,7 @@ class AdminOperationsIntegrationTest {
 
     @Test
     void participantCannotExecuteMutatingAdministrativeOperations() throws Exception {
-        User player = users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        User player = com.bolao.copa.support.RegularTestUsers.participant(users);
         String authorization = bearer(player);
 
         mockMvc.perform(post("/api/admin/sports")
@@ -165,7 +166,7 @@ class AdminOperationsIntegrationTest {
 
     @Test
     void successfulAdminMutationCreatesAppendOnlyAuditWithCorrelationId() throws Exception {
-        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        User admin = com.bolao.copa.support.RegularTestUsers.admin(users);
         String suffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String sportName = "Modalidade auditada " + suffix;
         String correlationId = "audit-" + suffix.toLowerCase();
@@ -185,13 +186,13 @@ class AdminOperationsIntegrationTest {
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].action").value("SPORT_CREATED"))
-                .andExpect(jsonPath("$.content[0].actor").value("Administrador Demo"))
+                .andExpect(jsonPath("$.content[0].actor").value(admin.getName()))
                 .andExpect(jsonPath("$.content[0].correlationId").value(correlationId));
     }
 
     @Test
     void resultRegistrationIsReplaySafeAndRejectsKeyReuseWithDifferentPayload() throws Exception {
-        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        User admin = com.bolao.copa.support.RegularTestUsers.admin(users);
         var event = events.findByExternalKey("demo-nba-open").orElseThrow();
         event.setStartsAt(Instant.now().minusSeconds(60));
         events.saveAndFlush(event);
@@ -230,7 +231,7 @@ class AdminOperationsIntegrationTest {
 
     @Test
     void validationResponseIncludesEveryFieldErrorForInlineForms() throws Exception {
-        User admin = users.findByEmailIgnoreCase("admin@arenapredict.com").orElseThrow();
+        User admin = com.bolao.copa.support.RegularTestUsers.admin(users);
 
         mockMvc.perform(post("/api/admin/sports")
                         .header("Authorization", bearer(admin))

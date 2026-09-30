@@ -7,6 +7,7 @@ import com.bolao.copa.dto.AuthDtos.DemoAccessRequest;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
 import com.bolao.copa.security.JwtService;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.util.Locale;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -24,12 +25,15 @@ public class DemoAuthService {
     private final JwtService jwtService;
     private final DemoProperties properties;
     private final PlayerProfileRepository playerProfiles;
+    private final DemoAccessPolicy demoAccess;
 
-    public DemoAuthService(UserRepository users, JwtService jwtService, DemoProperties properties, PlayerProfileRepository playerProfiles) {
+    public DemoAuthService(UserRepository users, JwtService jwtService, DemoProperties properties, PlayerProfileRepository playerProfiles,
+                           DemoAccessPolicy demoAccess) {
         this.users = users;
         this.jwtService = jwtService;
         this.properties = properties;
         this.playerProfiles = playerProfiles;
+        this.demoAccess = demoAccess;
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +45,7 @@ public class DemoAuthService {
 
         User user = users.findByEmailIgnoreCase(normalizeEmail(configuredEmail))
                 .orElseThrow(DemoAccessUnavailableException::new);
-        if (user.getRole() == null || user.getRole().canonical() != expectedRole) {
+        if (user.getRole() == null || user.getRole().canonical() != expectedRole || demoAccess.demoProfile(user) != request.profile()) {
             throw new DemoAccessUnavailableException();
         }
 
@@ -51,7 +55,8 @@ public class DemoAuthService {
                 user.getName(),
                 user.getEmail(),
                 user.getRole().canonical(),
-                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null)
+                playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null),
+                demoAccess.demoProfile(user)
         );
     }
 

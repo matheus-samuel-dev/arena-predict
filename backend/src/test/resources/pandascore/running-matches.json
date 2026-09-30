@@ -1,0 +1,21 @@
+[
+  {
+    "id": 900001,
+    "name": "Team Liquid vs Natus Vincere",
+    "scheduled_at": "2026-09-24T21:00:00Z",
+    "begin_at": "2026-09-24T21:04:00Z",
+    "status": "running",
+    "match_type": "best_of",
+    "number_of_games": 3,
+    "winner_id": null,
+    "opponents": [
+      { "type": "Team", "opponent": { "id": 1001, "name": "Team Liquid", "acronym": "TL", "image_url": null } },
+      { "type": "Team", "opponent": { "id": 1002, "name": "Natus Vincere", "acronym": "NAVI", "image_url": null } }
+    ],
+    "results": [ { "team_id": 1002, "score": 1 }, { "team_id": 1001, "score": 0 } ],
+    "tournament": { "id": 5001, "name": "Playoffs", "slug": "iem-cologne-2026-playoffs" },
+    "league": { "id": 3001, "name": "Intel Extreme Masters" },
+    "serie": { "id": 4001, "name": "Cologne", "full_name": "IEM Cologne 2026", "year": 2026 },
+    "videogame": { "id": 3, "name": "Counter-Strike 2", "slug": "csgo" }
+  }
+]

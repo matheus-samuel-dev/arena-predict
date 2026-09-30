@@ -1,12 +1,15 @@
 package com.bolao.copa.config;
 
 import com.bolao.copa.security.JwtAuthenticationFilter;
+import com.bolao.copa.security.DemoAccessPolicy;
 import com.bolao.copa.security.RestAccessDeniedHandler;
 import com.bolao.copa.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,12 +22,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(DemoProperties.class)
 public class SecurityConfig {
+    @Bean
+    DemoAccessPolicy demoAccessPolicy(DemoProperties properties) { return new DemoAccessPolicy(properties); }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             JwtAuthenticationFilter jwtAuthenticationFilter,
                                             RestAuthenticationEntryPoint authenticationEntryPoint,
-                                            RestAccessDeniedHandler accessDeniedHandler) throws Exception {
+                                            RestAccessDeniedHandler accessDeniedHandler,
+                                            DemoAccessPolicy demoAccessPolicy) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> { })
@@ -55,7 +63,9 @@ public class SecurityConfig {
                                 "/pools/**", "/matches/**", "/predictions/**",
                                 "/ranking/**", "/dashboard/**").denyAll()
                         .requestMatchers("/error").permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().access((authentication, context) -> new AuthorizationDecision(
+                                demoAccessPolicy.allowsHttpRequest(authentication.get(), context.getRequest().getMethod(),
+                                        context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length())))))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -12,11 +12,14 @@ public class EventParticipant {
     @Column(nullable = false) private int displayOrder;
     private Integer position;
     @Column(length = 80) private String scoreLabel;
+    @Column(nullable = false) private boolean providerOwned;
 
     public Long getId() { return id; }
-    public ArenaEvent getEvent() { return event; } public void setEvent(ArenaEvent event) { this.event = event; }
+    public ArenaEvent getEvent() { return event; } public void setEvent(ArenaEvent event) { this.event = event; deriveProviderOwnership(); }
     public Competitor getCompetitor() { return competitor; } public void setCompetitor(Competitor competitor) { this.competitor = competitor; }
     public int getDisplayOrder() { return displayOrder; } public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
     public Integer getPosition() { return position; } public void setPosition(Integer position) { this.position = position; }
     public String getScoreLabel() { return scoreLabel; } public void setScoreLabel(String scoreLabel) { this.scoreLabel = scoreLabel; }
+    @PrePersist @PreUpdate
+    private void deriveProviderOwnership() { providerOwned = event != null && event.getExternalProvider() != null; }
 }

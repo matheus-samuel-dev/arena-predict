@@ -4,6 +4,7 @@ import { dateTime, percentage, points, relativeTime } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useApiResource } from "../hooks/useApiResource";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import { achievementsApi, asList, catalogApi, challengesApi, predictionsApi, rankingsApi } from "../services/api";
 import type { Achievement, Challenge, RankingRow } from "../types";
 
@@ -12,13 +13,14 @@ export function RankingsPage() {
   const [scope, setScope] = useState("GLOBAL");
   const [sport, setSport] = useState("");
   const [participantQuery, setParticipantQuery] = useState("");
-  const { data, loading, error, reload } = useApiResource(async () => {
+  const { data, loading, error, reload, refresh } = useApiResource(async () => {
     const [rankingResponse, sportsResponse] = await Promise.all([
       rankingsApi.list({ period, scope, sport: sport || undefined }),
       catalogApi.sports(),
     ]);
     return { rows: asList(rankingResponse), sports: asList(sportsResponse) };
   }, [period, scope, sport]);
+  useVisibleRefresh(refresh);
   if (loading) return <PageSkeleton cards={3} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
   const rows = data?.rows || [];

@@ -1,11 +1,14 @@
 package com.bolao.copa.arena.service;
 
 import static com.bolao.copa.arena.api.ArenaDtos.*;
+import static com.bolao.copa.arena.service.EventDataOwnership.requireManualEvent;
 
 import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
+import com.bolao.copa.config.DemoParticipantCatalog;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
@@ -30,6 +33,7 @@ public class ArenaPredictionService {
     private final MarketSettlementEngine settlement;
     private final EventParticipantRepository participants;
     private final DemoProbabilityEngine pricing;
+    private final DemoAccessPolicy demoAccess;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
                                   PredictionMarketRepository markets, MarketOptionRepository options,
@@ -37,7 +41,9 @@ public class ArenaPredictionService {
                                   PointWalletService wallets, ArenaNotificationService notifications,
                                   ProgressionService progression, AdminAuditService audit,
                                   MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
-                                  MarketSettlementEngine settlement, EventParticipantRepository participants, DemoProbabilityEngine pricing) {
+                                  MarketSettlementEngine settlement, EventParticipantRepository participants, DemoProbabilityEngine pricing,
+                                  DemoAccessPolicy demoAccess) {
+        this.demoAccess = demoAccess;
         this.pricing=pricing;
         this.predictions = predictions;
         this.events = events;
@@ -54,6 +60,26 @@ public class ArenaPredictionService {
 
     @Transactional
     public PredictionResponse place(PlacePredictionRequest request, String headerKey, User user) {
+        return placeInternal(request, headerKey, user, false);
+    }
+
+    /** Internal fixtures use the same validation, debit and progression path. Never exposed by a controller. */
+    @Transactional
+    public PredictionResponse placeDemoSeed(PlacePredictionRequest request, String headerKey, User user) {
+        return placeInternal(request, headerKey, user, true);
+    }
+
+    private PredictionResponse placeInternal(PlacePredictionRequest request, String headerKey, User user, boolean seed) {
+        ArenaEvent event = events.findByIdForUpdate(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        if (seed) {
+            if (!event.isDemo() || event.getExternalProvider() != null || event.isDemoArchived()
+                    || (!DemoParticipantCatalog.contains(user.getEmail()) && !demoAccess.isDemoParticipant(user)))
+                throw new org.springframework.security.access.AccessDeniedException("Fixture fora do escopo demonstrativo.");
+        } else {
+            demoAccess.requirePredictionAccess(user, event);
+            if (event.isDemoManaged() && request.poolId() != null)
+                throw new ArenaProblem.RuleViolation("A demonstração utiliza somente sua competição dedicada.");
+        }
         String clientKey = clientIdempotencyKey(headerKey, request.idempotencyKey());
         String key = "prediction:user:" + user.getId() + ":" + clientKey;
         ArenaPrediction existing = predictions.findByIdempotencyKey(key).orElse(null);
@@ -61,7 +87,6 @@ public class ArenaPredictionService {
             return idempotentResponse(existing, request, user);
         }
 
-        ArenaEvent event = events.findByIdForUpdate(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         PredictionMarket market = markets.findByIdForUpdate(request.marketId()).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
         // A concurrent request for the same market releases this lock only after
         // committing its prediction, so re-read the idempotency record here.
@@ -116,7 +141,8 @@ public class ArenaPredictionService {
     public PredictionResponse cancel(Long id, User user) {
         var located = predictions.commandContext(id, user)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Palpite não encontrado."));
-        events.findByIdForUpdate(located.getEventId()).orElseThrow();
+        ArenaEvent event = events.findByIdForUpdate(located.getEventId()).orElseThrow();
+        demoAccess.requirePredictionAccess(user, event);
         markets.findByIdForUpdate(located.getMarketId()).orElseThrow();
         // Serializing cancellation on the prediction row makes retries truly
         // idempotent: exactly one request changes the state and credits the
@@ -139,6 +165,8 @@ public class ArenaPredictionService {
     public SettlementResponse settleMarket(Long marketId, String correctOptionKey) {
         lockMarketEvent(marketId);
         PredictionMarket market = markets.findByIdForUpdate(marketId).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
+        EventDataOwnership.requireUnmanagedDemoEvent(market.getEvent());
+        requireManualEvent(market.getEvent());
         if (market.getStatus() == MarketStatus.SETTLED) {
             return new SettlementResponse(marketId, market.getResultOptionKey(), 0, 0, 0, true);
         }
@@ -210,6 +238,16 @@ public class ArenaPredictionService {
     }
 
     @Transactional
+    public int cancelEventManually(Long eventId) {
+        ArenaEvent event = events.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
+        EventDataOwnership.requireUnmanagedDemoEvent(event);
+        requireManualEvent(event);
+        return cancelEvent(eventId);
+    }
+
+    /** Also used by the provider synchronizer after an official cancellation. */
+    @Transactional
     public int cancelEvent(Long eventId) {
         ArenaEvent event = events.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
@@ -244,6 +282,8 @@ public class ArenaPredictionService {
         lockMarketEvent(marketId);
         PredictionMarket market = markets.findByIdForUpdate(marketId)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
+        EventDataOwnership.requireUnmanagedDemoEvent(market.getEvent());
+        requireManualEvent(market.getEvent());
         if (market.getStatus() == MarketStatus.CANCELLED) return 0;
         if (market.getStatus() == MarketStatus.SETTLED)
             throw new ArenaProblem.Conflict("Mercados liquidados não podem ser cancelados.");

@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-09-27T22:42:53.1205818Z",
+  "source": "isolated Docker QA; final backend/frontend images; no real provider credential",
+  "adminDemoLogin": true,
+  "participantDemoLogin": true,
+  "sportsSync": {
+    "provider": "PandaScore",
+    "enabled": true,
+    "configured": false,
+    "status": "UNCONFIGURED",
+    "lastAttemptAt": null,
+    "lastSuccessAt": null,
+    "nextAllowedRequestAt": null,
+    "requestsRemaining": null,
+    "message": "PANDASCORE_API_TOKEN não configurado. Os dados salvos e o modo Demo continuam disponíveis.",
+    "reviewRequiredCount": 0
+  },
+  "participantAdminAccessStatus": 403,
+  "eventsAvailable": 27,
+  "demoEvents": 27,
+  "realEvents": 0,
+  "nginxProxy": true,
+  "containersHealthy": true,
+  "flywayAppliedVersions": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ]
+}

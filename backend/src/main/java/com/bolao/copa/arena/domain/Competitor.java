@@ -13,8 +13,16 @@ public class Competitor {
     private String name;
     @Column(nullable = false, length = 30)
     private String code;
-    @Column(length = 300)
+    @Column(length = 2048)
     private String imageUrl;
+    @Column(length = 40)
+    private String externalProvider;
+    @Column(length = 100)
+    private String externalId;
+    @Column(nullable = false)
+    private boolean providerOwned;
+    @Column(length = 40)
+    private String acronym;
     @Column(length = 80)
     private String country;
     @Column(nullable = false)
@@ -33,4 +41,12 @@ public class Competitor {
     public void setCountry(String country) { this.country = country; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public String getExternalProvider() { return externalProvider; }
+    public void setExternalProvider(String value) { externalProvider = value; providerOwned = value != null; }
+    public String getExternalId() { return externalId; }
+    public void setExternalId(String value) { externalId = value; }
+    public String getAcronym() { return acronym; }
+    public void setAcronym(String value) { acronym = value; }
+    @PrePersist @PreUpdate
+    private void deriveProviderOwnership() { providerOwned = externalProvider != null; }
 }

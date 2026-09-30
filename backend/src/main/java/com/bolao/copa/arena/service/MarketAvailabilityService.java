@@ -16,9 +16,12 @@ public class MarketAvailabilityService {
     public MarketAvailability evaluate(PredictionMarket market) { return evaluate(market, Instant.now()); }
     public MarketAvailability evaluate(PredictionMarket market, Instant now) {
         ArenaEvent event = market.getEvent();
+        if (event.isDemoArchived()) return no("DEMO_ARCHIVED", "Rodada Demo arquivada", "Abra a demonstração para participar da rodada atual.");
         if (market.getStatus() == MarketStatus.SETTLED) return no("SETTLED", "Mercado liquidado", "O resultado já foi processado.");
         if (event.getStatus() == EventStatus.CANCELLED || market.getStatus() == MarketStatus.CANCELLED)
             return no("CANCELLED", "Cancelado · pontos devolvidos", "Palpites ativos são reembolsados no cancelamento.");
+        if (event.isResultReviewRequired())
+            return no("RESULT_REVIEW", "Dados em revisão", "O provedor informou uma alteração que precisa de conferência antes de novos palpites.");
         if (event.getStatus() == EventStatus.FINISHED) return no("EVENT_FINISHED", "Evento encerrado", "Aguardando processamento dos resultados.");
         if (event.getStatus() == EventStatus.POSTPONED) return no("POSTPONED", "Evento adiado", "Aguarde a atualização do calendário.");
         if (market.getStatus() == MarketStatus.CLOSED) return no("CLOSED", "Palpites encerrados", market.getStatusReason()==null?"Este mercado foi encerrado definitivamente para novos palpites.":market.getStatusReason());
@@ -41,7 +44,9 @@ public class MarketAvailabilityService {
         // A scheduled event whose clock expired requires an explicit live update.
         if (started && event.getStatus() != EventStatus.LIVE)
             return no("WAITING_LIVE", "Aguardando atualização ao vivo", "O início previsto passou; aguarde a confirmação do evento ao vivo.");
-        return new MarketAvailability(true, "OPEN", started ? "Aberto ao vivo" : "Aberto para palpites", "Multiplicadores demonstrativos; pontos exclusivamente virtuais.");
+        return new MarketAvailability(true, "OPEN", started ? "Aberto ao vivo" : "Aberto para palpites",
+                event.getExternalProvider() == null ? "Multiplicadores demonstrativos; pontos exclusivamente virtuais."
+                        : "Multiplicadores de pontos virtuais definidos pelo Arena Predict; sem odds externas.");
     }
     private boolean outcomeAlreadyKnown(PredictionMarket market) {
         ArenaEvent event = market.getEvent();
@@ -58,6 +63,7 @@ public class MarketAvailabilityService {
     private boolean seriesOutcomeKnown(ArenaEvent event, MarketDefinitionCatalog.Definition definition) {
         String sport=event.getChampionship().getSport().getCode();
         if (!List.of("TENNIS","VOLLEYBALL","CS2","VALORANT","LEAGUE_OF_LEGENDS","DOTA2").contains(sport)) return false;
+        if (event.getBestOf() == null && !sport.equals("VOLLEYBALL")) return false;
         int target = sport.equals("VOLLEYBALL")?3:event.getBestOf() / 2 + 1;
         int home = event.getHomeScore(), away = event.getAwayScore();
         if (home >= target || away >= target) return true;

@@ -30,7 +30,7 @@ public class ArenaAdminController {
     @GetMapping("/events/{id}/market-templates")
     public List<MarketDefinitionCatalog.Definition> templates(@PathVariable Long id) { return templates.templates(id); }
     @PostMapping("/events/{id}/markets/generate")
-    public EventResponse generate(@PathVariable Long id) { templates.generate(id); return catalog.eventResponse(id); }
+    public EventResponse generate(@PathVariable Long id) { templates.generateFromAdministration(id); return catalog.eventResponse(id); }
     @GetMapping("/sports") public List<SportResponse> sports() { return catalog.listSports(true); }
     @PostMapping("/sports") @ResponseStatus(HttpStatus.CREATED) public SportResponse createSport(@Valid @RequestBody SportRequest request) { return catalog.saveSport(null, request); }
     @PutMapping("/sports/{id}") public SportResponse updateSport(@PathVariable Long id, @Valid @RequestBody SportRequest request) { return catalog.saveSport(id, request); }
@@ -44,15 +44,15 @@ public class ArenaAdminController {
     @PutMapping("/events/{id}/result")
     public EventResponse result(@PathVariable Long id, @Valid @RequestBody EventResultRequest request,
                                 @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        return eventResults.record(id, request, idempotencyKey);
+        return eventResults.recordFromAdministration(id, request, idempotencyKey);
     }
     @PutMapping("/events/{id}/classification")
     public EventResponse classification(@PathVariable Long id,
                                         @Valid @RequestBody EventClassificationRequest request,
                                         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        return eventResults.recordClassification(id, request, idempotencyKey);
+        return eventResults.recordClassificationFromAdministration(id, request, idempotencyKey);
     }
-    @PostMapping("/events/{id}/cancel") public Map<String, Integer> cancelEvent(@PathVariable Long id) { return Map.of("refundedPredictions", predictions.cancelEvent(id)); }
+    @PostMapping("/events/{id}/cancel") public Map<String, Integer> cancelEvent(@PathVariable Long id) { return Map.of("refundedPredictions", predictions.cancelEventManually(id)); }
     @PostMapping("/markets") @ResponseStatus(HttpStatus.CREATED) public MarketResponse createMarket(@Valid @RequestBody MarketRequest request) { return catalog.saveMarket(null, request); }
     @PutMapping("/markets/{id}") public MarketResponse updateMarket(@PathVariable Long id, @Valid @RequestBody MarketRequest request) { return catalog.saveMarket(id, request); }
     @PatchMapping("/markets/{id}/status") public MarketResponse marketStatus(@PathVariable Long id, @Valid @RequestBody MarketStatusRequest request) { return catalog.changeMarketStatus(id, request.status()); }

@@ -155,6 +155,7 @@ describe("página Comunidade", () => {
     const liked = await screen.findByRole("button", { name: /Remover curtida da publicação de Ana Arena, 3 curtidas/i });
     expect(liked).toHaveAttribute("aria-pressed", "true");
     expect(liked).toBeEnabled();
+    expect(liked.querySelector("svg")).toHaveAttribute("fill", "currentColor");
     expect(mocks.notify).toHaveBeenCalledWith("Reação registrada.", "success");
 
     await user.click(liked);
@@ -162,6 +163,7 @@ describe("página Comunidade", () => {
     expect(mocks.unlike).toHaveBeenCalledTimes(1);
     const unliked = await screen.findByRole("button", { name: /Curtir publicação de Ana Arena, 2 curtidas/i });
     expect(unliked).toHaveAttribute("aria-pressed", "false");
+    expect(unliked.querySelector("svg")).toHaveAttribute("fill", "none");
     expect(mocks.notify).toHaveBeenCalledWith("Reação removida.", "success");
   });
 
