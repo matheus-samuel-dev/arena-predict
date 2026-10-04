@@ -55,8 +55,9 @@ public class ArenaUserController {
     public List<RankingRow> ranking(@RequestParam(defaultValue = "ALL") String period,
                                     @RequestParam(defaultValue = "GLOBAL") String scope,
                                     @RequestParam(required = false) String sport,
+                                    @RequestParam(defaultValue = "ALL") String source,
                                     @AuthenticationPrincipal UserDetails details) {
-        return pools.ranking(user(details), rankingPeriod(period), rankingScope(scope), sport);
+        return pools.ranking(user(details), rankingPeriod(period), rankingScope(scope), sport, source);
     }
     @GetMapping("/notifications") public List<NotificationResponse> notifications(@AuthenticationPrincipal UserDetails details) { return notifications.list(user(details)); }
     @PatchMapping("/notifications/{id}/read") public NotificationResponse read(@PathVariable Long id, @AuthenticationPrincipal UserDetails details) { return notifications.read(id, user(details)); }

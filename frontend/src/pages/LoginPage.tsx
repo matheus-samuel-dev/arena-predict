@@ -2,7 +2,6 @@ import {
   Activity,
   ArrowRight,
   BarChart3,
-  Check,
   Eye,
   EyeOff,
   Gamepad2,
@@ -22,7 +21,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 
 export function postLoginDestination(role: string, requestedPath: string, demoProfile?: string | null) {
-  if (demoProfile === "ADMIN" || demoProfile === "PARTICIPANT") return "/demo";
+  if (demoProfile === "ADMIN") return "/admin";
   if (role === "ADMIN") return "/admin";
   if (!requestedPath.startsWith("/") || requestedPath.startsWith("/admin") || requestedPath === "/login") return "/app";
   return requestedPath;
@@ -114,9 +113,9 @@ export function LoginPage() {
     setFormError(null);
     setErrorField(null);
     try {
-      await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
+      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
       notify(`Acesso demonstrativo como ${profile === "admin" ? "administrador" : "participante"} iniciado.`, "success");
-      navigate("/demo", { replace: true });
+      navigate(postLoginDestination(authenticated.role, "/app", authenticated.demoProfile), { replace: true });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Não foi possível iniciar o acesso demonstrativo.");
     }
@@ -186,10 +185,11 @@ export function LoginPage() {
             <div className="demo-access">
               <div className="divider"><span>Acesso rápido de demonstração</span></div>
               <div className="demo-access__buttons">
-                <Button variant="secondary" onClick={() => quickLogin("participant")} disabled={authenticating} aria-label="Entrar na demonstração como participante"><Users size={17} /> Participante</Button>
-                <Button variant="secondary" onClick={() => quickLogin("admin")} disabled={authenticating} aria-label="Entrar na demonstração como administrador"><ShieldCheck size={17} /> Administrador</Button>
+                <Button variant="secondary" onClick={() => quickLogin("participant")} disabled={authenticating} aria-label="Entrar na demonstração como participante"><Users size={17} /> Participante Demo</Button>
+                <Button variant="secondary" onClick={() => quickLogin("admin")} disabled={authenticating} aria-label="Entrar na demonstração como administrador"><ShieldCheck size={17} /> Administrador Demo</Button>
               </div>
-              <p><Check size={14} /> Acesso controlado pelo ambiente demonstrativo, sem exibir credenciais</p>
+              <p>Participante: explore eventos, faça palpites e acompanhe seu desempenho.</p>
+              <p>Administrador: explore operação, catálogo e mercados e finalize uma partida demonstrativa.</p>
             </div>
           )}
 

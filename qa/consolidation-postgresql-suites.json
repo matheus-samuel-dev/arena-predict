@@ -1,0 +1,37 @@
+[
+  {
+    "name": "com.bolao.copa.arena.DemoScenarioIntegrationTest",
+    "tests": 10,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "name": "com.bolao.copa.arena.ExternalMatchSettlementIntegrationTest",
+    "tests": 10,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "name": "com.bolao.copa.arena.SportsSyncIntegrationTest",
+    "tests": 9,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "name": "com.bolao.copa.arena.SportsSyncReviewIntegrationTest",
+    "tests": 4,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "name": "com.bolao.copa.config.ProductConsolidationIntegrationTest",
+    "tests": 32,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  }
+]

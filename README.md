@@ -1,6 +1,6 @@
-# ArenaPredict
+# Arena Predict
 
-Plataforma full stack de previsões esportivas e de eSports com pontos exclusivamente virtuais, gamificação e uma superfície administrativa abrangente.
+Plataforma full-stack de previsões esportivas com pontos virtuais, dados esportivos reais, competições, comunidade, gamificação e backoffice administrativo.
 
 > **Transparência:** o ArenaPredict não processa dinheiro, depósitos, saques ou prêmios financeiros. Pontos, multiplicadores e recompensas são recursos fictícios de entretenimento e demonstração de portfólio, sem valor monetário.
 
@@ -104,6 +104,13 @@ O namespace legado `com.bolao.copa` permanece como fronteira técnica de migraç
 
 As permissões são aplicadas no backend. Esconder uma rota no frontend não substitui a autorização da API.
 
+O produto conserva páginas próprias para cada domínio. Visão geral resume a atividade;
+Eventos, Ao vivo, Palpites, Bolões, Ligas, Rankings, Estatísticas, Desafios, Conquistas,
+Comunidade e Minha conta continuam exploráveis individualmente. O backoffice agrupa
+Operação, Catálogo, Engajamento, Gestão e Governança em seções recolhíveis, com drawer no mobile.
+Bolão é um grupo social criado pelo participante; liga é uma temporada pública organizada
+pela plataforma, com período obrigatório e classificação automática dos palpites elegíveis.
+
 ## Regras principais
 
 ### Palpites e pontos
@@ -126,7 +133,7 @@ XP, nível, sequência, precisão, desafios e conquistas são calculados a parti
 
 ## Modo demonstração
 
-O acesso rápido reutiliza duas contas persistidas e o mesmo JWT do login convencional, sem enviar senhas ao navegador. A jornada guiada fica em `/demo`, com uma **Competição de Demonstração** exclusiva:
+O acesso rápido reutiliza duas contas persistidas e o mesmo JWT do login convencional, sem enviar senhas ao navegador. Participante Demo entra na Visão geral; Administrador Demo entra no backoffice completo em modo de consulta. A jornada guiada fica em `/demo`, com uma **Competição de Demonstração** exclusiva, acessível pelo menu da conta, pelo dashboard e pela área de resultados:
 
 1. Entre como **Participante Demo** e escolha um placar na partida disponível.
 2. Revise os pontos virtuais e confirme o palpite; ele permanece salvo após atualizar a página.
@@ -161,7 +168,19 @@ O placar ao vivo não é garantido pelo plano de calendário. A opção de live 
 
 Veja [configuração, arquitetura, limitações, testes e atualização na EC2](docs/sports-integration.md). Correções de resultados já processados ficam em revisão auditável, sem duplicar créditos.
 
-Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique segredo JWT ou senha de banco padrão. As identidades públicas Demo têm permissões restritas no backend e não acessam a administração operacional.
+Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique segredo JWT ou senha de banco padrão. Administrador Demo consulta os módulos administrativos por uma lista explícita de endpoints; e-mails de usuários e conteúdo privado de notificações ficam protegidos. Comandos genéricos de administração continuam bloqueados para Demo. Somente os comandos do sandbox podem iniciar, simular e resetar sua rodada.
+
+Participante Demo utiliza perfil, preferências, notificações, bolões demonstrativos e
+comunidade Demo persistidos. Palpites em eventos externos ou reais continuam bloqueados
+para essa identidade; contas pessoais conservam o fluxo normal. A comunidade identifica
+posts Demo no banco e recusa IDs de posts reais em curtidas, comentários e denúncias Demo.
+Alterar senha da conta compartilhada é bloqueado. Nenhum banner global substitui a identidade
+esportiva: a identificação é contextual na conta, no evento, na competição e no post.
+Rankings permitem selecionar Real, Demonstração ou ambas as origens; posições sempre vêm
+de palpites liquidados persistidos.
+
+Veja a [auditoria histórica e classificação dos módulos](docs/consolidation-audit-2026-10-04.md)
+e o [relatório da consolidação](docs/consolidation-report-2026-10-04.md).
 
 ## Execução com Docker
 

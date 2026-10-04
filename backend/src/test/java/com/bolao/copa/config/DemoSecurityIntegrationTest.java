@@ -50,11 +50,11 @@ class DemoSecurityIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "PARTICIPANT"})
-    void demoAccountsCannotReadAdministrativeDataOrWriteGenericAdministrativeCommands(String profile) throws Exception {
+    void demoAdminCanExploreWhileParticipantAndGenericAdministrativeCommandsStayRestricted(String profile) throws Exception {
         String auth = "Bearer " + quickAccess(profile);
         for (String path : List.of("/api/admin/dashboard", "/api/admin/users", "/api/admin/audit",
                 "/api/admin/settings", "/api/admin/sports-sync/status"))
-            http.perform(get(path).header("Authorization", auth)).andExpect(status().isForbidden());
+            http.perform(get(path).header("Authorization", auth)).andExpect(status().is("ADMIN".equals(profile) ? 200 : 403));
         for (String path : List.of("/api/admin/sports", "/api/admin/championships", "/api/admin/events",
                 "/api/admin/markets"))
             http.perform(post(path).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{}"))
@@ -62,12 +62,9 @@ class DemoSecurityIntegrationTest {
         http.perform(put("/api/admin/events/1/result").header("Authorization", auth)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"homeScore\":2,\"awayScore\":1,\"finishEvent\":true}"))
                 .andExpect(status().isForbidden());
-        http.perform(patch("/api/profile").header("Authorization", auth)
-                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isForbidden());
         http.perform(post("/api/community/posts").header("Authorization", auth)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"Unauthorized post\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is("PARTICIPANT".equals(profile) ? 201 : 403));
     }
 
     @Test

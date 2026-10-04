@@ -18,12 +18,16 @@ describe("filtros de palpites", () => {
     (status) => expect(predictionMatchesFilter(status, "WON")).toBe(true),
   );
 
-  it.each(["LOST", "PERDEDOR", "REFUNDED", "REEMBOLSADO"])(
+  it.each(["LOST", "PERDEDOR"])(
     "agrupa %s entre os palpites encerrados sem vitória",
     (status) => expect(predictionMatchesFilter(status, "LOST")).toBe(true),
   );
 
   it("mantém cancelados separados e aceita o filtro geral", () => {
+    expect(predictionMatchesFilter("REFUNDED", "REFUNDED")).toBe(true);
+    expect(predictionMatchesFilter("REFUNDED", "LOST")).toBe(false);
+    expect(predictionMatchesFilter("ACTIVE", "AWAITING", "LIVE")).toBe(true);
+    expect(predictionMatchesFilter("ACTIVE", "AWAITING", "SCHEDULED")).toBe(false);
     expect(predictionMatchesFilter("CANCELADO", "CANCELLED")).toBe(true);
     expect(predictionMatchesFilter("ACTIVE", "CANCELLED")).toBe(false);
     expect(predictionMatchesFilter(undefined, "ACTIVE")).toBe(false);

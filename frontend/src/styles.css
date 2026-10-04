@@ -7207,3 +7207,5 @@ select { min-width: 0; max-width: 100%; }
     min-height: var(--control-lg);
   }
 }
+/* Catalog provenance stays contextual and wraps on narrow administrative rows. */
+.admin-origin { display: flex; flex-wrap: wrap; gap: .25rem .6rem; margin-top: .35rem; color: var(--muted); font-size: .72rem; overflow-wrap: anywhere; }

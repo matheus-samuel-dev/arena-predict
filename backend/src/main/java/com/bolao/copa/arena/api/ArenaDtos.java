@@ -113,7 +113,8 @@ public final class ArenaDtos {
     public record PredictionResponse(Long id, Long eventId, String eventTitle, Long marketId, String marketName,
                                      Long optionId, String optionLabel, int stakePoints, BigDecimal multiplier,
                                      int potentialPoints, int rewardedPoints, PredictionStatus status, Long poolId,
-                                     Instant placedAt, Instant resolvedAt, boolean canCancel) { }
+                                     Instant placedAt, Instant resolvedAt, boolean canCancel,
+                                     String eventStatus, String sportCode, String sportName, boolean demo) { }
     public record WalletResponse(long balance, long lifetimeEarned, long lifetimeUsed, Instant updatedAt,
                                  String virtualPointsNotice) { }
     public record PointTransactionResponse(Long id, PointTransactionType type, long amount, long balanceAfter,
@@ -139,7 +140,7 @@ public final class ArenaDtos {
                                boolean publicPool, int maxParticipants, int participantCount,
                                int virtualPrizePoints, String rules, PoolStatus status,
                                Instant startsAt, Instant endsAt, boolean joined, boolean owner,
-                               PoolType poolType, boolean recurring) { }
+                               PoolType poolType, boolean recurring, boolean demo) { }
     public record RankingRow(int position, Long userId, String playerName, String avatarUrl,
                              long points, long correctPredictions,
                              long totalPredictions, double accuracy, long streak, boolean currentUser) { }

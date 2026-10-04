@@ -179,18 +179,30 @@ describe("jornada Demo integrada", () => {
     expect(choose).not.toHaveBeenCalled();
   });
 
+  it("participante Demo pode registrar palpite pelo detalhe normal do evento controlado", async () => {
+    mocks.create.mockResolvedValue({ id: 99, eventId: 77, optionLabel: "FURIA 2 × 1 NAVI", stakePoints: 50, potentialPoints: 125, status: "ACTIVE" });
+    render(<MemoryRouter><PredictionComposer draft={{ event, market: event.markets![0], option: event.markets![0].options[0] }} onClose={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Confirmar palpite" })).toBeEnabled();
+    expect(screen.queryByText(/Vincular a um bolão/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar palpite" }));
+    expect(await screen.findByText("Sua leitura está registrada")).toBeVisible();
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ eventId: 77, expectedMultiplier: 2.5 }));
+    expect(mocks.listPools).not.toHaveBeenCalled();
+  });
+
   it("conta Demo não recebe botão de palpite em outros eventos nem consegue enviar modal direto", () => {
-    render(<MemoryRouter><EventCard event={event} onPredict={vi.fn()} /><MarketList event={event} markets={event.markets!} onPredict={vi.fn()} /><PredictionComposer draft={{ event, market: event.markets![0], option: event.markets![0].options[0] }} onClose={vi.fn()} /></MemoryRouter>);
+    const realEvent = { ...event, demo: false, demoManaged: false, externalProvider: "PANDASCORE", externalId: "99" };
+    render(<MemoryRouter><EventCard event={realEvent} onPredict={vi.fn()} /><MarketList event={realEvent} markets={realEvent.markets!} onPredict={vi.fn()} /><PredictionComposer draft={{ event: realEvent, market: realEvent.markets![0], option: realEvent.markets![0].options[0] }} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByRole("dialog", { name: "Palpites da conta Demo" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Confirmar palpite" })).not.toBeInTheDocument();
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
-  it("redireciona login e rotas administrativas de contas Demo para jornada", async () => {
-    expect(postLoginDestination("ADMIN", "/admin/results", "ADMIN")).toBe("/demo");
-    expect(postLoginDestination("PARTICIPANTE", "/events", "PARTICIPANT")).toBe("/demo");
+  it("abre o produto completo após login Demo e permite consulta administrativa", async () => {
+    expect(postLoginDestination("ADMIN", "/admin/results", "ADMIN")).toBe("/admin");
+    expect(postLoginDestination("PARTICIPANTE", "/events", "PARTICIPANT")).toBe("/events");
     state.profile = "ADMIN";
     render(<MemoryRouter initialEntries={["/admin/results"]}><Routes><Route element={<AdminRoute />}><Route path="/admin/results" element={<div>Resultados oficiais</div>} /></Route><Route path="/demo" element={<div>Jornada protegida</div>} /></Routes></MemoryRouter>);
-    expect(await screen.findByText("Jornada protegida")).toBeVisible(); expect(screen.queryByText("Resultados oficiais")).not.toBeInTheDocument();
+    expect(await screen.findByText("Resultados oficiais")).toBeVisible(); expect(screen.queryByText("Jornada protegida")).not.toBeInTheDocument();
   });
 });

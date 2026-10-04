@@ -9,6 +9,7 @@ vi.mock("../services/api", async (original) => {
   return { ...actual, adminApi: { ...actual.adminApi, list: mocks.list } };
 });
 vi.mock("../contexts/ToastContext", () => ({ useToast: () => ({ notify: mocks.notify }) }));
+vi.mock("../contexts/AuthContext", () => ({ useAuth: () => ({ user: { role: "ADMIN" } }) }));
 const controlled = { id: 77, name: "Rodada protegida", title: "Rodada protegida", demoManaged: true, demo: true, status: "LIVE", startsAt: "2026-09-29T12:00:00Z" };
 function show(resource: string) {
   render(<MemoryRouter initialEntries={[`/admin/${resource}`]}><Routes><Route path="/admin/:resource" element={<AdminResourcePage />} /></Routes></MemoryRouter>);

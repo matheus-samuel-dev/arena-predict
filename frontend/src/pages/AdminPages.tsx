@@ -37,6 +37,7 @@ import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, Status
 import { TeamLogo } from "../components/TeamLogo";
 import { SportsSyncSummary } from "../components/SportsSyncSummary";
 import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { adminApi, ApiError, asList, createIdempotencyKey } from "../services/api";
 import type { MarketTemplate, PageResponse, ResultField } from "../types";
@@ -346,9 +347,12 @@ export function AdminDashboardPage() {
 }
 
 export function AdminResourcePage() {
+  const { user } = useAuth();
+  const readOnlyDemo = user?.demoProfile === "ADMIN";
   const { resource: routeResource = "events" } = useParams();
+  const validResource = Object.prototype.hasOwnProperty.call(resourceConfig, routeResource);
   const resource = Object.prototype.hasOwnProperty.call(resourceConfig, routeResource) ? routeResource : "events";
-  const config = resourceConfig[resource];
+  const config = { ...resourceConfig[resource], creatable: !readOnlyDemo && resourceConfig[resource].creatable, editable: !readOnlyDemo && resourceConfig[resource].editable };
   const [search, setSearch] = useState("");
   const [serverSearch, setServerSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -360,6 +364,7 @@ export function AdminResourcePage() {
   const [generatingMarkets, setGeneratingMarkets] = useState(false);
   const { data, loading, error, reload } = useApiResource<AdminCollection>(
     async () => {
+      if (!validResource) return { rows: [], pagination: null, lookups: {} };
       const [response, lookups] = await Promise.all([
         adminApi.list<AdminRecord>(resource, { page, size: PAGE_SIZE, search: serverSearch || undefined }),
         loadLookups(resource),
@@ -402,6 +407,7 @@ export function AdminResourcePage() {
     .filter(Boolean))), [data?.rows]);
   const hasFilters = Boolean(search || statusFilter);
 
+  if (!validResource) return <EmptyState icon={Search} title="Área administrativa não encontrada" description="Escolha uma área disponível no menu." action={<Link to="/admin">Voltar ao painel</Link>} />;
   if (loading) return <PageSkeleton cards={4} />;
   if (error) {
     return (
@@ -420,6 +426,7 @@ export function AdminResourcePage() {
         description={config.description}
         actions={config.creatable ? <div className="admin-market-actions">{resource === "markets" && <Button variant="secondary" onClick={() => setGeneratingMarkets(true)}><Layers3 size={17} /> Abrir catálogo</Button>}<Button onClick={() => setEditing("new")}><Plus size={17} /> Criar {config.singular}</Button></div> : undefined}
       />
+      {readOnlyDemo && <p className="virtual-footer-note"><ShieldCheck size={15} /><span>Consulta administrativa · ações de demonstração disponíveis em <Link to="/demo">Simular resultado e Reset Demo</Link>.</span></p>}
       <section className="surface admin-list-panel">
         <div className="admin-list-toolbar">
           <label>
@@ -451,7 +458,7 @@ export function AdminResourcePage() {
                   <span role="cell" data-label={adminHeaders(resource)[cellIndex]} key={cellIndex}>{cell}</span>
                 ))}
                 <span role="cell" data-label="Ações" className="admin-row-actions">
-                  {row.demoManaged === true ? <><small>Somente leitura · Demo guiada</small><Link className="admin-result-link" to="/demo">Ir para a demonstração</Link></> : <>
+                  {row.demoManaged === true ? <><small>Somente leitura · Demo guiada</small><Link className="admin-result-link" to="/demo">Ir para a demonstração</Link></> : readOnlyDemo ? <small>Somente leitura</small> : row.externalProvider ? <><small>Controlado pelo provedor</small>{resource === "events" || resource === "results" ? <Link to={`/events/${row.id}`}>Ver evento</Link> : null}</> : <>
                   {resource === "results" && resultRegistrationAvailability(row).allowed && <Button size="sm" onClick={() => setScoring(row)}><ClipboardCheck size={15} /> {resultActionLabel(row)}</Button>}
                   {resource === "results" && !resultRegistrationAvailability(row).allowed && <small className="availability-note" tabIndex={0} title={resultRegistrationAvailability(row).reason} aria-label={`${resultRegistrationAvailability(row).label}. ${resultRegistrationAvailability(row).reason}`}>{resultRegistrationAvailability(row).label}</small>}
                   {resource === "markets" && Boolean(row.templateCode) && !["SETTLED", "CANCELLED"].includes(String(row.status)) && <Link className="admin-result-link" to="/admin/results">Registrar resultado</Link>}
@@ -498,6 +505,12 @@ export function AdminResourcePage() {
 
 function recordLabel(row: AdminRecord, config: ResourceConfig, index: number) {
   return String(row.name || row.title || row.action || `${config.singular} #${row.id || index + 1}`);
+}
+
+function AdminOrigin({ row }: { row: AdminRecord }) {
+  if (row.externalProvider) return <div className="admin-origin"><small>Real · {String(row.externalProvider)} · ID {String(row.externalId || "—")}</small>{row.lastSyncedAt ? <small>Sincronizado: {displayDate(row.lastSyncedAt)}</small> : null}</div>;
+  if (row.demo || row.demoManaged) return <small className="admin-origin">Demonstração</small>;
+  return <small className="admin-origin">Catálogo interno</small>;
 }
 
 const feminineResources = new Set(["sports", "scoring-rules", "achievements", "notifications", "settings"]);
@@ -606,14 +619,14 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       ];
     case "championships":
       return [
-        <AdminIdentity icon={Trophy} title={String(row.name || "Campeonato")} subtitle={String(row.slug || "Identificador não informado")} />,
+        <div><AdminIdentity icon={Trophy} title={String(row.name || "Campeonato")} subtitle={String(row.slug || "Identificador não informado")} /><AdminOrigin row={row} /></div>,
         <AdminDetail primary={String(row.sportName || "Modalidade não informada")} secondary={`Temporada ${String(row.season || "—")}`} />,
         statusBadge,
         periodLabel(row.startsAt, row.endsAt),
       ];
     case "competitors":
       return [
-        <AdminIdentity icon={Users} title={String(row.name || "Participante")} subtitle={String(row.code || "Sem código")} image={typeof row.imageUrl === "string" ? row.imageUrl : undefined} logo />,
+        <div><AdminIdentity icon={Users} title={String(row.name || "Participante")} subtitle={String(row.acronym || row.code || "Sem código")} image={typeof row.imageUrl === "string" ? row.imageUrl : undefined} logo /><AdminOrigin row={row} /></div>,
         <AdminDetail primary={String(row.sportName || nestedText(row.sport, "name") || "Modalidade não informada")} secondary={String(row.country || "País não informado")} />,
         activeBadge,
         updated,
@@ -630,7 +643,7 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
         ? (classified ? `${classified} participantes classificados` : "Classificação pendente")
         : row.homeScore != null && row.awayScore != null ? `${row.homeScore} × ${row.awayScore}` : "Placar pendente";
       return [
-        <AdminIdentity icon={resource === "results" ? ClipboardCheck : CalendarDays} title={String(row.title || `${home} × ${away}`)} subtitle={resource === "results" ? score : classificationMode ? enumLabel(String(row.format)) : `${home} × ${away}`} />,
+        <div><AdminIdentity icon={resource === "results" ? ClipboardCheck : CalendarDays} title={String(row.title || `${home} × ${away}`)} subtitle={resource === "results" ? score : classificationMode ? enumLabel(String(row.format)) : `${home} × ${away}`} /><AdminOrigin row={row} /><Link to={`/events/${row.id}`}>Ver evento e mercados</Link>{row.resultProcessedAt ? <small>Processado: {displayDate(row.resultProcessedAt)}</small> : row.resultReviewRequired ? <small>Resultado sob revisão</small> : null}</div>,
         <AdminDetail primary={String(row.championship || "Campeonato não informado")} secondary={String(row.sport || row.stage || "Modalidade não informada")} />,
         statusBadge,
         <AdminDetail primary={displayDate(row.startsAt)} secondary={`Palpites até ${displayDate(row.predictionClosesAt)}`} />,
@@ -642,7 +655,7 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       const resultKeys = String(row.resultOptionKey || "").split(",");
       const resultLabel = options.filter((option) => resultKeys.includes(String(option.key))).map((option) => String(option.label)).join(", ");
       return [
-        <AdminIdentity icon={Layers3} title={String(row.name || "Mercado")} subtitle={`${String(row.sportName || row.sport || "Modalidade do evento")} · ${String(row.category || "Principais")} · ${row.templateCode ? "Regra da modalidade" : "Regra manual"}`} />,
+        <div><AdminIdentity icon={Layers3} title={String(row.name || "Mercado")} subtitle={`${String(row.sportName || row.sport || "Modalidade do evento")} · ${String(row.category || "Principais")} · ${row.templateCode ? "Regra da modalidade" : "Regra manual"}`} /><AdminOrigin row={row} /></div>,
         <div className="admin-market-meta"><strong title={eventTitle}>{eventTitle}</strong><details><summary>{options.length} opções · multiplicadores</summary><ul>{options.map((option) => <li key={String(option.key)}>{String(option.label || enumLabel(option.key))}<b>{multiplier(option.multiplier)}</b></li>)}</ul></details></div>,
         <div className="admin-market-meta">{statusBadge}<small title={availability?.reason}>{availability?.label}</small><small>{enumLabel(row.timingMode || "PRE_MATCH_ONLY")}</small><small>Abertura: {row.opensAt ? displayDate(row.opensAt) : "Imediata"}</small><small>Fechamento: {row.closesAt ? displayDate(row.closesAt) : "Regra do evento"}</small></div>,
         <AdminDetail primary={<span className="admin-text-clamp" title={String(row.settlementDescription || "Resultado manual após o encerramento")}>{row.settledAt ? displayDate(row.settledAt) : String(row.settlementDescription || "Resultado manual após o encerramento")}</span>} secondary={row.resultOptionKey ? `Resultado: ${resultLabel || enumLabel(String(row.resultOptionKey))}` : enumLabel(String(row.eventStatus || "PENDING"))} />,
@@ -657,7 +670,7 @@ function adminCells(resource: string, row: AdminRecord, config: ResourceConfig, 
       ];
     case "pools":
       return [
-        <AdminIdentity icon={Trophy} title={String(row.name || "Bolão")} subtitle={String(row.description || enumLabel(String(row.poolType || "POOL")))} />,
+        <div><AdminIdentity icon={Trophy} title={String(row.name || "Bolão")} subtitle={String(row.description || enumLabel(String(row.poolType || "POOL")))} /><AdminOrigin row={row} /></div>,
         <AdminDetail primary={String(row.ownerName || "Criador não informado")} secondary={[row.sportName, row.championshipName].filter(Boolean).join(" · ") || enumLabel(String(row.visibility || "PRIVATE"))} />,
         <AdminDetail primary={`${points(row.participantCount)} de ${points(row.maxParticipants)} participantes`} secondary={statusBadge} />,
         periodLabel(row.startsAt || row.createdAt, row.endsAt),
@@ -765,6 +778,7 @@ function marketOptions(record: AdminRecord | null) {
 }
 
 export function marketSettlementAvailability(record: AdminRecord) {
+  if (record.externalProvider) return { allowed: false, label: "Resultado via provedor", reason: "Mercado de evento externo controlado pelo provedor." };
   if (record.demoManaged === true) return { allowed: false, label: "Demo guiada", reason: "Esta rodada é conduzida exclusivamente na jornada Demo." };
   const marketStatus = String(record.status || "").toUpperCase();
   const nestedEvent = record.event && typeof record.event === "object" ? record.event as Record<string, unknown> : null;

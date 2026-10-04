@@ -1,0 +1,89 @@
+{
+  "at": "2026-10-04T14:39:48.671Z",
+  "base": "http://localhost:5176",
+  "steps": [
+    {
+      "name": "Admin Demo opens full dashboard",
+      "passed": true
+    },
+    {
+      "name": "Reset only controlled Demo round",
+      "passed": true
+    },
+    {
+      "name": "Participant dashboard",
+      "passed": true
+    },
+    {
+      "name": "Events to full detail",
+      "passed": true
+    },
+    {
+      "name": "Prediction submitted from ordinary event detail",
+      "passed": true
+    },
+    {
+      "name": "Persisted prediction in My predictions",
+      "passed": true
+    },
+    {
+      "name": "Controlled event started",
+      "passed": true
+    },
+    {
+      "name": "Demo result uses shared settlement",
+      "passed": true
+    },
+    {
+      "name": "Persisted reward equals saved potential and ranking reflects activity",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /rankings",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /statistics",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /challenges",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /achievements",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /pools",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /leagues",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /community",
+      "passed": true
+    },
+    {
+      "name": "Participant module: /account",
+      "passed": true
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "apiErrors": [],
+  "prediction": {
+    "id": 322,
+    "eventId": 38,
+    "multiplier": 3.5,
+    "potentialPoints": 35
+  },
+  "settlement": {
+    "status": "WON",
+    "rewardedPoints": 35,
+    "processedAt": "2026-10-04T14:40:15.348278Z"
+  },
+  "result": "PASS"
+}

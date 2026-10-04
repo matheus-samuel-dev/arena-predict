@@ -196,6 +196,7 @@ public class ArenaExperienceDemoInitializer {
             value.setCreatedAt(Instant.now().minus(age));
         }
         value.setAuthor(author);
+        value.setDemo(true);
         value.setContent(content);
         value.setTopic(topic);
         return posts.save(value);

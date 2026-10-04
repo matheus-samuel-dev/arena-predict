@@ -67,7 +67,7 @@ function safeMetric(value: unknown, fallback = 0) {
 }
 
 export function ProfilePage() {
-  const { updateLocalUser } = useAuth();
+  const { updateLocalUser, user } = useAuth();
   const { notify } = useToast();
   const { data: profile, setData: setProfile, loading, error, reload } = useApiResource(() => profileApi.get(), []);
   const {
@@ -327,14 +327,14 @@ export function ProfilePage() {
               <div className="form-actions"><Button type="submit" loading={saving} disabled={avatarSaving}><Save size={16} /> Salvar alterações</Button></div>
             </form>
           )}
-          {tab === "security" && (
+          {tab === "security" && (user?.demoProfile ? <div><h2>Segurança da conta</h2><p>A conta de demonstração é compartilhada. A alteração de senha está reservada às contas pessoais.</p></div> : (
             <form className="stack-form" onSubmit={password}>
               <div><h2>Alterar senha</h2><p>Use uma senha exclusiva e evite reutilizar credenciais.</p></div>
               <label><span>Senha atual</span><input required type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></label>
               <label><span>Nova senha</span><input required minLength={8} type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></label>
               <div className="form-actions"><Button type="submit" loading={saving} disabled={avatarSaving}><KeyRound size={16} /> Atualizar senha</Button></div>
             </form>
-          )}
+          ))}
           {tab === "preferences" && (
             <form className="stack-form" onSubmit={savePreferences}>
               <div><h2>Preferências</h2><p>Gerencie privacidade e notificações da sua experiência.</p></div>

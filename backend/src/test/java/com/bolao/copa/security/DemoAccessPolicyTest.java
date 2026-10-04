@@ -72,9 +72,11 @@ class DemoAccessPolicyTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/api/admin/dashboard", "/api/admin/users", "/api/admin/sports-sync/status"})
-    void demoAdminCannotReadOrWriteAdministrativeResources(String path) {
+    void demoAdminCanReadButCannotWriteAdministrativeResources(String path) {
         var auth = auth(ADMIN, "ROLE_ADMIN");
-        for (String verb : List.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"))
+        for (String verb : List.of("GET", "HEAD"))
+            assertThat(policy.allowsHttpRequest(auth, verb, path)).as("%s %s", verb, path).isTrue();
+        for (String verb : List.of("POST", "PUT", "PATCH", "DELETE"))
             assertThat(policy.allowsHttpRequest(auth, verb, path)).as("%s %s", verb, path).isFalse();
     }
 

@@ -113,13 +113,13 @@ A janela automática de correções é limitada a 72 h por padrão. Correções 
 
 ## Demo e contratos HTTP
 
-Participante Demo e Administrador Demo agora acessam a jornada `/demo`, em uma competição controlada. A ação pública **Simular resultado** aceita somente a rodada corrente dessa competição, após autorização e validação de estado no backend. Não é um endpoint genérico para qualquer evento marcado Demo. Partidas reais possuem identidade externa e bloqueios transacionais contra edição de resultado, cancelamento manual, troca de origem e simulação.
+Participante Demo e Administrador Demo acessam o produto completo e podem abrir a jornada `/demo`, em uma competição controlada. A ação pública **Simular resultado** aceita somente a rodada corrente dessa competição, após autorização e validação de estado no backend. Não é um endpoint genérico para qualquer evento marcado Demo. Partidas reais possuem identidade externa e bloqueios transacionais contra edição de resultado, cancelamento manual, troca de origem e simulação.
 
 O reset arquiva somente a rodada controlada, reembolsa palpites ativos e cria a próxima; nunca alcança eventos PandaScore. O histórico e o ledger são preservados. O scheduler legado filtra providers Demo; a jornada controlada tem manutenção própria e cancela a rodada que excede o limite ao vivo, sem inventar placar. Configuração e roteiro completo estão em [Modo Demo](demo-flow.md).
 
 Endpoints existentes `/api/events`, `/api/events/live`, `/api/events/{id}`, `/api/admin/events`, `/api/admin/competitors` e `/api/championships` mantêm os contratos existentes e adicionam metadados opcionais de origem, sincronização e processamento. `bestOf` pode ser nulo para fontes externas. IDs internos existentes não mudam. Os DTOs administrativos também sinalizam revisão e origem.
 
-Endpoint para administrador operacional: `GET /api/admin/sports-sync/status`. Retorna provedor, enabled/configured, estado, última tentativa/sucesso, quota reportada, próxima janela e número de revisões; não retorna configuração sensível. O pequeno painel administrativo usa esse endpoint. **Administrador Demo não pode acessá-lo**, assim como não acessa as demais rotas `/api/admin/**`; use uma conta administrativa normal para conferir a integração real.
+Endpoint para administrador operacional: `GET /api/admin/sports-sync/status`. Retorna provedor, enabled/configured, estado, última tentativa/sucesso, quota reportada, próxima janela e número de revisões; não retorna configuração sensível. O painel administrativo usa esse endpoint. **Administrador Demo pode consultar esse status**, junto à lista explícita de consultas do backoffice. Comandos genéricos em `/api/admin/**` continuam bloqueados para contas Demo. Veja a [consolidação de 04/10/2026](consolidation-report-2026-10-04.md).
 
 ## Testes locais
 
@@ -140,7 +140,7 @@ docker compose up -d
 
 Maven não lê `.env`: exporte as variáveis no shell ao executar fora do Docker. O perfil `test` desativa scheduler/token e usa H2 com Flyway; testes externos mockam HTTP, sem depender da PandaScore. Fixtures estão em `backend/src/test/resources/pandascore/`. Também se valida PostgreSQL real com Compose descartável antes da entrega, quando o daemon local está disponível.
 
-Resultados executados, cobertura, evidências e limitações da entrega inicial da integração estão em [qa/sports-validation.md](../qa/sports-validation.md). O [inventário de arquivos](../qa/sports-change-manifest.md) distingue as alterações daquela integração de mudanças locais preexistentes. Essas evidências antecedem o isolamento adicional e a jornada Demo; não substituem a validação das migrations V12/V13 e das permissões atuais.
+Resultados executados, cobertura, evidências e limitações da entrega inicial da integração estão em [qa/sports-validation.md](../qa/sports-validation.md). O [inventário de arquivos](../qa/sports-change-manifest.md) distingue as alterações daquela integração de mudanças locais preexistentes. Essas evidências antecedem o isolamento adicional e a jornada Demo; não substituem a validação das migrations V12–V14 e das permissões atuais.
 
 ## Atualização da EC2 depois de publicar o commit
 
@@ -177,4 +177,4 @@ docker compose ps
 docker compose logs --tail=100 backend
 ```
 
-Flyway aplica as migrations pendentes até V13 no startup, com `ddl-auto=validate`. Se V12 identificar referências inconsistentes, investigue o diagnóstico e restaure os vínculos verificados; não force a versão do Flyway nem desabilite constraints. Confira saúde dos containers e a jornada `/demo`; depois, com uma conta administrativa operacional, confira o painel Dados esportivos e os eventos com origem PandaScore. A primeira sincronização inicia após 15 s, sujeita à credencial, quota e disponibilidade. Nginx continua encaminhando `/api` internamente; nenhum ajuste destrutivo de EC2 é necessário.
+Flyway aplica as migrations pendentes até V14 no startup, com `ddl-auto=validate`. Se V12 identificar referências inconsistentes, investigue o diagnóstico e restaure os vínculos verificados; não force a versão do Flyway nem desabilite constraints. Confira saúde dos containers e a jornada `/demo`; depois, com uma conta administrativa operacional, confira o painel Dados esportivos e os eventos com origem PandaScore. A primeira sincronização inicia após 15 s, sujeita à credencial, quota e disponibilidade. Nginx continua encaminhando `/api` internamente; nenhum ajuste destrutivo de EC2 é necessário.

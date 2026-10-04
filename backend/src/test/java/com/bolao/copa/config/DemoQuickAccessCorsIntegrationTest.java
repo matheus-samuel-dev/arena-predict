@@ -71,7 +71,7 @@ class DemoQuickAccessCorsIntegrationTest {
     }
 
     @Test
-    void publicOriginCanQuickLoginAsDemoAdministratorWithoutAdministrativeAccess() throws Exception {
+    void publicOriginCanQuickLoginAsDemoAdministratorWithReadOnlyAdministrativeAccess() throws Exception {
         var login = quickLogin("ADMIN", UserRole.ADMIN);
         var claims = jwtService.parse(login.token());
 
@@ -92,7 +92,7 @@ class DemoQuickAccessCorsIntegrationTest {
         mockMvc.perform(get("/api/admin/dashboard")
                         .header(HttpHeaders.ORIGIN, PUBLIC_ORIGIN)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + login.token()))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PUBLIC_ORIGIN));
     }
 

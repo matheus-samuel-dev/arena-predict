@@ -7,6 +7,7 @@ import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
+import com.bolao.copa.security.DemoAccessPolicy;
 import com.bolao.copa.repository.UserRepository;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -30,17 +31,19 @@ public class ArenaPoolRankingService {
     private final ArenaCatalogService catalog;
     private final ProgressionService progression;
     private final LeaguePredictionRepository leaguePredictions;
+    private final DemoAccessPolicy demoAccess;
 
     public ArenaPoolRankingService(ArenaPoolRepository pools, ArenaPoolMemberRepository members,
                                    SportRepository sports, ChampionshipRepository championships,
                                    ArenaPredictionRepository predictions, PointWalletRepository wallets,
                                    PlayerProfileRepository profiles, UserRepository users,
                                    ArenaCatalogService catalog, ProgressionService progression,
-                                   LeaguePredictionRepository leaguePredictions) {
+                                   LeaguePredictionRepository leaguePredictions, DemoAccessPolicy demoAccess) {
         this.pools = pools; this.members = members; this.sports = sports; this.championships = championships;
         this.predictions = predictions; this.wallets = wallets; this.profiles = profiles; this.users = users;
         this.catalog = catalog; this.progression = progression;
         this.leaguePredictions = leaguePredictions;
+        this.demoAccess = demoAccess;
     }
 
     @Transactional(readOnly = true)
@@ -71,6 +74,8 @@ public class ArenaPoolRankingService {
             throw new ArenaProblem.RuleViolation("O fim do bolão deve ser posterior ao início.");
         pool.setSport(sport);
         pool.setChampionship(championship);
+        if (demoAccess.isDemoAccount(owner) && championship != null && championship.getExternalProvider() != null)
+            throw new org.springframework.security.access.AccessDeniedException("Bolões Demo não podem usar um campeonato externo.");
         pool.setOwner(owner);
         pool.setInviteCode(inviteCode());
         pool.setPublicPool(Boolean.TRUE.equals(request.publicPool()));
@@ -117,6 +122,7 @@ public class ArenaPoolRankingService {
     }
 
     private PoolResponse join(ArenaPool pool, User user) {
+        requirePoolAccess(pool, user);
         // The pool row is locked by both public and invite-code entry points.
         // Capacity checks and the unique membership insert therefore form one
         // atomic decision even when multiple participants join simultaneously.
@@ -135,6 +141,7 @@ public class ArenaPoolRankingService {
     @Transactional
     public void leave(Long id, User user) {
         ArenaPool pool = pools.findById(id).orElseThrow(() -> new ArenaProblem.NotFound("Bolão não encontrado."));
+        requirePoolAccess(pool, user);
         if (pool.getOwner().getId().equals(user.getId()))
             throw new ArenaProblem.RuleViolation("O criador deve transferir a administração antes de sair do bolão.");
         ArenaPoolMember member = members.findByPoolAndUser(pool, user)
@@ -158,6 +165,13 @@ public class ArenaPoolRankingService {
 
     @Transactional(readOnly = true)
     public List<RankingRow> ranking(User current, RankingPeriod period, RankingScope scope, String sport) {
+        return ranking(current, period, scope, sport, "ALL");
+    }
+
+    @Transactional(readOnly = true)
+    public List<RankingRow> ranking(User current, RankingPeriod period, RankingScope scope, String sport, String source) {
+        String origin = source == null ? "ALL" : source.trim().toUpperCase(Locale.ROOT);
+        if (!List.of("ALL", "REAL", "DEMO").contains(origin)) throw new IllegalArgumentException("Origem do ranking inválida.");
         RankingPeriod effectivePeriod = period == null ? RankingPeriod.ALL : period;
         RankingScope effectiveScope = scope == null ? RankingScope.GLOBAL : scope;
         Instant now = Instant.now();
@@ -171,6 +185,9 @@ public class ArenaPoolRankingService {
                         .collect(java.util.stream.Collectors.toSet())
                 : null;
         Map<Long, List<ArenaPrediction>> byUser = predictions.findForRankingSince(since).stream()
+                .filter(value -> "ALL".equals(origin) || ("DEMO".equals(origin)
+                        ? value.getEvent().isDemo() && value.getEvent().getExternalProvider() == null
+                        : !value.getEvent().isDemo()))
                 .filter(value -> !value.getEvent().isDemoArchived())
                 // A ranking is a performance table, therefore only finalized
                 // predictions count. Active predictions remain visible in the
@@ -207,7 +224,18 @@ public class ArenaPoolRankingService {
                 value.getPoolType() == PoolType.POOL && (joined || owner) ? value.getInviteCode() : null,
                 value.isPublicPool(), value.getMaxParticipants(), (int) members.countByPool(value), value.getVirtualPrizePoints(),
                 value.getRules(), value.getStatus(), value.getStartsAt(), value.getEndsAt(), joined, owner,
-                value.getPoolType(), value.isRecurring());
+                value.getPoolType(), value.isRecurring(), isDemoPool(value));
+    }
+
+    private boolean isDemoPool(ArenaPool pool) {
+        return demoAccess.isDemoAccount(pool.getOwner())
+                || (pool.getChampionship() != null && pool.getChampionship().isDemoManaged());
+    }
+
+    private void requirePoolAccess(ArenaPool pool, User user) {
+        if (demoAccess.isDemoAccount(user) && (!isDemoPool(pool)
+                || (pool.getChampionship() != null && pool.getChampionship().getExternalProvider() != null)))
+            throw new org.springframework.security.access.AccessDeniedException("Esta conta participa somente de bolões de demonstração.");
     }
 
     private PlayerStats stats(User user, PointWallet wallet, ArenaPool ignored) {

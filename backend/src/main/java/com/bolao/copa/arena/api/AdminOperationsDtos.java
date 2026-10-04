@@ -30,11 +30,12 @@ public final class AdminOperationsDtos {
                                     Long ownerId, String ownerName, String visibility,
                                     int participantCount, int maxParticipants, int virtualPrizePoints,
                                     String sportName, String championshipName, PoolType poolType, boolean recurring,
-                                    Instant startsAt, Instant endsAt, Instant createdAt) { }
+                                    Instant startsAt, Instant endsAt, Instant createdAt, boolean demo) { }
 
     public record AdminChampionshipResponse(Long id, String name, String slug, String status,
                                             Long sportId, String sportName, String season,
-                                            String imageUrl, Instant startsAt, Instant endsAt, boolean demoManaged) { }
+                                            String imageUrl, Instant startsAt, Instant endsAt, boolean demoManaged,
+                                            String externalProvider, String externalId) { }
 
     public record AdminEventResponse(Long id, String title, String externalKey, String status,
                                      Long championshipId, String championship, String sport,
@@ -54,7 +55,8 @@ public final class AdminOperationsDtos {
                                       String resultOptionKey, Instant settledAt, String sport,
                                       String category, String templateCode, String timingMode,
                                       Instant opensAt, Instant closesAt, MarketAvailability availability,
-                                      String settlementDescription, boolean demoManaged) { }
+                                      String settlementDescription, boolean demoManaged, boolean demo,
+                                      String externalProvider, String externalId) { }
 
     public record ScoringRuleResponse(String id, String name, String description, String status,
                                       String calculation, String unit, Instant updatedAt) { }

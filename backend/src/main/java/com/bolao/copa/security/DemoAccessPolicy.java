@@ -54,7 +54,9 @@ public final class DemoAccessPolicy {
             if (!event.isDemo() || event.getExternalProvider() != null || event.getExternalId() != null
                     || event.isDemoArchived()) throw denied();
         } else if (isDemoAccount(user)) {
-            throw denied();
+            requireDemoParticipant(user);
+            if (!event.isDemo() || event.getExternalProvider() != null || event.getExternalId() != null
+                    || event.isDemoArchived()) throw denied();
         }
     }
 
@@ -74,11 +76,24 @@ public final class DemoAccessPolicy {
         }
         if (!demo) return true;
         // Retain restrictions if quick access is disabled after a token was issued.
-        if (path.equals("/api/admin") || path.startsWith("/api/admin/")) return false;
+        if (path.equals("/api/admin") || path.startsWith("/api/admin/")) {
+            return admin && properties.enabled() && reading && path.matches(
+                    "/api/admin/(?:dashboard|sports|championships|competitors|events|markets|users|pools|scoring-rules|reports|audit|settings|moderation|achievements|challenges|notifications|sports-sync/status|events/[1-9][0-9]*/market-templates)");
+        }
         if (reading) return true;
         if ("POST".equals(method) && (path.equals("/api/auth/logout") || path.equals("/auth/logout"))) return true;
-        return properties.enabled() && participant && "POST".equals(method)
-                && (path.equals("/api/predictions") || path.matches("/api/predictions/[1-9][0-9]*/cancel"));
+        if (!properties.enabled()) return false;
+        // Own profile and notification commands retain their service-level ownership checks.
+        if ("PATCH".equals(method) && (path.equals("/api/profile") || path.equals("/api/profile/preferences")
+                || path.matches("/api/notifications/(?:[1-9][0-9]*/read|read-all)"))) return admin || participant;
+        if (!participant) return false;
+        if ("POST".equals(method)) return path.equals("/api/predictions")
+                || path.matches("/api/predictions/[1-9][0-9]*/cancel")
+                || path.equals("/api/pools") || path.equals("/api/pools/join")
+                || path.matches("/api/pools/[1-9][0-9]*/(?:join|leave)")
+                || path.equals("/api/community/posts")
+                || path.matches("/api/community/posts/[1-9][0-9]*/(?:like|comments|reports)");
+        return "DELETE".equals(method) && path.matches("/api/community/posts/[1-9][0-9]*(?:/like)?");
     }
 
     private static boolean persisted(User user) { return user != null && user.getId() != null; }

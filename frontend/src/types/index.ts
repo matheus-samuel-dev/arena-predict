@@ -39,6 +39,8 @@ export interface Sport {
 }
 
 export interface Championship {
+  externalProvider?: string | null;
+  externalId?: string | null;
   id: number | string;
   name: string;
   sportId?: number | string;
@@ -187,6 +189,10 @@ export type PredictionStatus =
   | "REEMBOLSADO";
 
 export interface Prediction {
+  eventStatus?: string;
+  sportCode?: string;
+  sportName?: string;
+  demo?: boolean;
   id: number | string;
   eventId: number | string;
   eventTitle?: string;
@@ -230,6 +236,7 @@ export interface WalletTransaction {
 }
 
 export interface Pool {
+  demo?: boolean;
   id: number | string;
   name: string;
   description?: string;
@@ -373,6 +380,7 @@ export interface CommunityAuthor {
 }
 
 export interface CommunityPost {
+  demo?: boolean;
   id: number | string;
   author?: CommunityAuthor;
   authorName?: string;

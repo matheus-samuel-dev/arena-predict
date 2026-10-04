@@ -32,7 +32,7 @@ public final class ExperienceDtos {
     public record PostResponse(Long id, CommunityAuthor author, String authorName, String avatarUrl,
                                String content, String topic, Instant createdAt, Instant updatedAt,
                                long likeCount, long commentCount, boolean likedByCurrentUser,
-                               boolean ownedByCurrentUser) { }
+                               boolean ownedByCurrentUser, boolean demo) { }
     public record PostRequest(@NotBlank @Size(min = 3, max = 600) String content,
                               @Size(max = 80) String topic) { }
     public record CommentResponse(Long id, Long postId, CommunityAuthor author, String content, Instant createdAt,

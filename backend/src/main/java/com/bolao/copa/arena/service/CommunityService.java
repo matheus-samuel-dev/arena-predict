@@ -6,6 +6,7 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.data.domain.*;
@@ -21,21 +22,25 @@ public class CommunityService {
     private final PlayerProfileRepository profiles;
     private final ArenaNotificationService notifications;
     private final AdminAuditService audit;
+    private final DemoAccessPolicy demoAccess;
 
     public CommunityService(CommunityPostRepository posts, CommunityCommentRepository comments,
                             CommunityLikeRepository likes, CommunityReportRepository reports,
                             PlayerProfileRepository profiles, ArenaNotificationService notifications,
-                            AdminAuditService audit) {
+                            AdminAuditService audit, DemoAccessPolicy demoAccess) {
         this.posts = posts; this.comments = comments; this.likes = likes; this.reports = reports;
         this.profiles = profiles; this.notifications = notifications;
         this.audit = audit;
+        this.demoAccess = demoAccess;
     }
 
     @Transactional(readOnly = true)
     public Page<PostResponse> feed(int page, int size, User current) {
         int safeSize = Math.max(1, Math.min(size, 50));
-        Page<CommunityPost> result = posts.findByStatusOrderByCreatedAtDesc(ContentStatus.PUBLISHED,
-                PageRequest.of(Math.max(0, page), safeSize));
+        Pageable pageable = PageRequest.of(Math.max(0, page), safeSize);
+        Page<CommunityPost> result = demoAccess.isDemoAccount(current)
+                ? posts.findByStatusAndDemoOrderByCreatedAtDesc(ContentStatus.PUBLISHED, true, pageable)
+                : posts.findByStatusOrderByCreatedAtDesc(ContentStatus.PUBLISHED, pageable);
         List<CommunityPost> pagePosts = result.getContent();
         if (pagePosts.isEmpty()) return new PageImpl<>(List.of(), result.getPageable(), result.getTotalElements());
         Map<Long, String> avatars = new HashMap<>();
@@ -56,6 +61,7 @@ public class CommunityService {
     @Transactional
     public PostResponse create(PostRequest request, User author) {
         CommunityPost post = new CommunityPost(); post.setAuthor(author); post.setContent(request.content().trim());
+        post.setDemo(demoAccess.isDemoAccount(author));
         if (request.topic() != null && !request.topic().isBlank()) post.setTopic(request.topic().trim());
         return response(posts.save(post), author);
     }
@@ -63,6 +69,7 @@ public class CommunityService {
     @Transactional
     public PostResponse like(Long postId, User user) {
         CommunityPost post = publishedForUpdate(postId);
+        requireSocialAccess(post, user);
         likes.findByPostAndUser(post, user).orElseGet(() -> { CommunityLike like = new CommunityLike(); like.setPost(post); like.setUser(user); return likes.save(like); });
         return response(post, user);
     }
@@ -70,6 +77,7 @@ public class CommunityService {
     @Transactional
     public PostResponse unlike(Long postId, User user) {
         CommunityPost post = publishedForUpdate(postId);
+        requireSocialAccess(post, user);
         likes.findByPostAndUser(post, user).ifPresent(likes::delete);
         likes.flush();
         return response(post, user);
@@ -78,9 +86,10 @@ public class CommunityService {
     @Transactional
     public CommentResponse comment(Long postId, CommentRequest request, User author) {
         CommunityPost post = published(postId);
+        requireSocialAccess(post, author);
         CommunityComment comment = new CommunityComment(); comment.setPost(post); comment.setAuthor(author); comment.setContent(request.content().trim());
         comment = comments.save(comment);
-        if (!post.getAuthor().getId().equals(author.getId())) notifications.create(post.getAuthor(), NotificationType.COMMENT,
+        if (!post.getAuthor().getId().equals(author.getId()) && (!post.isDemo() || demoAccess.isDemoAccount(post.getAuthor()))) notifications.create(post.getAuthor(), NotificationType.COMMENT,
                 "Novo comentário", author.getName() + " comentou em sua publicação.", "/community");
         return commentResponse(comment, author);
     }
@@ -88,6 +97,7 @@ public class CommunityService {
     @Transactional(readOnly = true)
     public List<CommentResponse> comments(Long postId, User current) {
         CommunityPost post = published(postId);
+        requireSocialAccess(post, current);
         return comments.findByPostAndStatusOrderByCreatedAtAsc(post, ContentStatus.PUBLISHED).stream()
                 .map(comment -> commentResponse(comment, current)).toList();
     }
@@ -95,6 +105,7 @@ public class CommunityService {
     @Transactional
     public void report(Long postId, ReportRequest request, User reporter) {
         CommunityPost post = publishedForUpdate(postId);
+        requireSocialAccess(post, reporter);
         if (post.getAuthor().getId().equals(reporter.getId())) throw new ArenaProblem.RuleViolation("Você não pode denunciar sua própria publicação.");
         CommunityReport report = reports.findByPostAndReporter(post, reporter).orElseGet(() -> {
             CommunityReport created = new CommunityReport(); created.setPost(post); created.setReporter(reporter); return created;
@@ -107,6 +118,7 @@ public class CommunityService {
     @Transactional
     public void removeOwnPost(Long postId, User user) {
         CommunityPost post = posts.findById(postId).orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
+        requireSocialAccess(post, user);
         if (!post.getAuthor().getId().equals(user.getId())) throw new org.springframework.security.access.AccessDeniedException("A publicação pertence a outro usuário.");
         post.setStatus(ContentStatus.REMOVED); post.touch();
     }
@@ -138,6 +150,10 @@ public class CommunityService {
     private CommunityPost published(Long id) {
         return posts.findByIdAndStatus(id, ContentStatus.PUBLISHED).orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
     }
+    private void requireSocialAccess(CommunityPost post, User user) {
+        if (demoAccess.isDemoAccount(user) && !post.isDemo())
+            throw new org.springframework.security.access.AccessDeniedException("Conteúdo fora da comunidade desta conta.");
+    }
     private CommunityPost publishedForUpdate(Long id) {
         return posts.findByIdAndStatusForUpdate(id, ContentStatus.PUBLISHED)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Publicação não encontrada."));
@@ -151,7 +167,7 @@ public class CommunityService {
                                   long commentCount, boolean likedByCurrentUser) {
         return new PostResponse(post.getId(), new CommunityAuthor(post.getAuthor().getId(), post.getAuthor().getName(), avatar),
                 post.getAuthor().getName(), avatar, post.getContent(), post.getTopic(), post.getCreatedAt(), post.getUpdatedAt(),
-                likeCount, commentCount, likedByCurrentUser, post.getAuthor().getId().equals(current.getId()));
+                likeCount, commentCount, likedByCurrentUser, post.getAuthor().getId().equals(current.getId()), post.isDemo());
     }
     private CommentResponse commentResponse(CommunityComment value, User current) {
         String avatar = profiles.findByUser(value.getAuthor()).map(PlayerProfile::getAvatarUrl).orElse(null);

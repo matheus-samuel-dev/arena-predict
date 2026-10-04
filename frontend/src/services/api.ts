@@ -414,7 +414,7 @@ export const poolsApi = {
 };
 
 export const rankingsApi = {
-  list: (filters: { period?: string; sport?: string; championship?: string; scope?: string } = {}) =>
+  list: (filters: { period?: string; sport?: string; championship?: string; scope?: string; source?: string } = {}) =>
     request<RankingRow[] | PageResponse<RankingRow>>(`/rankings${query(filters)}`).then((result) => asList(result).map(normalizeRanking)),
 };
 

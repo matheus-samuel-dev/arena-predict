@@ -103,7 +103,7 @@ export function DashboardPage() {
         eyebrow="CENTRAL DO PARTICIPANTE"
         title={`Boa leitura, ${name}.`}
         description="Seu momento na arena, eventos importantes e próximos desafios em um só lugar."
-        actions={<Link className="button button--secondary button--md" to="/events"><Target size={17} /> Explorar eventos</Link>}
+        actions={<div className="button-row"><Link className="button button--secondary button--md" to="/events"><Target size={17} /> Explorar eventos</Link>{user?.demoProfile && <Link className="button button--quiet button--md" to="/demo">Testar uma rodada</Link>}</div>}
       />
 
       <section className="player-strip surface">

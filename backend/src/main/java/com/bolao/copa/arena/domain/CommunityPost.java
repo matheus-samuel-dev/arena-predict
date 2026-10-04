@@ -14,6 +14,7 @@ public class CommunityPost {
     @Column(nullable = false, length = 80) private String topic = "Discussão geral";
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private ContentStatus status = ContentStatus.PUBLISHED;
     @Column(unique = true, length = 80) private String sourceKey;
+    @Column(nullable = false) private boolean demo;
     @Column(nullable = false) private Instant createdAt = Instant.now();
     @Column(nullable = false) private Instant updatedAt = Instant.now();
 
@@ -23,6 +24,7 @@ public class CommunityPost {
     public String getTopic() { return topic; } public void setTopic(String topic) { this.topic = topic; }
     public ContentStatus getStatus() { return status; } public void setStatus(ContentStatus status) { this.status = status; }
     public String getSourceKey() { return sourceKey; } public void setSourceKey(String sourceKey) { this.sourceKey = sourceKey; }
+    public boolean isDemo() { return demo; } public void setDemo(boolean demo) { this.demo = demo; }
     public Instant getCreatedAt() { return createdAt; } public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; } public void touch() { updatedAt = Instant.now(); }
 }

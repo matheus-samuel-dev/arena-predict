@@ -12,14 +12,15 @@ export function RankingsPage() {
   const [period, setPeriod] = useState("WEEKLY");
   const [scope, setScope] = useState("GLOBAL");
   const [sport, setSport] = useState("");
+  const [source, setSource] = useState("ALL");
   const [participantQuery, setParticipantQuery] = useState("");
   const { data, loading, error, reload, refresh } = useApiResource(async () => {
     const [rankingResponse, sportsResponse] = await Promise.all([
-      rankingsApi.list({ period, scope, sport: sport || undefined }),
+      rankingsApi.list({ period, scope, sport: sport || undefined, source }),
       catalogApi.sports(),
     ]);
     return { rows: asList(rankingResponse), sports: asList(sportsResponse) };
-  }, [period, scope, sport]);
+  }, [period, scope, sport, source]);
   useVisibleRefresh(refresh);
   if (loading) return <PageSkeleton cards={3} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
@@ -34,6 +35,7 @@ export function RankingsPage() {
       <section className="ranking-controls surface">
         <div className="filter-tabs" role="group" aria-label="Filtrar ranking por período">{[{ value: "WEEKLY", label: "Semanal" }, { value: "MONTHLY", label: "Mensal" }, { value: "ALL", label: "Geral" }].map((item) => <button type="button" aria-pressed={period === item.value} className={period === item.value ? "active" : ""} onClick={() => setPeriod(item.value)} key={item.value}>{item.label}</button>)}</div>
         <div className="ranking-controls__fields">
+          <label className="select-field"><select value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filtrar ranking por origem"><option value="ALL">Real e demonstração</option><option value="REAL">Eventos reais</option><option value="DEMO">Demonstração</option></select></label>
           <label className="ranking-participant-search">
             <Search size={17} aria-hidden="true" />
             <input
@@ -118,7 +120,7 @@ export function StatisticsPage() {
   const accuracy = settled.length ? (won.length / settled.length) * 100 : 0;
   const used = predictions.reduce((sum, item) => sum + Number(item.stakePoints ?? item.points ?? 0), 0);
   const rewards = predictions.reduce((sum, item) => sum + Number(item.rewardedPoints ?? item.rewardPoints ?? 0), 0);
-  const byMarket = Array.from(predictions.reduce((map, item) => { const key = item.marketName || "Outros mercados"; const value = map.get(key) || { name: key, total: 0, won: 0 }; value.total += 1; if (["WON", "VENCEDOR"].includes(String(item.status).toUpperCase())) value.won += 1; map.set(key, value); return map; }, new Map<string, { name: string; total: number; won: number }>()).values()).sort((a, b) => b.total - a.total);
+  const byMarket = Array.from(predictions.reduce((map, item) => { const key = item.marketName || "Outros mercados"; const value = map.get(key) || { name: key, total: 0, won: 0, settled: 0 }; value.total += 1; if (["WON", "VENCEDOR", "LOST", "PERDEDOR"].includes(String(item.status).toUpperCase())) value.settled += 1; if (["WON", "VENCEDOR"].includes(String(item.status).toUpperCase())) value.won += 1; map.set(key, value); return map; }, new Map<string, { name: string; total: number; won: number; settled: number }>()).values()).sort((a, b) => b.total - a.total);
   return (
     <>
       <PageHeader eyebrow="ANÁLISE PESSOAL" title="Estatísticas" description="Entenda seus padrões, especialidades e evolução sem números decorativos." />
@@ -132,7 +134,7 @@ export function StatisticsPage() {
       </section>
       <section className="statistics-grid">
         <article className="surface accuracy-panel"><div><span><Gauge size={23} /></span><small>Sua precisão</small><strong>{percentage(accuracy)}</strong><p>calculada apenas sobre palpites encerrados</p></div><div className="accuracy-ring" style={{ "--accuracy": `${accuracy * 3.6}deg` } as React.CSSProperties}><span>{Math.round(accuracy)}%</span></div></article>
-        <article className="surface market-performance"><h2>Mercados mais utilizados</h2><p>Volume e aproveitamento por tipo de leitura.</p>{byMarket.length ? <div>{byMarket.slice(0, 6).map((item) => <section key={item.name}><header><strong>{item.name}</strong><span>{item.total} {item.total === 1 ? "palpite" : "palpites"} · {percentage(item.total ? (item.won / item.total) * 100 : 0)}</span></header><Progress value={item.won} max={item.total} /></section>)}</div> : <EmptyState icon={BarChart3} title="Dados insuficientes" description="Seu desempenho por mercado aparecerá após os primeiros palpites." />}</article>
+        <article className="surface market-performance"><h2>Mercados mais utilizados</h2><p>Volume e aproveitamento por tipo de leitura.</p>{byMarket.length ? <div>{byMarket.slice(0, 6).map((item) => <section key={item.name}><header><strong>{item.name}</strong><span>{item.total} {item.total === 1 ? "palpite" : "palpites"} · {percentage(item.settled ? (item.won / item.settled) * 100 : 0)}</span></header><small>{item.settled} encerrados</small><Progress value={item.won} max={item.settled || 1} /></section>)}</div> : <EmptyState icon={BarChart3} title="Dados insuficientes" description="Seu desempenho por mercado aparecerá após os primeiros palpites." />}</article>
       </section>
     </>
   );

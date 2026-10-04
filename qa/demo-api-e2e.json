@@ -1,196 +1,202 @@
 {
-  "checkedAt": "2026-09-30T07:41:02.7494078Z",
+  "checkedAt": "2026-10-04T14:49:44.6658233Z",
   "baseUrl": "http://127.0.0.1:5176/api",
   "result": "PASS",
-  "completedEventId": 30,
-  "predictionId": 316,
+  "completedEventId": 39,
+  "predictionId": 323,
   "score": "2-1",
   "reward": 35,
   "rankingPosition": 1,
-  "newRoundEventId": 32,
-  "refundedPredictionId": 317,
+  "newRoundEventId": 41,
+  "refundedPredictionId": 324,
   "officialEventsCompared": 0,
   "realProviderCredentialValidated": false,
   "requests": [
     {
-      "path": "/auth/demo",
-      "method": "POST",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/auth/demo"
     },
     {
-      "path": "/auth/demo",
-      "method": "POST",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/auth/demo"
     },
     {
-      "path": "/demo/scenario",
+      "expected": 200,
+      "status": 200,
       "method": "GET",
-      "status": 200,
-      "expected": 200
+      "path": "/demo/scenario"
     },
     {
-      "path": "/demo/reset",
+      "expected": 200,
+      "status": 200,
       "method": "POST",
-      "status": 200,
-      "expected": 200
+      "path": "/demo/reset"
     },
     {
-      "path": "/events",
+      "expected": 200,
+      "status": 200,
       "method": "GET",
+      "path": "/events"
+    },
+    {
+      "expected": 200,
       "status": 200,
-      "expected": 200
-    },
-    {
-      "path": "/admin/dashboard",
       "method": "GET",
-      "status": 403,
-      "expected": 403
+      "path": "/admin/dashboard"
     },
     {
-      "path": "/demo/events/30/start",
-      "method": "POST",
+      "expected": 403,
       "status": 403,
-      "expected": 403
+      "method": "POST",
+      "path": "/admin/events"
     },
     {
-      "path": "/demo/reset",
-      "method": "POST",
+      "expected": 403,
       "status": 403,
-      "expected": 403
+      "method": "POST",
+      "path": "/demo/events/39/start"
     },
     {
-      "path": "/demo/events/30/result",
+      "expected": 403,
+      "status": 403,
       "method": "POST",
+      "path": "/demo/reset"
+    },
+    {
+      "expected": 422,
       "status": 422,
-      "expected": 422
-    },
-    {
-      "path": "/demo/scenario",
-      "method": "GET",
-      "status": 200,
-      "expected": 200
-    },
-    {
-      "path": "/predictions",
       "method": "POST",
+      "path": "/demo/events/39/result"
+    },
+    {
+      "expected": 200,
+      "status": 200,
+      "method": "GET",
+      "path": "/demo/scenario"
+    },
+    {
+      "expected": 201,
       "status": 201,
-      "expected": 201
+      "method": "POST",
+      "path": "/predictions"
     },
     {
-      "path": "/demo/scenario",
+      "expected": 200,
+      "status": 200,
       "method": "GET",
-      "status": 200,
-      "expected": 200
+      "path": "/demo/scenario"
     },
     {
-      "path": "/demo/events/30/start",
-      "method": "POST",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/demo/events/39/start"
     },
     {
-      "path": "/predictions/316/cancel",
-      "method": "POST",
+      "expected": 422,
       "status": 422,
-      "expected": 422
+      "method": "POST",
+      "path": "/predictions/323/cancel"
     },
     {
-      "path": "/predictions",
-      "method": "POST",
+      "expected": 422,
       "status": 422,
-      "expected": 422
-    },
-    {
-      "path": "/demo/events/30/result",
       "method": "POST",
-      "status": 200,
-      "expected": 200
+      "path": "/predictions"
     },
     {
-      "path": "/demo/scenario",
-      "method": "GET",
+      "expected": 200,
       "status": 200,
-      "expected": 200
-    },
-    {
-      "path": "/wallet",
-      "method": "GET",
-      "status": 200,
-      "expected": 200
-    },
-    {
-      "path": "/wallet/transactions",
-      "method": "GET",
-      "status": 200,
-      "expected": 200
-    },
-    {
-      "path": "/demo/events/30/result",
       "method": "POST",
-      "status": 200,
-      "expected": 200
+      "path": "/demo/events/39/result"
     },
     {
-      "path": "/wallet",
+      "expected": 200,
+      "status": 200,
       "method": "GET",
-      "status": 200,
-      "expected": 200
+      "path": "/demo/scenario"
     },
     {
-      "path": "/wallet/transactions",
+      "expected": 200,
+      "status": 200,
       "method": "GET",
-      "status": 200,
-      "expected": 200
+      "path": "/wallet"
     },
     {
-      "path": "/demo/events/30/result",
+      "expected": 200,
+      "status": 200,
+      "method": "GET",
+      "path": "/wallet/transactions"
+    },
+    {
+      "expected": 200,
+      "status": 200,
       "method": "POST",
+      "path": "/demo/events/39/result"
+    },
+    {
+      "expected": 200,
+      "status": 200,
+      "method": "GET",
+      "path": "/wallet"
+    },
+    {
+      "expected": 200,
+      "status": 200,
+      "method": "GET",
+      "path": "/wallet/transactions"
+    },
+    {
+      "expected": 409,
       "status": 409,
-      "expected": 409
+      "method": "POST",
+      "path": "/demo/events/39/result"
     },
     {
-      "path": "/demo/reset",
-      "method": "POST",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/demo/reset"
     },
     {
-      "path": "/demo/reset",
-      "method": "POST",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/demo/reset"
     },
     {
-      "path": "/demo/events/30/result",
-      "method": "POST",
+      "expected": 409,
       "status": 409,
-      "expected": 409
+      "method": "POST",
+      "path": "/demo/events/39/result"
     },
     {
-      "path": "/predictions",
-      "method": "POST",
+      "expected": 201,
       "status": 201,
-      "expected": 201
-    },
-    {
-      "path": "/demo/reset",
       "method": "POST",
-      "status": 200,
-      "expected": 200
+      "path": "/predictions"
     },
     {
-      "path": "/predictions",
-      "method": "GET",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "POST",
+      "path": "/demo/reset"
     },
     {
-      "path": "/events",
-      "method": "GET",
+      "expected": 200,
       "status": 200,
-      "expected": 200
+      "method": "GET",
+      "path": "/predictions"
+    },
+    {
+      "expected": 200,
+      "status": 200,
+      "method": "GET",
+      "path": "/events"
     }
   ]
 }

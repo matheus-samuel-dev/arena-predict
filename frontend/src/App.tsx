@@ -40,7 +40,6 @@ function ProtectedRoute() {
 
 export function AdminRoute() {
   const { user } = useAuth();
-  if (user?.demoProfile) return <Navigate to="/demo" replace />;
   return user?.role === "ADMIN" ? <Outlet /> : <AccessDenied />;
 }
 

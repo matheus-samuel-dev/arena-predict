@@ -1,5 +1,28 @@
 # Evidências de finalização do ArenaPredict
 
+A rodada atual está no [relatório de consolidação de 04/10/2026](../docs/consolidation-report-2026-10-04.md).
+As evidências atuais são `consolidation-browser.json` (produto completo, oito larguras),
+`consolidation-product-flow.json` (palpite pelo detalhe normal, resultado, recompensa e ranking),
+`consolidation-admin-layout.json` (revalidação do aviso administrativo em mobile),
+`consolidation-postgresql-suites.json` (cinco suítes no PostgreSQL),
+`consolidation-validation.json` (builds e testes) e `demo-api-e2e.json` (idempotência e reset).
+As capturas `consolidation-*.png` pertencem a esta rodada e foram inspecionadas visualmente.
+
+Com o Compose local de QA saudável em `http://localhost:5176`, Playwright no `NODE_PATH`
+e Chrome instalado (ou `CHROME_PATH`), execute em sequência:
+
+```powershell
+node qa/consolidation-product-flow.cjs
+node qa/consolidation-browser.cjs
+pwsh -File qa/demo-api-e2e.ps1
+```
+
+Para repetir somente o navegador administrativo: defina `ARENA_QA_PROFILE=admin`.
+Remova essa variável para a execução completa dos dois perfis.
+
+Os scripts de fluxo alteram somente a rodada Demo compartilhada do ambiente local.
+Não salvam JWTs. As demais evidências abaixo são históricas e mantêm a data de sua execução.
+
 O [relatório da demonstração controlada de 30/09/2026](demo-validation.md) reúne
 o inventário, isolamento de dados, reset, resultados de testes e builds desta evolução.
 A [evidência E2E da API](demo-api-e2e.json) registra o fluxo executado no Compose de QA;

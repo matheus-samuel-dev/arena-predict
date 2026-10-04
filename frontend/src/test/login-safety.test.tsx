@@ -97,8 +97,8 @@ describe("segurança e demonstração do login", () => {
   });
 
   it.each([
-    ["participant", "PARTICIPANTE", "Jornada Demo", "participante"],
-    ["admin", "ADMIN", "Jornada Demo", "administrador"],
+    ["participant", "PARTICIPANTE", "Área do participante", "participante"],
+    ["admin", "ADMIN", "Área administrativa", "administrador"],
   ] as const)(
     "solicita somente o perfil previsto no acesso demonstrativo de %s",
     async (profile, role, destination, notificationProfile) => {

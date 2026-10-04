@@ -12,6 +12,7 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -52,6 +53,7 @@ public class AdminOperationsService {
     private final String brandName;
     private final boolean demoMode;
     private final boolean demoLiveProvider;
+    private final DemoAccessPolicy demoAccess;
 
     public AdminOperationsService(UserRepository users, PointWalletRepository wallets, PlayerProfileRepository profiles,
                                   ArenaPoolRepository pools, ArenaPoolMemberRepository poolMembers,
@@ -62,7 +64,8 @@ public class AdminOperationsService {
                                   ArenaCatalogService catalog, MarketDefinitionCatalog definitions, MarketAvailabilityService availability,
                                   @Value("${app.brand.name:ArenaPredict}") String brandName,
                                   @Value("${app.demo.enabled:false}") boolean demoMode,
-                                  @Value("${app.demo.live-provider-enabled:false}") boolean demoLiveProvider) {
+                                  @Value("${app.demo.live-provider-enabled:false}") boolean demoLiveProvider,
+                                  DemoAccessPolicy demoAccess) {
         this.users = users;
         this.wallets = wallets;
         this.profiles = profiles;
@@ -80,13 +83,20 @@ public class AdminOperationsService {
         this.brandName = brandName;
         this.demoMode = demoMode;
         this.demoLiveProvider = demoLiveProvider;
+        this.demoAccess = demoAccess;
     }
 
     @Transactional(readOnly = true)
     public Page<AdminUserResponse> users(int page, int size, String search) {
+        return users(page, size, search, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserResponse> users(int page, int size, String search, boolean namesOnly) {
         Pageable pageable = page(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> result = hasText(search)
-                ? users.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search.trim(), search.trim(), pageable)
+                ? namesOnly ? users.findByNameContainingIgnoreCase(search.trim(), pageable)
+                        : users.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search.trim(), search.trim(), pageable)
                 : users.findAll(pageable);
         Map<Long, PointWallet> walletByUser = result.isEmpty() ? Map.of() : wallets.findByUserIn(result.getContent()).stream()
                 .collect(Collectors.toMap(wallet -> wallet.getUser().getId(), Function.identity()));
@@ -225,13 +235,15 @@ public class AdminOperationsService {
                 Math.toIntExact(participantCount), pool.getMaxParticipants(), pool.getVirtualPrizePoints(),
                 pool.getSport() == null ? null : pool.getSport().getName(),
                 pool.getChampionship() == null ? null : pool.getChampionship().getName(), pool.getPoolType(), pool.isRecurring(),
-                pool.getStartsAt(), pool.getEndsAt(), pool.getCreatedAt());
+                pool.getStartsAt(), pool.getEndsAt(), pool.getCreatedAt(),
+                demoAccess.isDemoAccount(pool.getOwner()) || (pool.getChampionship() != null && pool.getChampionship().isDemoManaged()));
     }
 
     private AdminChampionshipResponse championshipResponse(Championship championship) {
         return new AdminChampionshipResponse(championship.getId(), championship.getName(), championship.getSlug(),
                 championship.getStatus().name(), championship.getSport().getId(), championship.getSport().getName(),
-                championship.getSeason(), championship.getImageUrl(), championship.getStartsAt(), championship.getEndsAt(), championship.isDemoManaged());
+                championship.getSeason(), championship.getImageUrl(), championship.getStartsAt(), championship.getEndsAt(), championship.isDemoManaged(),
+                championship.getExternalProvider(), championship.getExternalId());
     }
 
     private AdminEventResponse eventResponse(ArenaEvent event, List<EventParticipantResponse> participants, com.bolao.copa.arena.api.ArenaDtos.EventResponse detail) {
@@ -254,7 +266,8 @@ public class AdminOperationsService {
                 market.getTimingMode().name(), market.getOpensAt(), market.getClosesAt(),
                 options.stream().anyMatch(MarketOptionResponse::active) ? availability.evaluate(market, Instant.now())
                         : new com.bolao.copa.arena.api.ArenaDtos.MarketAvailability(false, "NO_OPTIONS", "Opções suspensas", "Nenhuma opção ativa neste mercado."),
-                definitions.definition(market, List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Liquidação manual por opção."), market.getEvent().isDemoManaged());
+                definitions.definition(market, List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Liquidação manual por opção."), market.getEvent().isDemoManaged(),
+                market.getEvent().isDemo(), market.getEvent().getExternalProvider(), market.getEvent().getExternalId());
     }
 
     private MarketOptionResponse marketOptionResponse(MarketOption option) {

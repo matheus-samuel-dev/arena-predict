@@ -13,7 +13,7 @@ import type { Championship, Pool, RankingRow, Sport } from "../types";
 
 export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
   const { user } = useAuth();
-  const canCreate = !leaguesOnly || user?.role === "ADMIN";
+  const canCreate = user?.demoProfile !== "ADMIN" && (!leaguesOnly || user?.role === "ADMIN");
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [rankingPool, setRankingPool] = useState<Pool | null>(null);
@@ -68,7 +68,7 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
         eyebrow={leaguesOnly ? "COMPETIÇÕES DA PLATAFORMA" : "SEU GRUPO DE AMIGOS"}
         title={leaguesOnly ? "Ligas" : "Bolões"}
         description={leaguesOnly ? "Dispute temporadas organizadas pelo ArenaPredict, com período, modalidades e regras definidos pela plataforma." : "Crie grupos públicos ou privados, convide amigos e acompanhe o ranking dos palpites vinculados ao seu bolão."}
-        actions={<div className="button-row">{!leaguesOnly && <Button variant="secondary" onClick={() => setJoinOpen(true)}><KeyRound size={17} /> Entrar por código</Button>}{canCreate && <Button onClick={() => setCreateOpen(true)}><Plus size={17} /> {leaguesOnly ? "Organizar liga" : "Criar bolão"}</Button>}</div>}
+        actions={<div className="button-row">{!leaguesOnly && user?.demoProfile !== "ADMIN" && <Button variant="secondary" onClick={() => setJoinOpen(true)}><KeyRound size={17} /> Entrar por código</Button>}{canCreate && <Button onClick={() => setCreateOpen(true)}><Plus size={17} /> {leaguesOnly ? "Organizar liga" : "Criar bolão"}</Button>}</div>}
       />
 
       <section className="surface competition-explainer"><span>{leaguesOnly ? <Swords size={24} /> : <Users size={24} />}</span><div><h2>{leaguesOnly ? "Uma temporada, uma classificação" : "Seu bolão, suas regras"}</h2><p>{leaguesOnly ? "Ao participar, seus palpites válidos no período e escopo da liga contam automaticamente para a classificação. A organização é do ArenaPredict." : "O criador define o escopo e as regras. Ao confirmar um palpite, selecione o bolão para incluí-lo no ranking interno. Convites privados ficam entre os membros."}</p></div></section>
@@ -83,6 +83,8 @@ export function PoolsPage({ leaguesOnly = false }: { leaguesOnly?: boolean }) {
 }
 
 function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => void; onChange: () => void }) {
+  const { user } = useAuth();
+  const readOnly = user?.demoProfile === "ADMIN" || (user?.demoProfile === "PARTICIPANT" && !pool.demo);
   const [working, setWorking] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const { notify } = useToast();
@@ -145,7 +147,8 @@ function PoolCard({ pool, onRanking, onChange }: { pool: Pool; onRanking: () => 
           {pool.rules && <details className="competition-rules"><summary>Regras e classificação</summary><p>{pool.rules}</p></details>}
           {pool.virtualPrizePoints ? <p className="competition-reward">Reconhecimento da temporada: {points(pool.virtualPrizePoints)} pontos virtuais previstos nas regras.</p> : null}
           {!league && pool.inviteCode && <button className="invite-code" type="button" onClick={copyInvite}><span><small>Código de convite</small><strong>{pool.inviteCode}</strong></span><Clipboard size={16} /></button>}
-          <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
+          {pool.demo && <small className="demo-guidance">Demonstração</small>}
+          <footer><Button variant="secondary" onClick={onRanking}><Trophy size={16} /> Ver ranking</Button>{readOnly ? <small>Somente consulta</small> : pool.joined && !pool.owner ? <Button variant="quiet" loading={working} onClick={() => setConfirmLeave(true)}><UserMinus size={16} /> Sair</Button> : pool.owner || pool.joined ? <span className="joined-label"><Check size={15} /> Participando</span> : pool.publicPool ? <Button loading={working} onClick={joinPublic}><Plus size={16} /> Participar</Button> : null}</footer>
         </div>
       </article>
       <Modal open={confirmLeave} onClose={() => !working && setConfirmLeave(false)} title="Sair do grupo" size="sm">
@@ -184,6 +187,7 @@ export function validatePoolCreationDraft(values: {
 }
 
 function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; onClose: () => void; onCreated: () => void; league: boolean }) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [privacy, setPrivacy] = useState("PRIVATE");
@@ -203,7 +207,7 @@ function CreatePoolModal({ open, onClose, onCreated, league }: { open: boolean; 
     const [sports, championships] = await Promise.all([catalogApi.sports(), catalogApi.championships()]);
     return { sports: asList(sports), championships: asList(championships) };
   }, []);
-  const championships = (catalog?.championships || []).filter((item: Championship) => !sportId || String(item.sportId || "") === sportId);
+  const championships = (catalog?.championships || []).filter((item: Championship) => (!sportId || String(item.sportId || "") === sportId) && (!user?.demoProfile || !item.externalProvider));
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (submitRequestRef.current) return;

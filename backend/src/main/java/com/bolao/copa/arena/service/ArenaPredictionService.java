@@ -103,6 +103,9 @@ public class ArenaPredictionService {
         ArenaPool pool = null;
         if (request.poolId() != null) {
             pool = pools.findById(request.poolId()).orElseThrow(() -> new ArenaProblem.NotFound("Bolão não encontrado."));
+            if (demoAccess.isDemoAccount(user) && !demoAccess.isDemoAccount(pool.getOwner())
+                    && (pool.getChampionship() == null || !pool.getChampionship().isDemoManaged()))
+                throw new org.springframework.security.access.AccessDeniedException("Palpites Demo só podem pontuar em bolões demonstrativos.");
             if (members.findByPoolAndUser(pool, user).isEmpty()) throw new ArenaProblem.RuleViolation("Entre no bolão antes de registrar este palpite.");
             validatePool(pool, event);
         }
@@ -312,7 +315,8 @@ public class ArenaPredictionService {
                 value.getMarket().getId(), value.getMarket().getName(), value.getOption().getId(), value.getOption().getLabel(),
                 value.getStakePoints(), value.getMultiplier(), value.getPotentialPoints(), value.getRewardedPoints(),
                 value.getStatus(), value.getPool() == null ? null : value.getPool().getId(), value.getPlacedAt(), value.getResolvedAt(),
-                canCancel(value));
+                canCancel(value), value.getEvent().getStatus().name(), value.getEvent().getChampionship().getSport().getCode(),
+                value.getEvent().getChampionship().getSport().getName(), value.getEvent().isDemo());
     }
 
     private boolean canCancel(ArenaPrediction prediction) {

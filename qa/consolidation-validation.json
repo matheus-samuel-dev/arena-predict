@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-04",
+  "baseCommit": "3a12ff3",
+  "result": "PASS",
+  "backend": {
+    "command": "mvn -B -q verify",
+    "errors": 0,
+    "exitCode": 0,
+    "jar": "prediction-platform-api-0.0.1-SNAPSHOT.jar",
+    "evidence": "consolidation-backend-suites.json",
+    "failures": 0,
+    "tests": 388,
+    "suites": 37,
+    "skipped": 0,
+    "javaHost": "25.0.2"
+  },
+  "frontend": {
+    "viteBuild": "PASS",
+    "files": 23,
+    "tests": 221,
+    "exitCode": 0,
+    "adminLayoutRegression": {
+      "files": 2,
+      "exitCode": 0,
+      "tests": 36
+    },
+    "failures": 0,
+    "typecheck": "PASS"
+  },
+  "postgresql": {
+    "flywayVersions": "V1-V14",
+    "errors": 0,
+    "failures": 0,
+    "database": "arena_consolidation_final",
+    "tests": 65,
+    "evidence": "consolidation-postgresql-suites.json",
+    "exitCode": 0,
+    "version": "16.15"
+  },
+  "docker": {
+    "migration14Applied": true,
+    "project": "arena-sports-qa",
+    "frontendBuild": "PASS",
+    "preservedPostgresVolume": true,
+    "health": "PASS",
+    "jdkImage": 21,
+    "backendBuild": "PASS",
+    "config": "PASS"
+  },
+  "browser": {
+    "widths": [
+      1920,
+      1440,
+      1366,
+      1024,
+      768,
+      430,
+      390,
+      360
+    ],
+    "pageViewportCombinations": 296,
+    "consoleErrors": 0,
+    "evidence": "consolidation-browser.json",
+    "result": "PASS",
+    "pageErrors": 0,
+    "apiResponses": 1300,
+    "adminLayoutEvidence": "consolidation-admin-layout.json",
+    "overflow": 0,
+    "apiErrors": 0,
+    "adminLayout": {
+      "pageViewportCombinations": 160,
+      "result": "PASS",
+      "overflow": 0,
+      "consoleErrors": 0,
+      "apiErrors": 0,
+      "pageErrors": 0,
+      "apiResponses": 687
+    }
+  },
+  "productFlow": {
+    "result": "PASS",
+    "persistedRewardMatchesSavedPotential": true,
+    "ordinaryEventDetailPrediction": true,
+    "evidence": "consolidation-product-flow.json"
+  },
+  "httpDemo": {
+    "externalEventsPresentInQa": 0,
+    "result": "PASS",
+    "evidence": "demo-api-e2e.json",
+    "requests": 31
+  },
+  "provider": {
+    "adapter": "PandaScore CS2",
+    "mockProviderPostgresqlValidated": true,
+    "realCredentialValidated": false
+  },
+  "deployment": {
+    "localUrl": "http://localhost:5176",
+    "externalDeployment": false
+  },
+  "git": {
+    "commitCreated": false,
+    "pushPerformed": false
+  },
+  "limitations": [
+    "Provider externo sem credencial/plano ativo nesta execução",
+    "Correção pós-liquidação entra em revisão, sem reversão automática de XP/carteira",
+    "Contas Demo compartilhadas",
+    "Admin Demo opera somente a rodada controlada"
+  ],
+  "classification": "A - PRODUTO DE PORTFÓLIO FORTE E COMPLETO"
+}

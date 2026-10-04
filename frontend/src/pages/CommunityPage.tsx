@@ -101,7 +101,7 @@ export function CommunityPage() {
       />
       <div className="community-layout">
         <div>
-          <form className="surface composer" onSubmit={publish}>
+          {user?.demoProfile !== "ADMIN" && <form className="surface composer" onSubmit={publish}>
             <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} />
             <input
               className="composer__topic"
@@ -114,7 +114,7 @@ export function CommunityPage() {
             />
             <textarea value={content} onChange={(event) => setContent(event.target.value)} maxLength={600} placeholder="Qual é sua leitura para os próximos eventos?" aria-label="Nova publicação" disabled={posting} />
             <footer><span>{content.length}/600</span><Button size="sm" type="submit" loading={posting}><Send size={15} /> Publicar</Button></footer>
-          </form>
+          </form>}
           {error && <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />}
           {!error && data?.length ? (
             <div className="feed">
@@ -126,8 +126,9 @@ export function CommunityPage() {
                     <header>
                       <UserAvatar name={author} avatarUrl={post.author?.avatarUrl || post.avatarUrl} />
                       <div><strong>{author}</strong><span>{post.topic || "Discussão geral"} · <time dateTime={post.createdAt} title={dateTime(post.createdAt, true)}>{relativeTime(post.createdAt)}</time></span></div>
-                      <button className="icon-button" type="button" onClick={() => setReportTarget(post)} aria-label="Denunciar publicação"><MoreHorizontal size={18} /></button>
+                      {user?.demoProfile !== "ADMIN" && !post.ownedByCurrentUser && <button className="icon-button" type="button" onClick={() => setReportTarget(post)} aria-label="Denunciar publicação"><MoreHorizontal size={18} /></button>}
                     </header>
+                    {post.demo && <small className="demo-guidance">Demonstração</small>}
                     <p>{post.content}</p>
                     <footer>
                       <button
@@ -137,12 +138,12 @@ export function CommunityPage() {
                         aria-label={`${post.likedByCurrentUser ? "Remover curtida da publicação de" : "Curtir publicação de"} ${author}, ${post.likeCount ?? 0} ${(post.likeCount ?? 0) === 1 ? "curtida" : "curtidas"}`}
                         aria-pressed={Boolean(post.likedByCurrentUser)}
                         aria-busy={likingPostIds.has(String(post.id)) || undefined}
-                        disabled={likingPostIds.has(String(post.id))}
+                        disabled={likingPostIds.has(String(post.id)) || user?.demoProfile === "ADMIN"}
                       >
                         {likingPostIds.has(String(post.id)) ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <Heart size={17} fill={post.likedByCurrentUser ? "currentColor" : "none"} aria-hidden="true" />} {post.likeCount ?? 0}
                       </button>
                       <button type="button" onClick={() => setCommentTarget(post)} aria-label={`Abrir comentários de ${author}, ${commentCount} ${commentCount === 1 ? "comentário" : "comentários"}`}><MessageCircle size={17} aria-hidden="true" /> {commentCount}</button>
-                      <button type="button" onClick={() => setReportTarget(post)}><Flag size={16} /> Denunciar</button>
+                      {user?.demoProfile !== "ADMIN" && !post.ownedByCurrentUser && <button type="button" onClick={() => setReportTarget(post)}><Flag size={16} /> Denunciar</button>}
                     </footer>
                   </article>
                 );
@@ -179,6 +180,7 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const { notify } = useToast();
+  const { user } = useAuth();
   const postId = post?.id;
 
   useEffect(() => {
@@ -263,11 +265,11 @@ function CommentsModal({ post, onClose, onCommentAdded }: {
             )}
           </div>
 
-          <form className="comment-composer" onSubmit={submit}>
+          {user?.demoProfile !== "ADMIN" && <form className="comment-composer" onSubmit={submit}>
             <label htmlFor="community-comment">Seu comentário</label>
             <textarea id="community-comment" value={content} onChange={(event) => setContent(event.target.value)} maxLength={600} disabled={loading} placeholder="Contribua com a discussão..." />
             <footer><span>{content.length}/600</span><Button size="sm" type="submit" loading={submitting} disabled={loading || content.trim().length < 2}><Send size={15} /> Comentar</Button></footer>
-          </form>
+          </form>}
         </div>
       )}
     </Modal>

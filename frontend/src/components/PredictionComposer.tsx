@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
-import { createIdempotencyKey, poolsApi, predictionsApi, sessionStorage } from "../services/api";
+import { createIdempotencyKey, poolsApi, predictionsApi } from "../services/api";
+import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
 import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
 import { Button, Modal } from "./UI";
@@ -64,7 +65,7 @@ export function PredictionComposer({
   const selectionKey = draft ? `${draft.event.id}:${draft.market.id}:${draft.option.id}` : "";
   const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
   const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
-  const demoRestricted = Boolean(draft?.event.demoManaged || currentEvent?.demoManaged || sessionStorage.read()?.demoProfile) && !demoScenario;
+  const demoRestricted = Boolean((currentEvent || draft?.event) && predictionReadOnly((currentEvent || draft?.event)!)) && !demoScenario;
   const selectionAllowed = !demoRestricted && currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
   const { wallet, refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
@@ -90,7 +91,7 @@ export function PredictionComposer({
   }, [selectionKey]);
 
   useEffect(() => {
-    if (!draft || demoScenario || demoRestricted) {
+    if (!draft || demoScenario || demoRestricted || draft.event.demoManaged) {
       setAvailablePools([]);
       setPoolsError("");
       setPoolsLoading(false);
@@ -165,7 +166,7 @@ export function PredictionComposer({
     }
   }
 
-  if (draft && demoRestricted) return <Modal open onClose={onClose} title="Palpites da conta Demo" size="sm"><p>{draft.event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo nessa jornada para registrar um palpite." : "Esta conta participa somente da rodada guiada. Os outros eventos estão disponíveis para consulta."}</p><Link to="/demo" className="button button--primary button--md" onClick={onClose}>Ir para a demonstração</Link></Modal>;
+  if (draft && demoRestricted) return <Modal open onClose={onClose} title="Palpites da conta Demo" size="sm"><p>{draft.event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo para registrar um palpite." : "Participante Demo registra palpites em eventos de demonstração internos. Este evento está disponível para consulta."}</p><Link to="/demo" className="button button--primary button--md" onClick={onClose}>Ir para a demonstração</Link></Modal>;
 
   return (
     <Modal open={Boolean(draft)} onClose={closeComposer} title={confirmed ? "Palpite confirmado" : "Confirmar palpite"} size="sm">
@@ -188,7 +189,7 @@ export function PredictionComposer({
             <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
             <small id="prediction-stake-help">Saldo disponível: <strong>{points(balance)} pts</strong></small>
           </label>
-          {!demoScenario && <label className="prediction-pool-field">
+          {!demoScenario && !draft.event.demoManaged && <label className="prediction-pool-field">
             <span>Vincular a um bolão <small>(opcional)</small></span>
             <div><Trophy size={17} /><select value={poolId} onChange={(event) => setPoolId(event.target.value)} disabled={poolsLoading || submitting}><option value="">Palpite individual</option>{availablePools.map((pool) => <option value={String(pool.id)} key={pool.id}>{pool.name}</option>)}</select></div>
             {poolsLoading && <small>Carregando seus grupos...</small>}

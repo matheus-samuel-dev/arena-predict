@@ -4,7 +4,7 @@ A jornada `/demo` permite testar palpite, início da partida, resultado, pontua�
 
 ## Como experimentar
 
-1. Na tela de login, escolha **Participante Demo**. O acesso rápido abre `/demo`.
+1. Na tela de login, escolha **Participante Demo**. O acesso rápido abre `/app`, com todas as áreas do produto. Use **Testar uma rodada** ou **Demonstração guiada** no menu da conta para abrir `/demo`.
 2. Escolha um placar de série BO3, por exemplo **2 × 1**, revise os pontos virtuais no modal e confirme.
 3. Atualize a página: o palpite deve continuar em **Meus palpites nesta competição**.
 4. Use **Administrador Demo** na própria jornada. Confirme **Iniciar partida Demo**; o backend fecha os mercados pré-jogo e bloqueia novos palpites.
@@ -66,7 +66,9 @@ V13 cria `arena_demo_scenario` e os campos de escopo sem apagar dados existentes
 | Administrador Demo | Consultar cenário, iniciar a rodada, informar resultado e iniciar nova rodada |
 | Usuário normal, inclusive administrador operacional | Mantém permissões normais; não ganha acesso aos comandos reservados do cenário Demo |
 
-As duas contas Demo não acessam `/api/admin/**`. A conta administrativa pública não administra usuários, catálogos, resultados externos ou configurações. IDs manipulados são revalidados pelo serviço contra a rodada vigente. Palpites da conta Demo fora da competição controlada são recusados; contas comuns também não registram palpites nessa competição.
+Administrador Demo consulta os módulos de `/api/admin/**` definidos na lista explícita de leitura da `DemoAccessPolicy`, com e-mails e conteúdo privado de notificações protegidos. Participante Demo não acessa administração. Ambos conservam JWT e validação de identidade persistida. Comandos genéricos administrativos continuam bloqueados para contas Demo; iniciar, simular resultado e resetar usam somente os endpoints da competição controlada. IDs manipulados são revalidados pelo serviço contra a rodada vigente.
+
+Participante Demo pode registrar palpites elegíveis em eventos internos marcados Demo, inclusive pelo detalhe do evento, sem usar outro motor de pontuação. Nunca pode fazê-lo em eventos reais/externos. Contas comuns não registram palpites na competição controlada. O perfil e as preferências são próprios, a senha compartilhada é protegida, bolões Demo não podem apontar para campeonatos externos, e os comandos de comunidade Demo recusam conteúdo real. V14 identifica posts de demonstração e indexa o feed; curtidas e comentários continuam persistidos no mesmo domínio.
 
 O JWT mantém assinatura, expiração e verificação de usuário/role persistidos. Desabilitar acesso rápido não promove tokens Demo já emitidos a administradores comuns. O cadastro público recusa os e-mails reservados para impedir que alguém capture uma futura identidade Demo. Use identidades diferentes para Demo e administração operacional.
 
@@ -156,7 +158,7 @@ docker compose config --quiet
 docker compose build backend frontend
 ```
 
-Use uma instância PostgreSQL de teste para validar V1–V13 e repetir o roteiro acima com recarga da página entre etapas. Verifique também rejeições esperadas: participante tentando iniciar/finalizar/resetar; administrador Demo tentando acessar `/api/admin/**`; evento externo enviado ao endpoint Demo; resultado duplicado; confirmação de reset desatualizada. Confirme que dados oficiais permanecem intactos antes e depois do reset.
+Use uma instância PostgreSQL de teste para validar V1–V14 e repetir o roteiro acima com recarga da página entre etapas. Verifique também rejeições esperadas: participante tentando iniciar/finalizar/resetar; administrador Demo tentando enviar comandos genéricos a `/api/admin/**`; evento externo enviado ao endpoint Demo; resultado duplicado; confirmação de reset desatualizada. Confirme que dados oficiais permanecem intactos antes e depois do reset.
 
 Na interface, confira desktop, tablet, 430 px, 390 px e 360 px, além de foco, teclado, modais e feedback. Os comandos acima são instruções de reprodução, não uma declaração de aprovação dos testes ou de cobertura visual já executada.
 

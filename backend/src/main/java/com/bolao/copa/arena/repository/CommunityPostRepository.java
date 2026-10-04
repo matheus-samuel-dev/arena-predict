@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long> {
     @EntityGraph(attributePaths = "author") Page<CommunityPost> findByStatusOrderByCreatedAtDesc(ContentStatus status, Pageable pageable);
+    @EntityGraph(attributePaths = "author") Page<CommunityPost> findByStatusAndDemoOrderByCreatedAtDesc(ContentStatus status, boolean demo, Pageable pageable);
     @EntityGraph(attributePaths = "author") Optional<CommunityPost> findByIdAndStatus(Long id, ContentStatus status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = "author")

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
 import { eventFormatLabel, eventScore } from "../app/sportsData";
-import { sessionStorage } from "../services/api";
+import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
 import { TeamLogo } from "./TeamLogo";
@@ -102,7 +102,7 @@ export function EventCard({
   const format = eventFormatLabel(event);
   const multiParticipant = isMultiParticipantEvent(event);
   const predictionOpen = isPredictionOpen(event);
-  const demoReadOnly = Boolean(event.demoManaged || sessionStorage.read()?.demoProfile);
+  const demoReadOnly = predictionReadOnly(event);
   const primaryMarket = predictionOpen && !demoReadOnly ? event.markets?.find(isMarketOpen) : undefined;
 
   return (
@@ -168,7 +168,7 @@ export function EventCard({
 
       <footer className="event-card__foot">
         <span className={predictionOpen ? "event-availability event-availability--open" : "event-availability"}><Clock3 size={14} /> {event.predictionAvailabilityLabel || "Mercados ainda não publicados"}</span>
-        <Link to={event.demoManaged ? "/demo" : `/events/${event.id}`}>{event.demoManaged ? "Ir para a demonstração" : predictionOpen && !demoReadOnly ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
+        <Link to={`/events/${event.id}`}>{predictionOpen && !demoReadOnly ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
       </footer>
       {event.featured && <span className="featured-corner" title="Evento em destaque"><Sparkles size={13} /></span>}
     </article>
@@ -199,7 +199,7 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
       <EventDataSource event={event} />
       <footer>
         <span><MapPin size={14} /> {event.venue || dateTime(event.startsAt)}</span>
-        <Link to={event.demoManaged ? "/demo" : `/events/${event.id}`}>{event.demoManaged ? "Ir para a demonstração" : isPredictionOpen(event) && !sessionStorage.read()?.demoProfile ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={16} /></Link>
+        <Link to={`/events/${event.id}`}>{isPredictionOpen(event) && !predictionReadOnly(event) ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={16} /></Link>
       </footer>
     </article>
   );
@@ -215,10 +215,10 @@ export function MarketList({
   onPredict: (draft: PredictionDraft) => void;
 }) {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const demoReadOnly = Boolean(event.demoManaged || sessionStorage.read()?.demoProfile);
+  const demoReadOnly = predictionReadOnly(event);
   return (
     <div className="market-list">
-      {demoReadOnly && <p className="demo-guidance">{event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo nessa jornada para registrar um palpite." : "Esta conta registra palpites somente na rodada guiada."} <Link to="/demo">Ir para a demonstração</Link></p>}
+      {demoReadOnly && <p className="demo-guidance">{event.demoManaged ? "Use Participante Demo para registrar palpites nesta rodada." : "Esta conta pode consultar o evento. Para testar palpites, escolha um evento de demonstração."} <Link to="/demo">Ir para a demonstração</Link></p>}
       {markets.map((market) => {
         const disabled = !isMarketOpen(market);
         return (

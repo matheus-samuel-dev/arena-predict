@@ -12,20 +12,24 @@ import type { Prediction, WalletTransaction } from "../types";
 const predictionFilters = [
   { value: "", label: "Todos" },
   { value: "ACTIVE", label: "Ativos" },
+  { value: "AWAITING", label: "Aguardando resultado" },
   { value: "WON", label: "Vencedores" },
-  { value: "LOST", label: "Perdedores / reembolsados" },
+  { value: "LOST", label: "Perdedores" },
+  { value: "REFUNDED", label: "Reembolsados" },
   { value: "CANCELLED", label: "Cancelados" },
 ];
 
 const predictionStatusGroups: Record<string, string[]> = {
   ACTIVE: ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"],
   WON: ["WON", "VENCEDOR"],
-  LOST: ["LOST", "PERDEDOR", "REFUNDED", "REEMBOLSADO"],
+  LOST: ["LOST", "PERDEDOR"],
+  REFUNDED: ["REFUNDED", "REEMBOLSADO"],
   CANCELLED: ["CANCELLED", "CANCELADO"],
 };
 
-export function predictionMatchesFilter(status: string | undefined, filter: string) {
+export function predictionMatchesFilter(status: string | undefined, filter: string, eventStatus?: string) {
   if (!filter) return true;
+  if (filter === "AWAITING") return predictionStatusGroups.ACTIVE.includes(String(status || "").toUpperCase()) && ["LIVE", "FINISHED"].includes(String(eventStatus || "").toUpperCase());
   return predictionStatusGroups[filter]?.includes(String(status || "").toUpperCase()) ?? false;
 }
 
@@ -42,7 +46,7 @@ export function PredictionsPage() {
   const { data, loading, error, reload } = useApiResource(async () => asList(await predictionsApi.list({ size: 50 })), []);
 
   const predictions = useMemo(() => {
-    return (data || []).filter((item) => predictionMatchesFilter(item.status, filter));
+    return (data || []).filter((item) => predictionMatchesFilter(item.status, filter, item.eventStatus));
   }, [data, filter]);
 
   async function cancelPrediction() {
@@ -83,7 +87,7 @@ export function PredictionsPage() {
       </section>
 
       <div className="filter-tabs" role="group" aria-label="Filtrar palpites por status">
-        {predictionFilters.map((item) => <button type="button" aria-pressed={filter === item.value} className={filter === item.value ? "active" : ""} onClick={() => setFilter(item.value)} key={item.value}>{item.label}<span>{all.filter((prediction) => predictionMatchesFilter(prediction.status, item.value)).length}</span></button>)}
+        {predictionFilters.map((item) => <button type="button" aria-pressed={filter === item.value} className={filter === item.value ? "active" : ""} onClick={() => setFilter(item.value)} key={item.value}>{item.label}<span>{all.filter((prediction) => predictionMatchesFilter(prediction.status, item.value, prediction.eventStatus)).length}</span></button>)}
       </div>
 
       {predictions.length ? (
@@ -91,7 +95,7 @@ export function PredictionsPage() {
           {predictions.map((prediction) => (
             <article className="surface prediction-history__row" key={prediction.id}>
               <span className={`prediction-state-icon prediction-state-icon--${String(prediction.status).toLowerCase()}`}>{["WON", "VENCEDOR"].includes(String(prediction.status).toUpperCase()) ? <CheckCircle2 size={21} /> : ["LOST", "PERDEDOR"].includes(String(prediction.status).toUpperCase()) ? <XCircle size={21} /> : ["REFUNDED", "REEMBOLSADO"].includes(String(prediction.status).toUpperCase()) ? <RotateCcw size={21} /> : ["CANCELLED", "CANCELADO"].includes(String(prediction.status).toUpperCase()) ? <Ban size={21} /> : <Target size={21} />}</span>
-              <div className="prediction-history__event"><small>{prediction.marketName || "Mercado de previsão"}</small><strong>{prediction.eventTitle || `Evento #${prediction.eventId}`}</strong><span>{prediction.optionLabel || prediction.optionName || "Opção selecionada"}</span></div>
+              <div className="prediction-history__event"><small>{prediction.marketName || "Mercado de previsão"}{prediction.demo ? " · Demonstração" : ""}</small><Link to={`/events/${prediction.eventId}`}><strong>{prediction.eventTitle || `Evento #${prediction.eventId}`}</strong></Link><span>{prediction.optionLabel || prediction.optionName || "Opção selecionada"}</span></div>
               <div className="prediction-history__numbers"><small>Pontos</small><strong>{points(prediction.stakePoints ?? prediction.points)} pts</strong></div>
               <div className="prediction-history__numbers"><small>Coeficiente</small><strong>{multiplier(prediction.multiplier)}</strong></div>
               <div className="prediction-history__numbers"><small>Potencial</small><strong>{points(prediction.potentialPoints || 0)} pts</strong></div>

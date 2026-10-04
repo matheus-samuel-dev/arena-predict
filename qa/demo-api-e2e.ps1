@@ -29,7 +29,8 @@ $scenario = Api 'POST' '/demo/reset' @{expectedGeneration=$initial.generation} '
 $officialBefore = @(Api 'GET' '/events' | Where-Object externalProvider)
 $id = $scenario.event.id
 Check ($scenario.event.demoManaged -and $scenario.event.demo -and -not $scenario.event.externalProvider) 'Escopo do evento Demo inválido.'
-$null = Api 'GET' '/admin/dashboard' $null 'ADMIN' 403
+$null = Api 'GET' '/admin/dashboard' $null 'ADMIN'
+$null = Api 'POST' '/admin/events' @{} 'ADMIN' 403
 $null = Api 'POST' "/demo/events/$id/start" $null 'PARTICIPANT' 403
 $null = Api 'POST' '/demo/reset' @{expectedGeneration=$scenario.generation} 'PARTICIPANT' 403
 $null = Api 'POST' "/demo/events/$id/result" @{homeScore=2; awayScore=2} 'ADMIN' 422

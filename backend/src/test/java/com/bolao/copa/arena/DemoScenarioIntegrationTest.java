@@ -195,10 +195,9 @@ class DemoScenarioIntegrationTest {
         assertThatThrownBy(() -> demo.reset(current.generation(), RegularTestUsers.admin(users))).isInstanceOf(AccessDeniedException.class);
     }
 
-    @Test void demoParticipantCannotUseNormalMarketsAndNormalParticipantCannotUseControlledCompetition() {
-        var legacy = events.findByExternalKey("demo-cs2-open").orElseThrow();
-        var market = markets.findByEventOrderByIdAsc(legacy).getFirst();
-        assertThatThrownBy(() -> commands.place(new PlacePredictionRequest(legacy.getId(), market.getId(), 1L, 10, null, "outside"), null, player()))
+    @Test void demoParticipantCannotUseRealMarketsAndNormalParticipantCannotUseControlledCompetition() {
+        var legacy = officialEvent();
+        assertThatThrownBy(() -> commands.place(new PlacePredictionRequest(legacy.getId(), 1L, 1L, 10, null, "outside"), null, player()))
                 .isInstanceOf(AccessDeniedException.class);
         var scenario = demo.scenario(player());
         var selection = scenario.event().markets().getFirst();
