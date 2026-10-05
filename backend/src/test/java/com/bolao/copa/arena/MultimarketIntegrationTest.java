@@ -15,13 +15,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@SpringBootTest
+// The rollback test deliberately commits service transactions. Keep its database
+// separate from other suites and discard it when its context is closed.
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:multimarket;"
+        + "MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=0")
 @ActiveProfiles("test")
 @Transactional
 class MultimarketIntegrationTest {
@@ -347,6 +351,7 @@ class MultimarketIntegrationTest {
 
     @Test
     @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void incompleteResultRollsBackScoreMarketStatesAndAllCredits() {
         var tx=new TransactionTemplate(transactions);
         Long eventId=tx.execute(s -> { var e=fixture("football-open"); place(e,market(e,"TOTAL_GOALS"),"OVER",40); e.setStatus(EventStatus.LIVE); return e.getId(); });
