@@ -2093,6 +2093,30 @@ select:focus {
   gap: 12px;
 }
 
+.live-refresh {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  max-width: 100%;
+}
+
+.live-refresh__reading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.live-refresh > * {
+  flex: none;
+}
+
+.live-refresh__reading svg {
+  flex: none;
+}
+
 .live-pulse {
   min-height: 27px;
   padding: 0 9px;

@@ -155,7 +155,8 @@ export function LiveEventsPage() {
         description="Acompanhe placares, períodos, mapas e mercados em atualização."
         actions={(
           <div className="live-refresh" aria-live="polite">
-            <span><span className="live-pulse"><i /> Atualização automática a cada 30 s</span><small><Wifi size={13} /> Última leitura {dateTime(lastUpdatedAt.toISOString())}</small></span>
+            <span className="live-pulse"><i /> Atualização automática a cada 30 s</span>
+            <small className="live-refresh__reading"><Wifi size={13} /> Última leitura {dateTime(lastUpdatedAt.toISOString())}</small>
             <Button variant="secondary" size="sm" loading={refreshing} onClick={() => refreshLive(true).catch(() => undefined)}><RefreshCcw size={15} /> Atualizar agora</Button>
           </div>
         )}
