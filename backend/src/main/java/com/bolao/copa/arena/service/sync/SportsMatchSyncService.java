@@ -171,7 +171,7 @@ public class SportsMatchSyncService {
                 && Objects.equals(match.awayTeam().externalId(),event.getHomeCompetitor().getExternalId()))
             return new SportsMatch(match.externalId(),match.title(),match.awayTeam(),match.homeTeam(),match.championship(),
                     match.scheduledAt(),match.endedAt(),match.status(),match.awayScore(),match.homeScore(),match.bestOf(),
-                    match.winnerExternalId(),match.forfeit(),match.draw(),match.liveScoreAvailable());
+                    match.winnerExternalId(),match.forfeit(),match.draw(),match.liveScoreAvailable(),match.sportCode());
         return match;
     }
     private boolean completeResult(SportsMatch match) {

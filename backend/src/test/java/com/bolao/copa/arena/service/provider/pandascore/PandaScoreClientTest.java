@@ -227,6 +227,16 @@ class PandaScoreClientTest {
         server.expect(request -> { }).andRespond(withSuccess(payload, MediaType.APPLICATION_JSON));
         var error = catchThrowableOfType(() -> client.list("/csgo/teams", Map.of(), PandaScoreDtos.Team.class), SportsProviderException.class);
         assertThat(error.getReason()).isEqualTo(Reason.INVALID_RESPONSE);
+        assertThat(error.getRetryAt()).isEqualTo(NOW.plusMillis(properties.getFailureBackoffMs()));
+        server.verify();
+    }
+
+    @Test
+    void invalidPayloadBacksOffWithoutSpendingAnotherRequest() {
+        server.expect(requestTo("https://api.pandascore.co/matches/1")).andRespond(withSuccess("invalid",MediaType.APPLICATION_JSON));
+        assertThat(failure().getReason()).isEqualTo(Reason.INVALID_RESPONSE);
+        assertThat(client.lastHttpStatus()).isEqualTo(200);
+        assertThat(failure().getReason()).isEqualTo(Reason.INVALID_RESPONSE);
         server.verify();
     }
 

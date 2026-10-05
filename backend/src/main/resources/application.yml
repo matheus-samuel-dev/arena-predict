@@ -78,6 +78,7 @@ sports:
     api-token: ${PANDASCORE_API_TOKEN:}
     base-url: ${PANDASCORE_BASE_URL:https://api.pandascore.co}
     live-scores-enabled: ${PANDASCORE_LIVE_SCORES_ENABLED:false}
+    videogames: ${PANDASCORE_VIDEOGAMES:csgo,lol,valorant}
     connect-timeout-ms: ${PANDASCORE_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${PANDASCORE_READ_TIMEOUT_MS:8000}
     max-retries: ${PANDASCORE_MAX_RETRIES:1}

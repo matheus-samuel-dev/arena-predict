@@ -11,5 +11,5 @@ public class SportsSyncScheduler {
     private final SportsSyncService sync;
     public SportsSyncScheduler(SportsSyncService sync) { this.sync=sync; }
     @Scheduled(fixedDelayString="${sports.sync.interval-ms:30000}",initialDelayString="${sports.sync.initial-delay-ms:15000}")
-    public void synchronize() { sync.synchronize(); }
+    public void synchronize() { sync.scheduledSynchronize(); }
 }

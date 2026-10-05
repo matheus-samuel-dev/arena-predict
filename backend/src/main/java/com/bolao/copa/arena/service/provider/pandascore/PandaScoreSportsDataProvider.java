@@ -47,24 +47,28 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
     @Override public boolean available() { return client.configured(); }
     @Override public Instant nextAllowedRequestAt() { return client.nextAllowedRequestAt(); }
     @Override public Long remainingRequests() { return client.remainingRequests(); }
+    @Override public Integer lastHttpStatus() { return client.lastHttpStatus(); }
+    @Override public List<String> supportedSports() {
+        return properties.getVideogames().stream().map(PandaScoreGame::fromPath).map(PandaScoreGame::sportCode).distinct().toList();
+    }
 
     @Override public List<SportsMatch> upcomingMatches(Instant from, Instant to) {
-        return matches("/csgo/matches/upcoming", Map.of("range[scheduled_at]", from + "," + to, "sort", "scheduled_at,id"));
+        return gameMatches("/matches/upcoming", Map.of("range[scheduled_at]", from + "," + to, "sort", "scheduled_at,id"));
     }
 
     @Override public List<SportsMatch> runningMatches() {
-        return matches("/csgo/matches/running", Map.of("sort", "id"));
+        return gameMatches("/matches/running", Map.of("sort", "id"));
     }
 
     @Override public List<SportsMatch> finishedMatches(Instant since) {
-        return matches("/csgo/matches/past", Map.of("range[end_at]", since + "," + clock.instant(), "sort", "-end_at,id"));
+        return gameMatches("/matches/past", Map.of("range[end_at]", since + "," + clock.instant(), "sort", "-end_at,id"));
     }
 
     @Override public Optional<SportsMatch> matchDetails(String externalId) {
         validateId(externalId);
         try {
             // The generic detail endpoint is included in Fixtures; CS-specific details are paid.
-            return mapper.match(client.detail("/matches/" + externalId, PandaScoreDtos.Match.class), properties.isLiveScoresEnabled());
+            return mapped(client.detail("/matches/" + externalId, PandaScoreDtos.Match.class));
         } catch (SportsProviderException ex) {
             if (ex.getReason() == SportsProviderException.Reason.NOT_FOUND) return Optional.empty();
             throw ex;
@@ -76,23 +80,33 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
         List<SportsMatch> result = new ArrayList<>();
         for (int offset = 0; offset < ids.size(); offset += properties.getPageSize()) {
             var batch = ids.subList(offset, Math.min(offset + properties.getPageSize(), ids.size()));
-            result.addAll(matches("/csgo/matches", Map.of("filter[id]", String.join(",", batch), "sort", "id")));
+            // Generic IDs are global; one batch covers all supported games without three lookups.
+            result.addAll(matches("/matches", Map.of("filter[id]", String.join(",", batch), "sort", "id")));
         }
         return List.copyOf(result);
     }
 
     @Override public synchronized List<SportsTeam> teams() {
         if (cachedTeams != null && clock.instant().isBefore(teamsExpiresAt)) return cachedTeams;
-        cachedTeams = client.list("/csgo/teams", Map.of("sort", "id"), PandaScoreDtos.Team.class).stream()
-                .map(mapper::team).filter(Objects::nonNull).toList();
+        Map<String,SportsTeam> result=new LinkedHashMap<>();
+        for(String game:properties.getVideogames().stream().distinct().toList())
+            for(var source:client.list("/"+PandaScoreGame.fromPath(game).path()+"/teams",Map.of("sort","id"),PandaScoreDtos.Team.class)) {
+                var team=mapper.team(source); if(team!=null) result.putIfAbsent(team.externalId(),team);
+            }
+        cachedTeams = List.copyOf(result.values());
         teamsExpiresAt = clock.instant().plusMillis(properties.getReferenceCacheTtlMs());
         return cachedTeams;
     }
 
     @Override public synchronized List<SportsChampionship> championships() {
         if (cachedChampionships != null && clock.instant().isBefore(championshipsExpiresAt)) return cachedChampionships;
-        cachedChampionships = client.list("/csgo/tournaments/upcoming", Map.of("sort", "id"), PandaScoreDtos.Tournament.class).stream()
-                .map(value -> mapper.championship(value, null, null)).filter(Objects::nonNull).toList();
+        Map<String,SportsChampionship> result=new LinkedHashMap<>();
+        for(String game:properties.getVideogames().stream().distinct().toList())
+            for(var source:client.list("/"+PandaScoreGame.fromPath(game).path()+"/tournaments/upcoming",Map.of("sort","id"),PandaScoreDtos.Tournament.class)) {
+                var championship=mapper.championship(source,null,null);
+                if(championship!=null) result.putIfAbsent(championship.externalId(),championship);
+            }
+        cachedChampionships = List.copyOf(result.values());
         championshipsExpiresAt = clock.instant().plusMillis(properties.getReferenceCacheTtlMs());
         return cachedChampionships;
     }
@@ -100,9 +114,25 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
     private List<SportsMatch> matches(String path, Map<String, String> query) {
         Map<String, SportsMatch> unique = new LinkedHashMap<>();
         for (var value : client.list(path, query, PandaScoreDtos.Match.class)) {
-            mapper.match(value, properties.isLiveScoresEnabled()).ifPresent(match -> unique.put(match.externalId(), match));
+            mapped(value).filter(match -> supportedSports().contains(match.sportCode()))
+                    .ifPresent(match -> unique.put(match.externalId(), match));
         }
         return List.copyOf(unique.values());
+    }
+
+    private Optional<SportsMatch> mapped(PandaScoreDtos.Match value) {
+        if (value!=null && PandaScoreGame.from(value.videogame()).isPresent() && PandaScoreStatusMapper.map(value.status()).isEmpty())
+            throw new SportsProviderException(SportsProviderException.Reason.INVALID_RESPONSE,
+                    "PandaScore returned an unrecognized match status",clock.instant().plusMillis(properties.getFailureBackoffMs()));
+        return mapper.match(value,properties.isLiveScoresEnabled());
+    }
+
+    private List<SportsMatch> gameMatches(String suffix, Map<String,String> query) {
+        Map<String,SportsMatch> result = new LinkedHashMap<>();
+        for (String game : properties.getVideogames().stream().distinct().toList())
+            for (SportsMatch match : matches("/" + PandaScoreGame.fromPath(game).path() + suffix,query))
+                result.put(match.externalId(),match);
+        return List.copyOf(result.values());
     }
 
     private static void validateId(String id) {

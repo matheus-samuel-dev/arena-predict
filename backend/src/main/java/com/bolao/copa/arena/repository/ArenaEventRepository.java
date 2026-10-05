@@ -12,6 +12,8 @@ public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     Optional<ArenaEvent> findByExternalProviderAndExternalId(String externalProvider, String externalId);
     long countByExternalProviderAndResultReviewRequiredTrue(String externalProvider);
+    @Query("select e.externalId from ArenaEvent e where e.externalProvider = :provider and e.externalId in :ids")
+    List<String> findExistingExternalIds(@Param("provider") String provider, @Param("ids") Collection<String> ids);
     @Query("select e.externalId from ArenaEvent e where e.externalProvider = :provider and e.resultReviewRequired = false and " +
             "((e.resultProcessedAt is null and e.status = :finished and coalesce(e.finishedAt, e.startsAt) >= :oldest) or " +
             "(e.status not in :terminal " +

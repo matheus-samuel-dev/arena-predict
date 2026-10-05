@@ -2,6 +2,9 @@ package com.bolao.copa.arena.service.provider.pandascore;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -13,6 +16,7 @@ public class PandaScoreProperties {
     private String apiToken = "";
     private String baseUrl = "https://api.pandascore.co";
     private boolean liveScoresEnabled;
+    @NotEmpty private List<@Pattern(regexp = "csgo|lol|valorant") String> videogames = List.of("csgo", "lol", "valorant");
     @Min(100) @Max(30000) private int connectTimeoutMs = 3000;
     @Min(100) @Max(60000) private int readTimeoutMs = 8000;
     @Min(0) @Max(2) private int maxRetries = 1;
@@ -30,6 +34,8 @@ public class PandaScoreProperties {
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String value) { baseUrl = value; }
     public boolean isLiveScoresEnabled() { return liveScoresEnabled; }
+    public List<String> getVideogames() { return videogames; }
+    public void setVideogames(List<String> value) { videogames = value; }
     public void setLiveScoresEnabled(boolean value) { liveScoresEnabled = value; }
     public int getConnectTimeoutMs() { return connectTimeoutMs; }
     public void setConnectTimeoutMs(int value) { connectTimeoutMs = value; }

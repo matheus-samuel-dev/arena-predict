@@ -146,27 +146,30 @@ O acesso rápido reutiliza duas contas persistidas e o mesmo JWT do login conven
 
 Ative `APP_DEMO_ENABLED=true`, `APP_DEMO_CONTROLLED_ENABLED=true` e `VITE_DEMO_MODE=true`. Backend e Compose mantêm `APP_DEMO_ENABLED=false` por padrão; o `.env.example` o ativa para apresentação local. O catálogo demonstrativo existente permanece disponível para consulta. Partidas Demo ao vivo expiram em 15 minutos sem inventar resultado, com reembolso dos palpites ativos.
 
-O provider Demo continua interno e simulado. A integração opcional PandaScore sincroniza partidas reais de CS2 exclusivamente pelo backend. Os dois fluxos têm identidades separadas: o Demo nunca simula resultados de partidas externas. Multiplicadores e pontos continuam sendo regras virtuais da aplicação, não odds da PandaScore.
+O provider Demo continua interno e simulado. A integração opcional PandaScore sincroniza partidas reais de CS2, League of Legends e Valorant exclusivamente pelo backend. Os dois fluxos têm identidades separadas: o Demo nunca simula resultados de partidas externas. Multiplicadores e pontos continuam sendo regras virtuais da aplicação, não odds da PandaScore.
 
 Veja [arquitetura, permissões, reset, migrations e roteiro de teste da demonstração](docs/demo-flow.md).
 
-## Integração esportiva CS2
+## Integração esportiva real — eSports
 
 Configure no `.env` privado do backend/Compose:
 
 ```dotenv
-PANDASCORE_API_TOKEN=YOUR_TOKEN_HERE
+PANDASCORE_API_TOKEN=
 SPORTS_SYNC_ENABLED=true
+PANDASCORE_VIDEOGAMES=csgo,lol,valorant
 PANDASCORE_LIVE_SCORES_ENABLED=false
 ```
 
-Obtenha a credencial no [painel PandaScore](https://app.pandascore.co/). O token nunca é uma variável `VITE_*`. Sem token, a aplicação e o modo Demo continuam funcionando e a área administrativa informa a indisponibilidade da sincronização.
+Preencha o token somente no arquivo privado, com a credencial obtida no [painel PandaScore](https://app.pandascore.co/). O token nunca é uma variável `VITE_*`. Sem token, a aplicação e o modo Demo continuam funcionando e a área administrativa informa a indisponibilidade da sincronização. Futebol, basquete e tênis dependem de outro provider; PandaScore cobre eSports.
 
 Por padrão: próximas partidas a cada 15 minutos; jogos ao vivo e próximos de começar a cada 2 minutos; resultados recentes a cada 5 minutos. As frequências, timeouts, orçamento de requisições e janela de correções são configuráveis. Resultados válidos reutilizam a pontuação e o ranking existentes, com processamento transacional e idempotente.
 
 O placar ao vivo não é garantido pelo plano de calendário. A opção de live score aceita apenas placares de série presentes na resposta REST; não implementa o stream de rounds/mapas via WebSocket. Nunca preenche ausência com `0 × 0`.
 
 Veja [configuração, arquitetura, limitações, testes e atualização na EC2](docs/sports-integration.md). Correções de resultados já processados ficam em revisão auditável, sem duplicar créditos.
+
+O [procedimento operacional](docs/real-sports-operations.md) distingue conectividade, autenticação real e testes com fixtures. `qa/check-pandascore.py` permite uma verificação manual server-side sem imprimir secrets; não é executado pela CI.
 
 Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique segredo JWT ou senha de banco padrão. Administrador Demo consulta os módulos administrativos por uma lista explícita de endpoints; e-mails de usuários e conteúdo privado de notificações ficam protegidos. Comandos genéricos de administração continuam bloqueados para Demo. Somente os comandos do sandbox podem iniciar, simular e resetar sua rodada.
 

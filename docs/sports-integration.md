@@ -1,4 +1,4 @@
-# Integração esportiva CS2
+# Integração esportiva — CS2, League of Legends e Valorant
 
 ## Arquitetura preservada e evolução
 
@@ -25,8 +25,9 @@ Crie uma conta e obtenha o token no [painel PandaScore](https://app.pandascore.c
 No `.env` não versionado da EC2/local:
 
 ```dotenv
-PANDASCORE_API_TOKEN=YOUR_TOKEN_HERE
+PANDASCORE_API_TOKEN=
 SPORTS_SYNC_ENABLED=true
+PANDASCORE_VIDEOGAMES=csgo,lol,valorant
 PANDASCORE_LIVE_SCORES_ENABLED=false
 ```
 
@@ -48,6 +49,7 @@ Essas são as variáveis necessárias para ativar a integração com os padrões
 | `SPORTS_SYNC_TRACKED_BATCH_SIZE` | `20` | Limite de IDs por ciclo de acompanhamento |
 | `SPORTS_SYNC_LEASE_MS` | `900000` | Lease do consumidor de sincronização no banco |
 | `PANDASCORE_LIVE_SCORES_ENABLED` | `false` | Aceita placar de série REST ao vivo quando presente |
+| `PANDASCORE_VIDEOGAMES` | `csgo,lol,valorant` | Jogos habilitados no adapter de fixtures |
 | `PANDASCORE_CONNECT_TIMEOUT_MS` | `3000` | Timeout de conexão |
 | `PANDASCORE_READ_TIMEOUT_MS` | `8000` | Timeout de leitura do socket, inclusive do corpo após os cabeçalhos |
 | `PANDASCORE_MAX_RETRIES` | `1` | Uma repetição para falha transitória |
@@ -63,15 +65,15 @@ Essas são as variáveis necessárias para ativar a integração com os padrões
 
 ## Sincronização, resiliência e quota
 
-CS2 usa o prefixo legado `/csgo/`. São usados `/csgo/matches/upcoming`, `/running`, `/past` e `/csgo/matches?filter[id]=...` para reconciliação em lote. A operação de detalhe individual usa `/matches/{id}`, evitando o endpoint específico de CS com restrição de plano. Todos os snapshots são validados como Counter-Strike.
+CS2 usa o prefixo legado `/csgo/`; LoL usa `/lol/` e Valorant usa `/valorant/`. Cada jogo consulta `/matches/upcoming`, `/matches/running` e `/matches/past` sob seu prefixo. A reconciliação usa `/matches?filter[id]=...`, compartilhado pelos jogos, sem três consultas por lote. O detalhe individual usa `/matches/{id}`, incluído nos planos de fixtures. Cada snapshot conserva a modalidade informada pelo provedor. Futebol, basquete e tênis não são atribuídos ao PandaScore.
 
 Times e campeonatos vêm embutidos nas partidas, são deduplicados em memória no lote e consultados em lote no banco. Não existe chamada adicional de equipe/campeonato por partida. Os dados persistidos servem como cache para todos os usuários; Redis não foi introduzido. O cache de referências é local ao processo e limitado aos dois catálogos.
 
 Cada feed tem seu próprio último sucesso persistido. A lease no PostgreSQL evita que réplicas façam o mesmo ciclo simultaneamente. Chamadas de rede não mantêm transações de banco abertas. Uma falha em uma partida reverte somente sua transação, e as demais do lote ainda são tentadas. O ciclo fica indisponível em vez de anunciar sucesso completo quando houve erro de persistência.
 
-O plano de calendário documenta 1.000 requisições/hora. O cliente reserva quota consultando `X-Rate-Limit-Remaining`, conta retries no orçamento local e respeita `Retry-After` em 429/5xx quando presente. 429 não gera retry imediato; 401/403 pausa consultas e informa credencial/plano recusado. Não há retry infinito. Os padrões consomem tipicamente cerca de 76 requests/hora com uma página por feed e um lote acompanhado, antes de retries; páginas adicionais aumentam esse total. [Documentação de rate limit](https://developers.pandascore.co/docs/rate-and-connections-limits).
+O plano de calendário documenta 1.000 requisições/hora. O cliente reserva quota consultando `X-Rate-Limit-Remaining`, conta retries no orçamento local e respeita `Retry-After` em 429/5xx quando presente. 429 não gera retry imediato; 401/403 pausa consultas e informa credencial/plano recusado. Não há retry infinito. Com três jogos, os padrões representam aproximadamente 168 requests/hora quando cada feed cabe em uma página e há um lote acompanhado; paginação e retries aumentam esse total. O orçamento padrão continua em 600/hora. [Documentação de rate limit](https://developers.pandascore.co/docs/rate-and-connections-limits).
 
-O orçamento local é por processo; quota do servidor e lease coordenam a operação normal. Reinícios perdem o contador local, mas não o limite do provedor. Use um consumidor de sync no deploy atual e dimensione a lease acima do pior tempo de execução ao elevar timeouts, páginas ou retries.
+O orçamento local é por processo; quota do servidor e lease coordenam a operação normal. A janela de backoff recebida pelo coordenador fica persistida no PostgreSQL e é respeitada após reiniciar o consumidor. Reinícios perdem o contador local de requests, mas não o limite do provedor. Use um consumidor de sync no deploy atual e dimensione a lease acima do pior tempo de execução ao elevar jogos, timeouts, páginas ou retries.
 
 Os limites de páginas impedem varreduras ilimitadas. Ao atingir o teto, há warning: reduza o horizonte ou ajuste páginas respeitando a quota. Partidas sem dois adversários identificáveis, horário ou competição suficiente são adiadas até o provedor completar o payload. Elas não ganham horários/equipes fictícios. Cancelamentos de partidas já conhecidas são reconciliados pelo lote acompanhado; eventos distantes podem ser confirmados somente quando entrarem na janela de acompanhamento.
 

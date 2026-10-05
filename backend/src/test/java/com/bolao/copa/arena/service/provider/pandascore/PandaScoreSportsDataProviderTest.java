@@ -70,11 +70,36 @@ class PandaScoreSportsDataProviderTest {
     @Test
     void bulkDetailsDeduplicateAndBatchIdsInsteadOfCallingDetailsPerMatch() throws Exception {
         properties.setPageSize(2);
-        when(client.list(eq("/csgo/matches"), anyMap(), eq(PandaScoreDtos.Match.class))).thenReturn(List.of(upcoming()));
+        when(client.list(eq("/matches"), anyMap(), eq(PandaScoreDtos.Match.class))).thenReturn(List.of(upcoming()));
         provider.matchDetails(List.of("900001", "900001", "900002", "900003"));
-        verify(client).list("/csgo/matches", Map.of("filter[id]", "900001,900002", "sort", "id"), PandaScoreDtos.Match.class);
-        verify(client).list("/csgo/matches", Map.of("filter[id]", "900003", "sort", "id"), PandaScoreDtos.Match.class);
-        verify(client, times(2)).list(eq("/csgo/matches"), anyMap(), eq(PandaScoreDtos.Match.class));
+        verify(client).list("/matches", Map.of("filter[id]", "900001,900002", "sort", "id"), PandaScoreDtos.Match.class);
+        verify(client).list("/matches", Map.of("filter[id]", "900003", "sort", "id"), PandaScoreDtos.Match.class);
+        verify(client, times(2)).list(eq("/matches"), anyMap(), eq(PandaScoreDtos.Match.class));
+    }
+
+    @Test
+    void runningFeedUsesAllConfiguredGameEndpointsWithoutMislabelingTheirSport() throws Exception {
+        for (String game:List.of("csgo","lol","valorant")) {
+            var tree=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(PandaScoreMapperTest.readFixture("running-matches.json")).get(0);
+            tree.put("id",game.equals("csgo")?901001:game.equals("lol")?901002:901003);
+            tree.set("videogame",json.readTree("{\"slug\":\""+game+"\"}"));
+            when(client.list(eq("/"+game+"/matches/running"),anyMap(),eq(PandaScoreDtos.Match.class)))
+                    .thenReturn(List.of(json.treeToValue(tree,PandaScoreDtos.Match.class)));
+        }
+        assertThat(provider.runningMatches()).extracting(match -> match.sportCode()).containsExactly("CS2","LOL","VALORANT");
+        assertThat(provider.supportedSports()).containsExactly("CS2","LOL","VALORANT");
+    }
+
+    @Test
+    void unknownExternalStateCannotBecomeAHealthyEmptyFeed() throws Exception {
+        var tree=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(PandaScoreMapperTest.readFixture("running-matches.json")).get(0);
+        tree.put("status","unknown_future_state");
+        when(client.list(eq("/csgo/matches/running"),anyMap(),eq(PandaScoreDtos.Match.class)))
+                .thenReturn(List.of(json.treeToValue(tree,PandaScoreDtos.Match.class)));
+        assertThatThrownBy(provider::runningMatches).isInstanceOfSatisfying(SportsProviderException.class,error -> {
+            assertThat(error.getReason()).isEqualTo(Reason.INVALID_RESPONSE);
+            assertThat(error.getRetryAt()).isEqualTo(NOW.plusMillis(properties.getFailureBackoffMs()));
+        });
     }
 
     @Test
@@ -89,6 +114,18 @@ class PandaScoreSportsDataProviderTest {
         clock.advance(Duration.ofMinutes(1));
         assertThat(provider.teams().getFirst().name()).isEqualTo("Liquid");
         verify(client, times(2)).list(eq("/csgo/teams"), anyMap(), eq(PandaScoreDtos.Team.class));
+    }
+
+    @Test
+    void optionalReferenceCacheCoversAllConfiguredGamesWithoutRepeatingCalls() {
+        int id=1;
+        for(String game:List.of("csgo","lol","valorant"))
+            when(client.list(eq("/"+game+"/teams"),anyMap(),eq(PandaScoreDtos.Team.class)))
+                    .thenReturn(List.of(new PandaScoreDtos.Team((long)id++,game,null,null)));
+        assertThat(provider.teams()).hasSize(3);
+        assertThat(provider.teams()).hasSize(3);
+        for(String game:List.of("csgo","lol","valorant"))
+            verify(client,times(1)).list(eq("/"+game+"/teams"),anyMap(),eq(PandaScoreDtos.Team.class));
     }
 
     @Test

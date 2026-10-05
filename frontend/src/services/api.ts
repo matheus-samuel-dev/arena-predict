@@ -24,6 +24,7 @@ import type {
   WalletTransaction,
   MarketTemplate,
   SportsSyncStatus,
+  SportsSyncSummary,
   DemoScenario,
 } from "../types";
 
@@ -355,6 +356,7 @@ export const eventsApi = {
     request<ArenaEvent[] | PageResponse<ArenaEvent>>(`/events${query(filters)}`).then((result) => asList(result).map(normalizeEvent)),
   get: (id: number | string) => request<ArenaEvent>(`/events/${id}`).then(normalizeEvent),
   live: () => request<ArenaEvent[] | PageResponse<ArenaEvent>>("/events/live").then((result) => asList(result).map(normalizeEvent)),
+  synchronization: () => request<SportsSyncSummary>("/sports-sync/status"),
 };
 
 function normalizeDemoScenario(value: DemoScenario): DemoScenario {

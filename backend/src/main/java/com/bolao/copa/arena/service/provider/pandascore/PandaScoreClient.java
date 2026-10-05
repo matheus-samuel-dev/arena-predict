@@ -42,6 +42,7 @@ public class PandaScoreClient {
     private Instant retryAt = Instant.EPOCH;
     private Reason cooldownReason = Reason.RATE_LIMITED;
     private Long remainingRequests;
+    private Integer lastHttpStatus;
 
     @Autowired
     public PandaScoreClient(PandaScoreProperties properties, ObjectMapper json) {
@@ -83,6 +84,7 @@ public class PandaScoreClient {
 
     /** Last quota reported by the provider; null means no valid header was received. */
     public synchronized Long remainingRequests() { return remainingRequests; }
+    public synchronized Integer lastHttpStatus() { return lastHttpStatus; }
 
     public <T> List<T> list(String path, Map<String, String> query, Class<T> itemType) {
         List<T> items = new ArrayList<>();
@@ -124,6 +126,7 @@ public class PandaScoreClient {
                 }).accept(MediaType.APPLICATION_JSON).headers(headers -> headers.setBearerAuth(properties.getApiToken().strip()))
                         .exchange((request, response) -> {
                             int status = response.getStatusCode().value();
+                            lastHttpStatus = status;
                             accountHeaders(response.getHeaders());
                             if (status < 200 || status >= 300) throw new HttpFailure(status, response.getHeaders());
                             byte[] body = response.getBody().readNBytes(MAX_RESPONSE_BYTES + 1);
@@ -220,8 +223,9 @@ public class PandaScoreClient {
         return new SportsProviderException(reason, "PandaScore is temporarily unavailable; persisted sports data remains available", retryAt);
     }
 
-    private static SportsProviderException invalidResponse() {
-        return new SportsProviderException(Reason.INVALID_RESPONSE, "PandaScore returned an invalid or unsupported response", null);
+    private synchronized SportsProviderException invalidResponse() {
+        setCooldown(clock.instant().plusMillis(properties.getFailureBackoffMs()),Reason.INVALID_RESPONSE);
+        return new SportsProviderException(Reason.INVALID_RESPONSE, "PandaScore returned an invalid or unsupported response", retryAt);
     }
 
     private static boolean isTimeout(Throwable error) {

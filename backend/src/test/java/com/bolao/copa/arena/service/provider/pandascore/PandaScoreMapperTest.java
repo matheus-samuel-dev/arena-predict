@@ -81,10 +81,22 @@ class PandaScoreMapperTest {
         source.put("status", "suspended_unknown");
         assertThat(mapper.match(json.treeToValue(source, PandaScoreDtos.Match.class), false)).isEmpty();
         source.put("status", "finished");
-        source.set("videogame", json.readTree("{\"id\":1,\"slug\":\"lol\",\"name\":\"League of Legends\"}"));
+        source.set("videogame", json.readTree("{\"id\":99,\"slug\":\"unsupported-game\",\"name\":\"Unsupported game\"}"));
         assertThat(mapper.match(json.treeToValue(source, PandaScoreDtos.Match.class), false)).isEmpty();
         source.remove("id");
         assertThat(mapper.match(json.treeToValue(source, PandaScoreDtos.Match.class), false)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"csgo,CS2", "lol,LOL", "valorant,VALORANT"})
+    void keepsEachSupportedGameAndItsSeriesScore(String game,String code) throws Exception {
+        var source=fixture("finished-match.json");
+        source.set("videogame",json.readTree("{\"slug\":\""+game+"\"}"));
+        var result=map(source,false);
+        assertThat(result.sportCode()).isEqualTo(code);
+        assertThat(result.homeScore()).isEqualTo(2);
+        assertThat(result.awayScore()).isEqualTo(1);
+        assertThat(result.bestOf()).isEqualTo(3);
     }
 
     @Test

@@ -66,7 +66,7 @@ public class ArenaDashboardService {
                         || event.status() == EventStatus.LIVE)
                 .limit(6)
                 .toList();
-        List<EventResponse> live = allEvents.stream().filter(e -> e.status() == EventStatus.LIVE).toList();
+        List<EventResponse> live = catalog.liveEvents();
         List<EventResponse> upcoming = allEvents.stream().filter(e -> e.status() == EventStatus.OPEN_FOR_PREDICTIONS || e.status() == EventStatus.SCHEDULED).limit(8).toList();
         return new DashboardResponse(user.getName(), playerProgress.level(), playerProgress.title(),
                 playerProgress.xp(), playerProgress.nextLevelXp(), wallet.balance(), position, active, finished, won,

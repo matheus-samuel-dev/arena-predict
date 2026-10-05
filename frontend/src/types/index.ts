@@ -449,13 +449,30 @@ export interface SportsSyncStatus {
   provider: string;
   enabled: boolean;
   configured: boolean;
-  status: "DISABLED" | "UNCONFIGURED" | "ONLINE" | "UNAVAILABLE" | "RATE_LIMITED";
+  status: "DISABLED" | "UNCONFIGURED" | "CONFIGURED" | "SYNCING" | "ONLINE" | "DEGRADED" | "UNAVAILABLE" | "RATE_LIMITED";
   lastAttemptAt?: string | null;
   lastSuccessAt?: string | null;
   nextAllowedRequestAt?: string | null;
   requestsRemaining?: number | null;
   message?: string;
   reviewRequiredCount?: number;
+  supportedSports?: string[];
+  lastSchedulerTickAt?: string | null;
+  nextSyncAt?: string | null;
+  lastRunCompletedAt?: string | null;
+  receivedCount?: number;
+  insertedCount?: number;
+  updatedCount?: number;
+  skippedCount?: number;
+  failedCount?: number;
+  durationMs?: number | null;
+  lastHttpStatus?: number | null;
+  lastErrorReason?: string | null;
+}
+
+export interface SportsSyncSummary {
+  healthy: boolean;
+  lastSuccessAt: string | null;
 }
 
 export interface DemoScenario {

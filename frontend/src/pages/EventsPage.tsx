@@ -1,5 +1,5 @@
 import { Activity, CalendarDays, ChevronDown, Filter, Radio, RefreshCcw, Search, ShieldCheck, SlidersHorizontal, Trophy, Wifi } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
@@ -8,8 +8,10 @@ import { EventDataSource } from "../components/EventDataSource";
 import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList, SportBadge } from "../components/EventCard";
 import { TeamLogo } from "../components/TeamLogo";
 import { PredictionComposer } from "../components/PredictionComposer";
+import { SportsSyncSummary } from "../components/SportsSyncSummary";
 import { Button, EmptyState, ErrorState, NoResults, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import { asList, catalogApi, eventsApi } from "../services/api";
@@ -121,22 +123,29 @@ export function EventsPage() {
 
 export function LiveEventsPage() {
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(() => new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlight = useRef(false);
+  const { user } = useAuth();
   const { notify } = useToast();
-  const { data, loading, error, reload, refresh } = useApiResource(async () => asList(await eventsApi.live()), []);
+  const { data, loading, error, reload, refresh } = useApiResource(async () => {
+    const [events, synchronization] = await Promise.all([
+      eventsApi.live(), eventsApi.synchronization().catch(() => null),
+    ]);
+    return { events: asList(events), synchronization, readAt: new Date().toISOString() };
+  }, []);
 
   const refreshLive = useCallback(async (manual = false) => {
-    if (document.visibilityState === "hidden") return;
+    if (document.visibilityState === "hidden" || refreshInFlight.current) return;
+    refreshInFlight.current = true;
     setRefreshing(true);
     try {
       await refresh();
-      setLastUpdatedAt(new Date());
       if (manual) notify("Central ao vivo atualizada.", "success");
     } catch (reason) {
       if (manual) notify(reason instanceof Error ? reason.message : "Não foi possível atualizar os eventos ao vivo.", "error");
       throw reason;
     } finally {
+      refreshInFlight.current = false;
       setRefreshing(false);
     }
   }, [notify, refresh]);
@@ -145,7 +154,11 @@ export function LiveEventsPage() {
 
   if (loading) return <PageSkeleton cards={3} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
-  const events = data || [];
+  const events = data?.events || [];
+  const synchronization = data?.synchronization;
+  const emptyDescription = synchronization?.healthy && synchronization.lastSuccessAt
+    ? `Nenhum evento está ao vivo neste momento. Os dados esportivos foram sincronizados com sucesso em ${dateTime(synchronization.lastSuccessAt)}.`
+    : "Não há eventos ao vivo agora. A agenda continua disponível para seus próximos palpites.";
 
   return (
     <>
@@ -156,11 +169,12 @@ export function LiveEventsPage() {
         actions={(
           <div className="live-refresh" aria-live="polite">
             <span className="live-pulse"><i /> Atualização automática a cada 30 s</span>
-            <small className="live-refresh__reading"><Wifi size={13} /> Última leitura {dateTime(lastUpdatedAt.toISOString())}</small>
+            <small className="live-refresh__reading" title="Última consulta ao ArenaPredict. A sincronização do provedor ocorre separadamente."><Wifi size={13} /> Última leitura {data?.readAt ? dateTime(data.readAt) : "—"}</small>
             <Button variant="secondary" size="sm" loading={refreshing} onClick={() => refreshLive(true).catch(() => undefined)}><RefreshCcw size={15} /> Atualizar agora</Button>
           </div>
         )}
       />
+      {user?.role === "ADMIN" && <SportsSyncSummary />}
       {events.length ? (
         <div className="live-layout">
           <div className="event-list">{events.map((event) => <LiveEventPanel event={event} onPredict={setDraft} key={event.id} />)}</div>
@@ -173,7 +187,7 @@ export function LiveEventsPage() {
           </aside>
         </div>
       ) : (
-        <EmptyState icon={Activity} title="A arena está em intervalo" description="Não há eventos ao vivo agora. A agenda continua disponível para seus próximos palpites." />
+        <EmptyState icon={Activity} title="A arena está em intervalo" description={emptyDescription} />
       )}
       <PredictionComposer draft={draft} currentEvent={events.find((item) => item.id === draft?.event.id) ?? null} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />
     </>
@@ -195,7 +209,7 @@ export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPred
         <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" /><strong>{away.name || away.code}</strong></div>
       </div>}
       {!multiParticipant && !score && <p className="score-unavailable">{event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor."}</p>}
-      <EventDataSource event={event} />
+      <EventDataSource event={event} demoLabel="Demonstração" />
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
       {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label="Mercados ainda não publicados" />}
       <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>{`Explorar todos (${event.markets?.length || 0})`}</Link></footer>

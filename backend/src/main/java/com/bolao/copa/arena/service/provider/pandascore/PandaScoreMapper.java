@@ -18,7 +18,8 @@ public class PandaScoreMapper {
     public Optional<SportsMatch> match(PandaScoreDtos.Match source, boolean liveScoresEnabled) {
         if (source == null || source.id() == null || source.id() <= 0) return Optional.empty();
         var status = PandaScoreStatusMapper.map(source.status()).orElse(null);
-        if (status == null || !isCounterStrike(source.videogame())) {
+        var game = PandaScoreGame.from(source.videogame()).orElse(null);
+        if (status == null || game == null) {
             log.warn("[SPORTS_SYNC] Ignoring unsupported PandaScore match externalId={}", source.id());
             return Optional.empty();
         }
@@ -42,7 +43,7 @@ public class PandaScoreMapper {
                 source.scheduledAt() != null ? source.scheduledAt() : source.beginAt(), source.endAt(), status,
                 homeScore, awayScore, bestOf, winner == null ? null : winner.toString(),
                 Boolean.TRUE.equals(source.forfeit()), Boolean.TRUE.equals(source.draw()),
-                status == EventStatus.LIVE && homeScore != null && awayScore != null));
+                status == EventStatus.LIVE && homeScore != null && awayScore != null, game.sportCode()));
     }
 
     public SportsTeam team(PandaScoreDtos.Team source) {
@@ -61,13 +62,6 @@ public class PandaScoreMapper {
         return new SportsChampionship(tournament.id().toString(), first(seriesName, leagueName, tournament.name()),
                 clean(tournament.slug()), season, league == null ? null : safeLogo(league.imageUrl()),
                 leagueName, seriesName, tournament.beginAt(), tournament.endAt());
-    }
-
-    private static boolean isCounterStrike(PandaScoreDtos.Videogame value) {
-        if (value == null) return false;
-        return Long.valueOf(3).equals(value.id()) || "csgo".equals(value.slug()) || "cs2".equals(value.slug())
-                || "Counter-Strike 2".equalsIgnoreCase(value.name()) || "Counter-Strike".equalsIgnoreCase(value.name())
-                || "CS:GO".equalsIgnoreCase(value.name());
     }
 
     private static Integer score(List<PandaScoreDtos.Result> results, String teamId) {

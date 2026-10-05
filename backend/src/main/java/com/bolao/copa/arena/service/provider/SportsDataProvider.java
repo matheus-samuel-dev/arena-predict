@@ -11,6 +11,8 @@ public interface SportsDataProvider {
     default boolean available() { return true; }
     default Instant nextAllowedRequestAt() { return null; }
     default Long remainingRequests() { return null; }
+    default Integer lastHttpStatus() { return null; }
+    default List<String> supportedSports() { return List.of(); }
     default List<LiveEventUpdate> liveUpdates() { return List.of(); }
     default List<SportsMatch> upcomingMatches(Instant from, Instant to) { return List.of(); }
     default List<SportsMatch> runningMatches() { return List.of(); }
