@@ -132,7 +132,7 @@ public class SportsSyncService {
         Instant now=clock.instant(), retry=retryAt(saved);
         String status=!properties.enabled()?"DISABLED":!provider.available()?"UNCONFIGURED":saved.status();
         String message=!properties.enabled()?"Sincronização externa desativada.":!provider.available()?
-                "PANDASCORE_API_TOKEN não configurado. Os dados salvos e o modo Demo continuam disponíveis.":saved.message();
+                provider.credentialVariable()+" não configurada. Os dados salvos e o modo Demo continuam disponíveis.":saved.message();
         if (properties.enabled() && provider.available()) {
             if (retry!=null && now.isBefore(retry) && !"UNAVAILABLE".equals(status)) {
                 status="RATE_LIMITED"; message="Quota protegida; novas consultas aguardam a janela permitida pelo provedor.";

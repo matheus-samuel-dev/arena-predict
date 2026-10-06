@@ -7116,6 +7116,10 @@ select { min-width: 0; max-width: 100%; }
 .event-results-summary { align-items: center; flex-wrap: wrap; }
 .event-source-filter { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 .event-source-filter select { width: auto; font-size: var(--font-size-xs); }
+.event-source-filter { min-width: 0; max-width: 100%; }
+.event-source-filter select { min-width: 0; max-width: min(20rem, 65vw); }
+.sports-sync-summary summary { cursor: pointer; font-size: var(--font-size-sm); padding-block: var(--space-2); }
+.sports-provider-status { display: grid; gap: var(--space-1); padding-block: var(--space-3); border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 
 .prediction-receipt {
   margin: var(--space-5) 0 0;

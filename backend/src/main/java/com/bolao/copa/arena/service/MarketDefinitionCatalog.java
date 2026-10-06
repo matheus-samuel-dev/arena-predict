@@ -27,7 +27,7 @@ public class MarketDefinitionCatalog {
     public List<Definition> definitions(ArenaEvent event, List<EventParticipant> participants) {
         // External matches publish only series-score markets. No map, round or
         // pistol contract may be sold when the provider cannot settle it.
-        if (event.getExternalProvider() != null && (event.getBestOf() == null
+        if (event.getExternalProvider() != null && List.of("CS2","VALORANT","LEAGUE_OF_LEGENDS").contains(event.getChampionship().getSport().getCode()) && (event.getBestOf() == null
                 || !List.of(1, 3, 5).contains(event.getBestOf()))) return List.of();
         String home = event.getHomeCompetitor() == null ? "Participante 1" : event.getHomeCompetitor().getName();
         String away = event.getAwayCompetitor() == null ? "Participante 2" : event.getAwayCompetitor().getName();
@@ -115,7 +115,10 @@ public class MarketDefinitionCatalog {
             default -> { return List.of(); }
         }
         if (event.getExternalProvider() != null || event.isDemoManaged()) {
-            return b.definitions.stream().filter(d -> d.metric().equals("score") && d.fields().isEmpty())
+            Set<String> supported=event.getSourceMetrics()==null?Set.of("score"):new HashSet<>(Arrays.asList(event.getSourceMetrics().split(",")));
+            return b.definitions.stream().filter(d -> (event.isDemoManaged()?d.metric().equals("score"):supported.contains(d.metric())) && d.fields().isEmpty())
+                    .filter(d -> event.getExternalProvider()==null || !d.code().equals("LIVE_RESULT"))
+                    .filter(d -> !(event.getExternalProvider()!=null&&event.getBestOf()==null&&List.of("SET_SCORE","TOTAL_SETS","SET_HANDICAP").contains(d.code())))
                     .map(d -> new Definition(d.code(), d.name(), d.category(), d.strategy(), d.metric(), d.line(),
                             PRE, d.options(), d.fields(), d.settlementDescription()
                             + (event.isDemoManaged() ? " Resultado demonstrativo processado pelo domínio do Arena Predict."

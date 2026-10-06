@@ -52,7 +52,7 @@ class SportsSyncOperationsIntegrationTest {
     @Autowired MockMvc http;
 
     @ParameterizedTest
-    @CsvSource({"csgo,CS2,901001", "lol,LOL,901002", "valorant,VALORANT,901003"})
+    @CsvSource({"csgo,CS2,901001", "lol,LEAGUE_OF_LEGENDS,901002", "valorant,VALORANT,901003"})
     void fixturesTravelThroughMapperSyncDatabaseApiAndTheSameDashboardLiveSource(String game,String code,long id) throws Exception {
         SportsMatch source=fixture(game,id);
         SportsDataProvider provider=provider(source);
@@ -85,7 +85,8 @@ class SportsSyncOperationsIntegrationTest {
         assertThat(events.count()).isEqualTo(before+1);
         var metrics=state.snapshot("PANDASCORE");
         assertThat(metrics.inserted()).isZero();
-        assertThat(metrics.updated()).isEqualTo(1);
+        assertThat(metrics.updated()).isZero();
+        assertThat(metrics.skipped()).isEqualTo(1);
         assertThat(metrics.lastHttpStatus()).isEqualTo(200); // Explicit mocked transport metadata.
         assertThat(metrics.lastSuccessAt()).isEqualTo(NOW.plusSeconds(121));
         String safe=json.writeValueAsString(new SportsSyncPublicController(coordinator(provider,NOW.plusSeconds(121))).status());
@@ -140,7 +141,7 @@ class SportsSyncOperationsIntegrationTest {
         var provider=mock(SportsDataProvider.class);
         when(provider.providerId()).thenReturn("PANDASCORE"); when(provider.providerName()).thenReturn("PandaScore fixture");
         when(provider.available()).thenReturn(true); when(provider.lastHttpStatus()).thenReturn(200);
-        when(provider.supportedSports()).thenReturn(List.of("CS2","LOL","VALORANT"));
+        when(provider.supportedSports()).thenReturn(List.of("CS2","LEAGUE_OF_LEGENDS","VALORANT"));
         when(provider.runningMatches()).thenReturn(source==null?List.of():List.of(source));
         when(provider.matchDetails(anyList())).thenReturn(source==null?List.of():List.of(source));
         return provider;

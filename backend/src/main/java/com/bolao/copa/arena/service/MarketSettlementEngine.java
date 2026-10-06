@@ -56,12 +56,18 @@ public class MarketSettlementEngine {
         if (home < 0 || away < 0 || home > 1000 || away > 1000) throw new ArenaProblem.RuleViolation("Placar fora dos limites permitidos.");
         Set<String> seriesSports = Set.of("CS2", "VALORANT", "LEAGUE_OF_LEGENDS", "DOTA2", "TENNIS", "VOLLEYBALL");
         if (finished && seriesSports.contains(sport)) {
+            boolean providerTennisWithoutFormat=event.getExternalProvider()!=null&&sport.equals("TENNIS")&&event.getBestOf()==null;
+            if(providerTennisWithoutFormat) {
+                if(!Set.of(2,3).contains(Math.max(home,away))||Math.min(home,away)>=Math.max(home,away))
+                    throw new ArenaProblem.RuleViolation("Resultado final de sets inconsistente.");
+            } else {
             if (event.getBestOf() == null && !sport.equals("VOLLEYBALL"))
                 throw new ArenaProblem.RuleViolation("O formato da série precisa ser confirmado antes de processar os palpites.");
             int bestOf = sport.equals("VOLLEYBALL") ? 5 : sport.equals("TENNIS") ? Math.max(3, event.getBestOf()) : event.getBestOf();
             int target = bestOf / 2 + 1;
             if (Math.max(home, away) != target || Math.min(home, away) >= target)
                 throw new ArenaProblem.RuleViolation("Placar da série inválido para melhor de " + bestOf + ": um participante precisa vencer " + target + " mapas/sets.");
+            }
         }
         if (finished && sport.equals("BASKETBALL") && home == away)
             throw new ArenaProblem.RuleViolation("O basquete exige um vencedor após a prorrogação.");

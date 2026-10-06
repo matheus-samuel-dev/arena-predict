@@ -23,8 +23,7 @@ public class DemoProbabilityEngine {
         options.forEach(o -> values.put(o.getKey(), o.getMultiplier().max(MIN).min(MAX).setScale(2,RoundingMode.HALF_UP)));
         var definition=definitions.definition(market,List.of()).orElse(null);
         ArenaEvent event=market.getEvent();
-        if (event.getExternalProvider() != null)
-            return new Quote(values,"STATIC","Multiplicadores de pontos virtuais definidos pelo Arena Predict; não são odds do provedor.");
+        if (event.getExternalProvider() != null) return realPrematch(market,options,definition,values);
         if (event.getStatus()!=EventStatus.LIVE || definition==null || market.getStatus()!=MarketStatus.OPEN || market.getTimingMode()==MarketTimingMode.PRE_MATCH_ONLY)
             return new Quote(values,"STATIC","Multiplicadores demonstrativos estáticos.");
         List<FinalScore> scores=distribution(event,definition.metric());
@@ -64,6 +63,50 @@ public class DemoProbabilityEngine {
             case DOUBLE_CHANCE -> switch(key) { case "HOME_DRAW" -> s.home()>=s.away(); case "HOME_AWAY" -> s.home()!=s.away(); default -> s.home()<=s.away(); };
             default -> null;
         };
+    }
+    private Quote realPrematch(PredictionMarket market,List<MarketOption> options,MarketDefinitionCatalog.Definition definition,Map<String,BigDecimal> fallback) {
+        if(definition==null || !definition.metric().equals("score")) return new Quote(fallback,"STATIC","Coeficiente administrativo; modelo não disponível para este contrato.");
+        String sport=market.getEvent().getChampionship().getSport().getCode(); List<FinalScore> scores=new ArrayList<>();
+        if(sport.equals("FOOTBALL")) scores=poissonScores(0,0,1.3);
+        else if(sport.equals("BASKETBALL")) {
+            // Explicit sport prior, independent of team names, provider IDs or random seeds.
+            double mean="NBA".equalsIgnoreCase(market.getEvent().getChampionship().getName())?108:80;
+            double sum=0;
+            for(int h=0;h<=180;h++) for(int a=0;a<=180;a++) {
+                double weight=Math.exp(-((h-mean)*(h-mean)+(a-mean)*(a-mean))/(2*196));sum+=weight;
+                scores.add(new FinalScore(h,a,weight));
+            }
+            List<FinalScore> normalized=new ArrayList<>();
+            for(var score:scores) {
+                if(score.home()==score.away()) {normalized.add(new FinalScore(score.home()+1,score.away(),score.probability()/sum/2));normalized.add(new FinalScore(score.home(),score.away()+1,score.probability()/sum/2));}
+                else normalized.add(new FinalScore(score.home(),score.away(),score.probability()/sum));
+            }
+            scores=normalized;
+        } else if(sport.equals("TENNIS")&&market.getEvent().getBestOf()==null) {
+            if(definition.strategy()!=MarketDefinitionCatalog.Strategy.WINNER) return new Quote(fallback,"STATIC","Formato não confirmado; coeficiente administrativo.");
+            // No fabricated best-of; only the symmetric winner prior is defined.
+            var values=new LinkedHashMap<String,BigDecimal>();options.forEach(o->values.put(o.getKey(),multiplier(0.5)));
+            return new Quote(values,"INTERNAL_MODEL","Modelo interno v3 · probabilidade pré-jogo simétrica; não são odds externas.");
+        } else if(List.of("CS2","VALORANT","LEAGUE_OF_LEGENDS","TENNIS").contains(sport)&&market.getEvent().getBestOf()!=null)
+            series(0,0,market.getEvent().getBestOf()/2+1,0.5,1,scores,true);
+        if(scores.isEmpty()) return new Quote(fallback,"STATIC","Modelo não disponível para esta modalidade.");
+        Map<String,BigDecimal> values=new LinkedHashMap<>();
+        for(var option:options) {
+            double probability=0;
+            for(var score:scores) { Boolean win=realMatches(definition,option.getKey(),score);
+                if(win==null) return new Quote(fallback,"STATIC","Modelo não disponível para este contrato.");
+                if(win) probability+=score.probability();
+            }
+            values.put(option.getKey(),multiplier(probability));
+        }
+        return new Quote(values,"INTERNAL_MODEL","Modelo interno v3 · estimativa pré-jogo por modalidade; pontos virtuais, não são odds do provedor.");
+    }
+    private Boolean realMatches(MarketDefinitionCatalog.Definition d,String key,FinalScore s) {
+        if(d.strategy()==MarketDefinitionCatalog.Strategy.EXACT_SCORE) return key.equals("OTHER")?
+                !d.options().stream().anyMatch(o->o.key().equals(s.home()+"_"+s.away())):key.equals(s.home()+"_"+s.away());
+        if(d.strategy()==MarketDefinitionCatalog.Strategy.MARGIN) return key.equals(s.home()==s.away()?"DRAW":
+                (s.home()>s.away()?"HOME":"AWAY")+(Math.abs(s.home()-s.away())<=d.line().doubleValue()?"_SMALL":"_LARGE"));
+        return matches(d,key,s);
     }
     private List<FinalScore> distribution(ArenaEvent event,String metric) {
         JsonNode data=data(event);

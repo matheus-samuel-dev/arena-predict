@@ -1,6 +1,7 @@
 sports:
   sync:
     enabled: false
+    scheduler-enabled: false
   pandascore:
     api-token: ""
 

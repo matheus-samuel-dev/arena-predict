@@ -8,7 +8,7 @@ export function isExternalEvent(event: { externalProvider?: unknown }) {
 }
 
 export function eventSourceLabel(event: Pick<ArenaEvent, "externalProvider" | "demo" | "demoLiveData">) {
-  if (isExternalEvent(event)) return event.externalProvider?.trim().toUpperCase() === "PANDASCORE" ? "PandaScore" : "Dados reais";
+  if (isExternalEvent(event)) return ({ PANDASCORE:"PandaScore", API_FOOTBALL:"API-FOOTBALL", API_BASKETBALL:"API-BASKETBALL", API_TENNIS:"API-Tennis", API_FORMULA1:"API-FORMULA-1" } as Record<string,string>)[event.externalProvider!.trim().toUpperCase()] || "Dados reais";
   return event.demo || event.demoLiveData || ["DEMO", "MOCK"].includes(event.externalProvider?.trim().toUpperCase() || "") ? "Demo" : null;
 }
 

@@ -6,7 +6,7 @@ import java.util.Optional;
 /** Fixtures coverage only; a running match does not imply paid in-game statistics. */
 public enum PandaScoreGame {
     CSGO("csgo", "CS2", "Counter-Strike 2", "crosshair"),
-    LOL("lol", "LOL", "League of Legends", "swords"),
+    LOL("lol", "LEAGUE_OF_LEGENDS", "League of Legends", "swords"),
     VALORANT("valorant", "VALORANT", "Valorant", "crosshair");
 
     private final String path, sportCode, displayName, icon;
@@ -22,7 +22,7 @@ public enum PandaScoreGame {
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported PandaScore videogame"));
     }
     public static PandaScoreGame fromSport(String code) {
-        return Arrays.stream(values()).filter(game -> game.sportCode.equals(code)).findFirst()
+        return Arrays.stream(values()).filter(game -> game.sportCode.equals(com.bolao.copa.arena.service.provider.SportsProviderRegistry.canonicalSport(code))).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported normalized sport"));
     }
     public static Optional<PandaScoreGame> from(PandaScoreDtos.Videogame value) {

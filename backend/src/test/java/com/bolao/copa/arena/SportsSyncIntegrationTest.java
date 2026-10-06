@@ -201,7 +201,9 @@ class SportsSyncIntegrationTest {
             List<Future<Boolean>> work=new ArrayList<>();
             for(int i=0;i<4;i++) work.add(executor.submit(() -> { start.await(); return sync.synchronize(PROVIDER,snapshot,refs); }));
             start.countDown();
-            for(var task:work) assertThat(task.get(30,TimeUnit.SECONDS)).isTrue();
+            int changes=0;
+            for(var task:work) if(task.get(30,TimeUnit.SECONDS)) changes++;
+            assertThat(changes).isEqualTo(1); // One insert; the other identical snapshots are NO-OPs.
         }
         assertThat(events.findAll().stream().filter(e -> id.equals(e.getExternalId()))).hasSize(1);
     }

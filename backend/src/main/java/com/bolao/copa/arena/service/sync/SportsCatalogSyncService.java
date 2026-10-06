@@ -31,7 +31,9 @@ public class SportsCatalogSyncService {
         Map<String,Sport> teamSports=new HashMap<>(), championshipSports=new HashMap<>();
         for (SportsMatch match:matches) {
             Sport sport=sportByCode.computeIfAbsent(match.sportCode(),this::sport);
-            for (SportsTeam team:Arrays.asList(match.homeTeam(),match.awayTeam()))
+            List<SportsTeam> participants=new ArrayList<>(Arrays.asList(match.homeTeam(),match.awayTeam()));
+            participants.addAll(match.participants().stream().map(SportsParticipant::participant).toList());
+            for (SportsTeam team:participants)
                 if (team!=null && text(team.externalId()) && text(team.name())) {
                     requireSameSport(teamSports.putIfAbsent(team.externalId(),sport),sport);
                     incomingTeams.put(team.externalId(),team);
@@ -74,12 +76,15 @@ public class SportsCatalogSyncService {
         return new References(Map.copyOf(teamIds),Map.copyOf(championshipIds));
     }
     private Sport sport(String code) {
-        if (!List.of("CS2","LOL","VALORANT").contains(code))
-            throw new IllegalArgumentException("Unsupported normalized esports sport");
+        if (!List.of("CS2","LEAGUE_OF_LEGENDS","VALORANT","FOOTBALL","BASKETBALL","TENNIS","MOTORSPORT").contains(code))
+            throw new IllegalArgumentException("Unsupported normalized sport");
         return sports.findByCodeIgnoreCase(code).orElseGet(() -> {
             Sport value=new Sport(); value.setCode(code);
-            value.setName(switch(code) { case "CS2" -> "Counter-Strike 2"; case "LOL" -> "League of Legends"; default -> "Valorant"; });
-            value.setCategory(SportCategory.ESPORTS); value.setIcon("LOL".equals(code)?"swords":"crosshair");
+            value.setName(switch(code) { case "CS2" -> "Counter-Strike 2"; case "LEAGUE_OF_LEGENDS" -> "League of Legends";
+                case "FOOTBALL" -> "Futebol"; case "BASKETBALL" -> "Basquete"; case "TENNIS" -> "Tênis";
+                case "MOTORSPORT" -> "Automobilismo"; default -> "Valorant"; });
+            value.setCategory(List.of("CS2","LEAGUE_OF_LEGENDS","VALORANT").contains(code)?SportCategory.ESPORTS:SportCategory.TRADITIONAL);
+            value.setIcon("LEAGUE_OF_LEGENDS".equals(code)?"swords":"crosshair");
             value.setDisplayOrder("CS2".equals(code)?7:"VALORANT".equals(code)?8:9);
             return sports.save(value);
         });

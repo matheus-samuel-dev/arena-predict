@@ -7,7 +7,9 @@ import java.util.*;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
-public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long> {
+public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long>,org.springframework.data.jpa.repository.JpaSpecificationExecutor<ArenaEvent> {
+    @Override @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
+    Page<ArenaEvent> findAll(org.springframework.data.jpa.domain.Specification<ArenaEvent> specification,Pageable pageable);
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     Optional<ArenaEvent> findByExternalProviderAndExternalId(String externalProvider, String externalId);

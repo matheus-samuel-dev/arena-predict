@@ -73,7 +73,7 @@ export interface PredictionMarket {
   closesAt?: string | null;
   availability?: MarketAvailability;
   settlementDescription?: string;
-  pricingMode?: "STATIC" | "DYNAMIC";
+  pricingMode?: "STATIC" | "DYNAMIC" | "INTERNAL_MODEL";
   pricingReason?: string;
   options: PredictionOption[];
 }
@@ -123,6 +123,7 @@ export interface EventParticipant {
 }
 
 export interface ArenaEvent {
+  dataQuality?: "SNAPSHOT" | "DELAYED" | "DEMO";
   id: number | string;
   championshipId?: number | string;
   title?: string;
@@ -189,6 +190,8 @@ export type PredictionStatus =
   | "REEMBOLSADO";
 
 export interface Prediction {
+  multiplierOrigin?: "ADMIN_DEFINED" | "INTERNAL_MODEL" | "PROVIDER";
+  multiplierModelVersion?: string | null;
   eventStatus?: string;
   sportCode?: string;
   sportName?: string;
@@ -473,6 +476,13 @@ export interface SportsSyncStatus {
 export interface SportsSyncSummary {
   healthy: boolean;
   lastSuccessAt: string | null;
+}
+export interface SportsProviderView {
+  id: string;
+  credentialVariable: string;
+  readiness: string;
+  capabilities: Record<string,string[]>;
+  sync: SportsSyncStatus;
 }
 
 export interface DemoScenario {

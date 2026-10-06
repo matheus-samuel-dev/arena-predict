@@ -25,6 +25,7 @@ import type {
   MarketTemplate,
   SportsSyncStatus,
   SportsSyncSummary,
+  SportsProviderView,
   DemoScenario,
 } from "../types";
 
@@ -244,7 +245,7 @@ function normalizeEvent(event: ArenaEvent): ArenaEvent {
     liveClock: event.liveClock || event.clock,
     demoLiveData: event.demoLiveData ?? event.demo,
     competitors: event.competitors?.length ? event.competitors : participantCompetitors,
-    statistics: event.statistics || parseLiveStatistics(event.liveData),
+    statistics: event.statistics || parseLiveStatistics(event.liveData) || (event.externalProvider ? canonicalStatistics(event.resultData) : undefined),
     markets: event.markets?.map((market) => ({
       ...market,
       options: market.options?.map((option) => ({
@@ -254,6 +255,15 @@ function normalizeEvent(event: ArenaEvent): ArenaEvent {
       })) || [],
     })) || [],
   };
+}
+function canonicalStatistics(data?: Record<string,string>) {
+  if (!data) return undefined;
+  const values: Record<string,string> = {};
+  const labels: Record<string,string> = {firstHalf:"Intervalo",quarter1:"1º quarto",quarter2:"2º quarto",quarter3:"3º quarto",quarter4:"4º quarto",set1:"1º set",set2:"2º set",set3:"3º set",set4:"4º set",set5:"5º set",games:"Games"};
+  Object.entries(labels).forEach(([key,label]) => {
+    if (data[`${key}Home`] != null && data[`${key}Away`] != null) values[label] = `${data[`${key}Home`]} × ${data[`${key}Away`]}`;
+  });
+  return Object.keys(values).length ? values : undefined;
 }
 
 function parseLiveStatistics(raw?: string): Record<string, number | string> | undefined {
@@ -352,6 +362,9 @@ export const dashboardApi = {
 };
 
 export const eventsApi = {
+  page: (filters: { status?: string; sport?: string; featured?: boolean; page?: number; size?: number; q?: string; source?: string; championshipId?: string; from?: string; to?: string } = {}) =>
+    request<ArenaEvent[] | PageResponse<ArenaEvent>>(`/events${query({ ...filters, page: filters.page ?? 0, size: filters.size ?? 24 })}`).then(result =>
+      Array.isArray(result) ? {content:result.map(normalizeEvent),totalElements:result.length,totalPages:1,number:0} : {...result,content:result.content.map(normalizeEvent)}),
   list: (filters: { status?: string; sport?: string; featured?: boolean; page?: number; size?: number } = {}) =>
     request<ArenaEvent[] | PageResponse<ArenaEvent>>(`/events${query(filters)}`).then((result) => asList(result).map(normalizeEvent)),
   get: (id: number | string) => request<ArenaEvent>(`/events/${id}`).then(normalizeEvent),
@@ -495,6 +508,7 @@ export interface MarketSettlement {
 export const adminApi = {
   dashboard: () => request<AdminDashboard>("/admin/dashboard"),
   sportsSyncStatus: () => request<SportsSyncStatus>("/admin/sports-sync/status"),
+  sportsProviders: () => request<SportsProviderView[]>("/admin/sports-sync/providers"),
   async list<T>(resource: string, params: Record<string, string | number | boolean | undefined> = {}) {
     if (resource === "results") return request<T[] | PageResponse<T>>(`/admin/events${query(params)}`);
     const path = adminListPaths[resource];

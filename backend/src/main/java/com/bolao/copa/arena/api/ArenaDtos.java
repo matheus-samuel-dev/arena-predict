@@ -48,7 +48,7 @@ public final class ArenaDtos {
                                 Map<String, String> resultData, List<ResultField> resultSchema,
                                 String externalProvider, String externalId, Instant lastSyncedAt,
                                 Instant resultProcessedAt, String winnerExternalId, boolean liveScoreAvailable,
-                                boolean resultReviewRequired, boolean demoManaged, boolean demoArchived) { }
+                                boolean resultReviewRequired, boolean demoManaged, boolean demoArchived,String dataQuality) { }
 
     public record SportRequest(@NotBlank @Size(max = 40) String code, @NotBlank @Size(max = 100) String name,
                                @NotNull SportCategory category, @Size(max = 80) String icon,
@@ -114,7 +114,8 @@ public final class ArenaDtos {
                                      Long optionId, String optionLabel, int stakePoints, BigDecimal multiplier,
                                      int potentialPoints, int rewardedPoints, PredictionStatus status, Long poolId,
                                      Instant placedAt, Instant resolvedAt, boolean canCancel,
-                                     String eventStatus, String sportCode, String sportName, boolean demo) { }
+                                     String eventStatus, String sportCode, String sportName, boolean demo,
+                                     String multiplierOrigin,String multiplierModelVersion) { }
     public record WalletResponse(long balance, long lifetimeEarned, long lifetimeUsed, Instant updatedAt,
                                  String virtualPointsNotice) { }
     public record PointTransactionResponse(Long id, PointTransactionType type, long amount, long balanceAfter,

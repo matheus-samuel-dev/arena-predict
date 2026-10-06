@@ -30,14 +30,16 @@ public class SportsMatchSyncService {
     private final SportsSyncStateStore state;
     private final AdminAuditService audit;
     private final ObjectMapper json;
+    private final EventParticipantRepository participants;
 
     public SportsMatchSyncService(ArenaEventRepository events, CompetitorRepository teams,
             ChampionshipRepository championships, PredictionMarketRepository markets, MarketTemplateService templates,
             ArenaPredictionService predictions, MarketAvailabilityService availability, SportsSyncStateStore state,
-            AdminAuditService audit, ObjectMapper json) {
+            AdminAuditService audit, ObjectMapper json, EventParticipantRepository participants) {
         this.events=events; this.teams=teams; this.championships=championships; this.markets=markets;
         this.templates=templates; this.predictions=predictions; this.availability=availability;
         this.state=state; this.audit=audit; this.json=json;
+        this.participants=participants;
     }
 
     @Transactional
@@ -54,8 +56,8 @@ public class SportsMatchSyncService {
             event=new ArenaEvent(); event.setExternalProvider(provider); event.setExternalId(source.externalId());
             event.setExternalKey(provider+":"+source.externalId()); event.setDemo(false);
             event.setChampionship(championships.getReferenceById(refs.championships().get(source.championship().externalId())));
-            event.setHomeCompetitor(teams.getReferenceById(refs.teams().get(source.homeTeam().externalId())));
-            event.setAwayCompetitor(teams.getReferenceById(refs.teams().get(source.awayTeam().externalId())));
+            if(source.homeTeam()!=null) event.setHomeCompetitor(teams.getReferenceById(refs.teams().get(source.homeTeam().externalId())));
+            if(source.awayTeam()!=null) event.setAwayCompetitor(teams.getReferenceById(refs.teams().get(source.awayTeam().externalId())));
             event.setStartsAt(source.scheduledAt()); event.setPredictionClosesAt(source.scheduledAt());
             event.setBestOf(source.bestOf());
         }
@@ -63,6 +65,8 @@ public class SportsMatchSyncService {
         EventDataOwnership.requireCompatibleCatalog(event);
         event.setLastSyncedAt(now);
         SportsMatch match=orient(source,event);
+        String snapshotHash=snapshotHash(match);
+        if(!creating && snapshotHash.equals(event.getSourceSnapshotHash())) return false;
         if (!sameParticipants(match,event)) {
             review(event,source,"PARTICIPANTS_CHANGED"); return true;
         }
@@ -74,7 +78,7 @@ public class SportsMatchSyncService {
         if (event.getResultProcessedAt()!=null) {
             if (match.status()==EventStatus.CANCELLED || (completeResult(match) && !fingerprint(match).equals(event.getResultFingerprint())))
                 review(event,match,"OFFICIAL_RESULT_CORRECTION");
-            return true;
+            return false;
         }
         if (event.getStatus()==EventStatus.CANCELLED) return true; // Refunds cannot be silently reversed.
         if (event.getStatus()==EventStatus.FINISHED
@@ -94,11 +98,18 @@ public class SportsMatchSyncService {
             event.setStartsAt(match.scheduledAt()); event.setPredictionClosesAt(match.scheduledAt());
         }
         event.setTitle(SportsCatalogSyncService.cut(SportsCatalogSyncService.text(match.title())?match.title():
-                event.getHomeCompetitor().getName()+" vs "+event.getAwayCompetitor().getName(),180));
+                match.championship().name(),180));
         if (match.championship()!=null) event.setStage(SportsCatalogSyncService.cut(match.championship().name(),100));
         if (match.bestOf()!=null) event.setBestOf(match.bestOf());
-        event.setFormat(format(event.getBestOf()));
+        event.setFormat(match.formatHint()==SportsMatch.EventFormatHint.RACE?EventFormat.RACE:format(event.getBestOf()));
+        event.setSourceStatus(SportsCatalogSyncService.cut(match.rawStatus(),40));
+        event.setSourceMetrics(String.join(",",new TreeSet<>(match.supportedMetrics())));
+        event.setSourceSnapshotHash(snapshotHash); event.setDataQuality("SNAPSHOT");
+        event.setClock(SportsCatalogSyncService.cut(match.clock(),80)); event.setPeriod(SportsCatalogSyncService.cut(match.period(),80));
+        try { event.setResultData(json.writeValueAsString(match.resultData())); }
+        catch(com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException(ex); }
         events.saveAndFlush(event);
+        syncParticipants(event,match,refs);
         if (match.status()==EventStatus.CANCELLED) {
             predictions.cancelEvent(event.getId());
             log.info("[SPORTS_SYNC] Match cancelled externalId={} refunds processed",match.externalId());
@@ -112,8 +123,10 @@ public class SportsMatchSyncService {
         } else { event.setHomeScore(null); event.setAwayScore(null); }
         event.setWinnerExternalId(match.winnerExternalId());
         if (match.endedAt()!=null) event.setFinishedAt(match.endedAt());
-        if (match.status()==EventStatus.SCHEDULED && event.getBestOf()!=null) templates.generate(event.getId());
+        if (match.status()==EventStatus.SCHEDULED) templates.generate(event.getId());
         var eventMarkets=markets.findByEventForUpdate(event);
+        if(match.status()==EventStatus.POSTPONED) eventMarkets.stream().filter(m->m.getStatus()==MarketStatus.OPEN)
+                .forEach(m->{m.setStatus(MarketStatus.SUSPENDED);m.setStatusReason("Evento adiado pelo provedor.");});
         Instant startsAt=event.getStartsAt(), closesAt=event.getPredictionClosesAt();
         // Rescheduling updates the original pre-match windows, but never reopens a closed market.
         eventMarkets.stream().filter(m -> m.getStatus()==MarketStatus.OPEN && m.getTimingMode()==MarketTimingMode.PRE_MATCH_ONLY)
@@ -121,11 +134,12 @@ public class SportsMatchSyncService {
         availability.closeDeterminedMarkets(eventMarkets);
         if (match.status()==EventStatus.FINISHED && completeResult(match) && validFinalScore(match)) {
             log.info("[PREDICTION] Processing provider result matchId={} score={}-{}",event.getId(),match.homeScore(),match.awayScore());
-            predictions.settleDerived(event);
+            if(match.formatHint()!=SportsMatch.EventFormatHint.RACE || !eventMarkets.isEmpty()) predictions.settleDerived(event);
             event.setResultProcessedAt(now); event.setResultFingerprint(fingerprint(match));
             audit.record("EXTERNAL_RESULT_PROCESSED","EVENT",event.getId(),"Resultado recebido de "+provider+"; palpites processados pelas regras existentes.");
             log.info("[RANKING] Result processed matchId={}; ranking projections updated",event.getId());
-        } else if (match.status()==EventStatus.FINISHED && (match.forfeit() || match.draw())) {
+        } else if (match.status()==EventStatus.FINISHED && match.formatHint()!=SportsMatch.EventFormatHint.RACE
+                && (match.forfeit() || (match.draw()&&!"FOOTBALL".equals(match.sportCode())))) {
             review(event,match,"NON_STANDARD_RESULT");
         }
         log.info("[SPORTS_SYNC] Match {} externalId={} status={}",creating?"created":"updated",match.externalId(),event.getStatus());
@@ -156,12 +170,15 @@ public class SportsMatchSyncService {
     }
 
     private boolean completeIdentity(SportsMatch match,SportsCatalogSyncService.References refs) {
+        if(match.formatHint()==SportsMatch.EventFormatHint.RACE)
+            return match.scheduledAt()!=null&&match.championship()!=null&&refs.championships().containsKey(match.championship().externalId());
         return match.scheduledAt()!=null && match.homeTeam()!=null && match.awayTeam()!=null && match.championship()!=null
                 && refs.teams().containsKey(match.homeTeam().externalId()) && refs.teams().containsKey(match.awayTeam().externalId())
                 && !match.homeTeam().externalId().equals(match.awayTeam().externalId())
                 && refs.championships().containsKey(match.championship().externalId());
     }
     private boolean sameParticipants(SportsMatch match,ArenaEvent event) {
+        if(match.formatHint()==SportsMatch.EventFormatHint.RACE) return true;
         return (match.homeTeam()==null || Objects.equals(match.homeTeam().externalId(),event.getHomeCompetitor().getExternalId()))
                 && (match.awayTeam()==null || Objects.equals(match.awayTeam().externalId(),event.getAwayCompetitor().getExternalId()));
     }
@@ -171,14 +188,25 @@ public class SportsMatchSyncService {
                 && Objects.equals(match.awayTeam().externalId(),event.getHomeCompetitor().getExternalId()))
             return new SportsMatch(match.externalId(),match.title(),match.awayTeam(),match.homeTeam(),match.championship(),
                     match.scheduledAt(),match.endedAt(),match.status(),match.awayScore(),match.homeScore(),match.bestOf(),
-                    match.winnerExternalId(),match.forfeit(),match.draw(),match.liveScoreAvailable(),match.sportCode());
+                    match.winnerExternalId(),match.forfeit(),match.draw(),match.liveScoreAvailable(),match.sportCode(),
+                    swapData(match.resultData()),match.participants(),match.rawStatus(),match.clock(),match.period(),match.supportedMetrics(),match.formatHint());
         return match;
     }
     private boolean completeResult(SportsMatch match) {
+        if(match.formatHint()==SportsMatch.EventFormatHint.RACE) return match.status()==EventStatus.FINISHED&&match.winnerExternalId()!=null&&!match.participants().isEmpty();
+        if(List.of("FOOTBALL","BASKETBALL","TENNIS").contains(match.sportCode()))
+            return match.status()==EventStatus.FINISHED&&match.homeScore()!=null&&match.awayScore()!=null
+                    &&match.homeTeam()!=null&&match.awayTeam()!=null;
         return match.status()==EventStatus.FINISHED && match.homeScore()!=null && match.awayScore()!=null
                 && match.bestOf()!=null && match.winnerExternalId()!=null && match.homeTeam()!=null && match.awayTeam()!=null;
     }
     private boolean validFinalScore(SportsMatch match) {
+        if(match.formatHint()==SportsMatch.EventFormatHint.RACE) return match.participants().stream().filter(p->Integer.valueOf(1).equals(p.position())).count()==1;
+        if("FOOTBALL".equals(match.sportCode())) return !match.forfeit()&&match.homeScore()>=0&&match.awayScore()>=0;
+        if("BASKETBALL".equals(match.sportCode())) return !match.forfeit()&&match.homeScore()>=0&&match.awayScore()>=0&&!match.homeScore().equals(match.awayScore());
+        if("TENNIS".equals(match.sportCode())) return !match.forfeit()&&match.winnerExternalId()!=null
+                &&match.winnerExternalId().equals(match.homeScore()>match.awayScore()?match.homeTeam().externalId():match.awayTeam().externalId())
+                &&Set.of(2,3).contains(Math.max(match.homeScore(),match.awayScore()))&&Math.min(match.homeScore(),match.awayScore())<Math.max(match.homeScore(),match.awayScore());
         if (match.forfeit() || match.draw() || match.homeScore()<0 || match.awayScore()<0) return false;
         int target=match.bestOf()/2+1;
         return Math.max(match.homeScore(),match.awayScore())==target && Math.min(match.homeScore(),match.awayScore())<target
@@ -199,6 +227,9 @@ public class SportsMatchSyncService {
     }
     private String fingerprint(SportsMatch match) {
         String value=match.status()+":"+match.homeScore()+":"+match.awayScore()+":"+match.bestOf()+":"+match.winnerExternalId()+":"+match.forfeit()+":"+match.draw();
+        if(!match.resultData().isEmpty()) value+=":"+new TreeMap<>(match.resultData());
+        if(!match.participants().isEmpty()) value+=":"+match.participants().stream().sorted(Comparator.comparing(p->p.participant().externalId()))
+                .map(p->p.participant().externalId()+":"+p.position()+":"+p.scoreLabel()).toList();
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
         catch (java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
@@ -211,7 +242,37 @@ public class SportsMatchSyncService {
         candidate.put("awayExternalId",match.awayTeam()==null?null:match.awayTeam().externalId());
         candidate.put("championshipExternalId",match.championship()==null?null:match.championship().externalId());
         candidate.put("championshipName",match.championship()==null?null:match.championship().name());
+        candidate.put("resultData",new TreeMap<>(match.resultData()));
+        if(!match.participants().isEmpty()) candidate.put("classification",match.participants().stream().map(p->{
+            Map<String,Object> value=new LinkedHashMap<>();value.put("externalId",p.participant().externalId());value.put("position",p.position());value.put("scoreLabel",p.scoreLabel());return value;
+        }).toList());
         recordReview(event,candidate,reason);
+    }
+    private String snapshotHash(SportsMatch match) {
+        try {
+            // Canonical ordering, excluding transport timestamps. Identical snapshots are genuine NO-OPs.
+            String value=match.externalId()+"|"+match.sportCode()+"|"+match.title()+"|"+match.scheduledAt()+"|"+match.endedAt()+"|"+
+                    match.status()+"|"+match.homeTeam()+"|"+match.awayTeam()+"|"+match.championship()+"|"+match.homeScore()+"|"+match.awayScore()+"|"+
+                    match.bestOf()+"|"+match.winnerExternalId()+"|"+match.forfeit()+"|"+match.draw()+"|"+match.liveScoreAvailable()+"|"+
+                    new TreeMap<>(match.resultData())+"|"+match.participants()+"|"+match.rawStatus()+"|"+match.clock()+"|"+match.period()+"|"+new TreeSet<>(match.supportedMetrics());
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch(java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
+    }
+    private Map<String,String> swapData(Map<String,String> data) {
+        Map<String,String> result=new TreeMap<>();
+        data.forEach((key,value)->result.put(key.endsWith("Home")?key.substring(0,key.length()-4)+"Away":
+                key.endsWith("Away")?key.substring(0,key.length()-4)+"Home":key,value));return result;
+    }
+    private void syncParticipants(ArenaEvent event,SportsMatch match,SportsCatalogSyncService.References refs) {
+        if(match.formatHint()!=SportsMatch.EventFormatHint.RACE) return;
+        var known=participants.findByEventOrderByDisplayOrderAsc(event);
+        int order=0;
+        for(var source:match.participants()) {
+            var entry=known.stream().filter(p->p.getCompetitor().getExternalId().equals(source.participant().externalId())).findFirst().orElseGet(EventParticipant::new);
+            entry.setEvent(event);entry.setCompetitor(teams.getReferenceById(refs.teams().get(source.participant().externalId())));
+            entry.setDisplayOrder(++order);entry.setPosition(source.position());entry.setScoreLabel(SportsCatalogSyncService.cut(source.scoreLabel(),80));
+            participants.save(entry);
+        }
     }
     private void recordReview(ArenaEvent event,Map<String,Object> candidate,String reason) {
         try {

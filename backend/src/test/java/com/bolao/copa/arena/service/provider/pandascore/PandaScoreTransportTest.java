@@ -78,7 +78,8 @@ class PandaScoreTransportTest {
         });
         server.start();
         try {
-            var error = catchThrowableOfType(() -> client(server).detail("/matches/1", PandaScoreDtos.Match.class), SportsProviderException.class);
+            // This assertion tests redirect/credential safety, not a 100 ms latency target.
+            var error = catchThrowableOfType(() -> client(server,2000).detail("/matches/1", PandaScoreDtos.Match.class), SportsProviderException.class);
             assertThat(error).isNotNull();
             assertThat(error.getReason()).isEqualTo(Reason.INVALID_RESPONSE);
             assertThat(authorizedInitialRequest).isTrue();
@@ -89,11 +90,14 @@ class PandaScoreTransportTest {
     }
 
     private PandaScoreClient client(HttpServer server) {
+        return client(server,100);
+    }
+    private PandaScoreClient client(HttpServer server,int readTimeoutMs) {
         var properties = new PandaScoreProperties();
         properties.setApiToken("test-loopback-only");
         properties.setBaseUrl("http://127.0.0.1:" + server.getAddress().getPort());
         properties.setConnectTimeoutMs(1000);
-        properties.setReadTimeoutMs(100);
+        properties.setReadTimeoutMs(readTimeoutMs);
         properties.setMaxRetries(0);
         return new PandaScoreClient(properties, new ObjectMapper().findAndRegisterModules());
     }

@@ -21,5 +21,13 @@ public class ArenaCatalogController {
         return catalog.listEvents(status, sport, featured);
     }
     @GetMapping("/events/live") public List<EventResponse> live() { return catalog.liveEvents(); }
+    @GetMapping(value="/events",params="page")
+    public org.springframework.data.domain.Page<EventResponse> page(@RequestParam(required=false) EventStatus status,
+            @RequestParam(required=false) String sport,@RequestParam(required=false) Boolean featured,@RequestParam(defaultValue="") String q,
+            @RequestParam(required=false) String source,@RequestParam(required=false) Long championshipId,
+            @RequestParam(required=false) java.time.Instant from,@RequestParam(required=false) java.time.Instant to,
+            @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="24") int size) {
+        return catalog.eventPage(status,sport,featured,q,source,championshipId,from,to,page,size);
+    }
     @GetMapping("/events/{id}") public EventResponse event(@PathVariable Long id) { return catalog.eventResponse(id); }
 }

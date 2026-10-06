@@ -25,6 +25,12 @@ public class ArenaPrediction {
     private int stakePoints;
     @Column(nullable = false, precision = 8, scale = 3)
     private BigDecimal multiplier;
+    @Column(nullable=false,length=24) private String multiplierOrigin="ADMIN_DEFINED";
+    @Column(length=50) private String multiplierModelVersion;
+    public String getMultiplierOrigin() { return multiplierOrigin; }
+    public void setMultiplierOrigin(String value) { multiplierOrigin=value; }
+    public String getMultiplierModelVersion() { return multiplierModelVersion; }
+    public void setMultiplierModelVersion(String value) { multiplierModelVersion=value; }
     @Column(nullable = false)
     private int potentialPoints;
     @Column(nullable = false)

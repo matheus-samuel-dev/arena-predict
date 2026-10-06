@@ -1,0 +1,7 @@
+package com.bolao.copa.arena.service.provider;
+
+public enum ProviderCapability {
+    EVENTS, LIVE_STATUS, LIVE_SCORE, PARTICIPANTS, CHAMPIONSHIPS, RESULTS,
+    CLASSIFICATION, STATISTICS, FIRST_HALF, PERIODS, SETS, GAMES, MAPS, ROUNDS,
+    PREMATCH_ODDS, LIVE_ODDS, LINEUPS
+}

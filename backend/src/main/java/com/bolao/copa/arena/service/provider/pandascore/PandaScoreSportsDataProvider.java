@@ -25,14 +25,19 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
     private final PandaScoreMapper mapper;
     private final PandaScoreProperties properties;
     private final Clock clock;
+    private boolean synchronizationEnabled=true;
     private List<SportsTeam> cachedTeams;
     private List<SportsChampionship> cachedChampionships;
     private Instant teamsExpiresAt = Instant.EPOCH;
     private Instant championshipsExpiresAt = Instant.EPOCH;
 
-    @Autowired
     public PandaScoreSportsDataProvider(PandaScoreClient client, PandaScoreMapper mapper, PandaScoreProperties properties) {
         this(client, mapper, properties, Clock.systemUTC());
+    }
+    @Autowired
+    public PandaScoreSportsDataProvider(PandaScoreClient client,PandaScoreMapper mapper,PandaScoreProperties properties,
+            com.bolao.copa.arena.config.SportsSyncProperties synchronization) {
+        this(client,mapper,properties,Clock.systemUTC()); synchronizationEnabled=synchronization.enabled();
     }
 
     PandaScoreSportsDataProvider(PandaScoreClient client, PandaScoreMapper mapper, PandaScoreProperties properties, Clock clock) {
@@ -45,6 +50,12 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
     @Override public String providerId() { return "PANDASCORE"; }
     @Override public boolean demo() { return false; }
     @Override public boolean available() { return client.configured(); }
+    @Override public boolean enabled() { return synchronizationEnabled; }
+    @Override public java.util.Set<com.bolao.copa.arena.service.provider.ProviderCapability> capabilities(String sport) {
+        var values=new java.util.HashSet<>(EsportsDataProvider.super.capabilities(sport));
+        if(properties.isLiveScoresEnabled()) values.add(com.bolao.copa.arena.service.provider.ProviderCapability.LIVE_SCORE);
+        return java.util.Set.copyOf(values);
+    }
     @Override public Instant nextAllowedRequestAt() { return client.nextAllowedRequestAt(); }
     @Override public Long remainingRequests() { return client.remainingRequests(); }
     @Override public Integer lastHttpStatus() { return client.lastHttpStatus(); }

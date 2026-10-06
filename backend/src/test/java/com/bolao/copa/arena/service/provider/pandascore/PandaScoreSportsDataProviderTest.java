@@ -86,8 +86,8 @@ class PandaScoreSportsDataProviderTest {
             when(client.list(eq("/"+game+"/matches/running"),anyMap(),eq(PandaScoreDtos.Match.class)))
                     .thenReturn(List.of(json.treeToValue(tree,PandaScoreDtos.Match.class)));
         }
-        assertThat(provider.runningMatches()).extracting(match -> match.sportCode()).containsExactly("CS2","LOL","VALORANT");
-        assertThat(provider.supportedSports()).containsExactly("CS2","LOL","VALORANT");
+        assertThat(provider.runningMatches()).extracting(match -> match.sportCode()).containsExactly("CS2","LEAGUE_OF_LEGENDS","VALORANT");
+        assertThat(provider.supportedSports()).containsExactly("CS2","LEAGUE_OF_LEGENDS","VALORANT");
     }
 
     @Test

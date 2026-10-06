@@ -12,7 +12,7 @@ import org.springframework.validation.annotation.Validated;
 @Component
 @Validated
 @ConfigurationProperties(prefix = "sports.pandascore")
-public class PandaScoreProperties {
+public class PandaScoreProperties implements com.bolao.copa.arena.service.provider.SportsHttpSettings {
     private String apiToken = "";
     private String baseUrl = "https://api.pandascore.co";
     private boolean liveScoresEnabled;

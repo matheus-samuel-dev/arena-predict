@@ -182,6 +182,50 @@ public class ArenaCatalogService {
     public List<EventResponse> liveEvents() {
         return eventResponses(events.findByStatusOrderByStartsAtAsc(EventStatus.LIVE));
     }
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<EventResponse> eventPage(EventStatus status,String sportCode,Boolean featured,
+            String search,String source,Long championshipId,Instant from,Instant to,int page,int size) {
+        if(page<0 || size<1 || size>48 || page>10000) throw new ArenaProblem.RuleViolation("Paginação inválida.");
+        if(from!=null&&to!=null&&from.isAfter(to)) throw new ArenaProblem.RuleViolation("Período inválido.");
+        if(source!=null&&!source.isBlank()&&!List.of("REAL","DEMO").contains(source)) throw new ArenaProblem.RuleViolation("Origem inválida.");
+        String term=search==null?"":search.trim().toLowerCase(Locale.ROOT);
+        if(term.length()>100) throw new ArenaProblem.RuleViolation("Busca muito longa.");
+        org.springframework.data.jpa.domain.Specification<ArenaEvent> spec=(root,query,cb)->{
+            var predicates=new ArrayList<jakarta.persistence.criteria.Predicate>();
+            var championship=root.join("championship");var sport=championship.join("sport");
+            predicates.add(cb.isFalse(root.get("demoArchived")));
+            if(status==EventStatus.OPEN_FOR_PREDICTIONS) {
+                var market=query.subquery(Long.class);var m=market.from(PredictionMarket.class);
+                market.select(m.get("id")).where(cb.equal(m.get("event"),root),cb.equal(m.get("status"),MarketStatus.OPEN),
+                        cb.or(cb.isNull(m.get("opensAt")),cb.lessThanOrEqualTo(m.get("opensAt"),Instant.now())),
+                        cb.or(cb.isNull(m.get("closesAt")),cb.greaterThan(m.get("closesAt"),Instant.now())));
+                predicates.add(cb.exists(market));predicates.add(root.get("status").in(EventStatus.SCHEDULED,EventStatus.OPEN_FOR_PREDICTIONS,EventStatus.LIVE));
+            } else if(status!=null) predicates.add(cb.equal(root.get("status"),status));
+            if(sportCode!=null&&!sportCode.isBlank()) predicates.add(cb.equal(cb.upper(sport.get("code")),sportCode.toUpperCase(Locale.ROOT)));
+            if(featured!=null) predicates.add(cb.equal(root.get("featured"),featured));
+            if(championshipId!=null) predicates.add(cb.equal(championship.get("id"),championshipId));
+            if("REAL".equals(source)) predicates.add(cb.isNotNull(root.get("externalProvider")));
+            if("DEMO".equals(source)) predicates.add(cb.isTrue(root.get("demo")));
+            if(from!=null) predicates.add(cb.greaterThanOrEqualTo(root.get("startsAt"),from));
+            if(to!=null) predicates.add(cb.lessThanOrEqualTo(root.get("startsAt"),to));
+            if(!term.isBlank()) {
+                String pattern="%"+term.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
+                var home=root.join("homeCompetitor",jakarta.persistence.criteria.JoinType.LEFT);
+                var away=root.join("awayCompetitor",jakarta.persistence.criteria.JoinType.LEFT);
+                var participant=query.subquery(Long.class);var p=participant.from(EventParticipant.class);
+                participant.select(p.get("id")).where(cb.equal(p.get("event"),root),cb.like(cb.lower(p.get("competitor").get("name")),pattern,'\\'));
+                predicates.add(cb.or(cb.like(cb.lower(root.get("title")),pattern,'\\'),cb.like(cb.lower(championship.get("name")),pattern,'\\'),
+                        cb.like(cb.lower(sport.get("name")),pattern,'\\'),cb.like(cb.lower(home.get("name")),pattern,'\\'),cb.like(cb.lower(away.get("name")),pattern,'\\'),cb.exists(participant)));
+            }
+            if(query.getResultType()!=Long.class) query.orderBy(cb.asc(cb.selectCase().when(cb.equal(root.get("status"),EventStatus.LIVE),0)
+                    .when(root.get("status").in(EventStatus.SCHEDULED,EventStatus.OPEN_FOR_PREDICTIONS),1).otherwise(2)),
+                    cb.desc(cb.<Instant>selectCase().when(root.get("status").in(EventStatus.FINISHED,EventStatus.CANCELLED),root.get("startsAt")).otherwise(Instant.EPOCH)),
+                    cb.asc(root.get("startsAt")),cb.asc(root.get("id")));
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        var result=events.findAll(spec,org.springframework.data.domain.PageRequest.of(page,size));
+        return new org.springframework.data.domain.PageImpl<>(eventResponses(result.getContent()),result.getPageable(),result.getTotalElements());
+    }
 
     @Transactional(readOnly = true)
     public EventResponse eventResponse(Long id) { return eventResponse(event(id)); }
@@ -435,7 +479,9 @@ public class ArenaCatalogService {
                 settlement.data(value),definitions.resultSchema(value,entries,entities),
                 value.getExternalProvider(), value.getExternalId(), value.getLastSyncedAt(),
                 value.getResultProcessedAt(), value.getWinnerExternalId(), value.isLiveScoreAvailable(),
-                value.isResultReviewRequired(), value.isDemoManaged(), value.isDemoArchived());
+                value.isResultReviewRequired(), value.isDemoManaged(), value.isDemoArchived(),
+                value.getExternalProvider()==null?(value.isDemo()?"DEMO":null):value.getLastSyncedAt()==null?"DELAYED":
+                        value.getLastSyncedAt().isBefore(Instant.now().minusSeconds(1200))?"DELAYED":"SNAPSHOT");
     }
     public MarketResponse marketResponse(PredictionMarket value) {
         return marketResponse(value,options.findByMarketOrderByIdAsc(value));

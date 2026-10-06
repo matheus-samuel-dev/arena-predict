@@ -96,7 +96,8 @@ public class ArenaPredictionService {
         MarketOption option = options.findByIdAndMarket(request.optionId(), market)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção de palpite não encontrada."));
         validateOpen(event, market, option, request.stakePoints());
-        var confirmedMultiplier=pricing.quote(market,List.of(option)).multipliers().get(option.getKey());
+        var quote=pricing.quote(market,List.of(option));
+        var confirmedMultiplier=quote.multipliers().get(option.getKey());
         if(request.expectedMultiplier()!=null && request.expectedMultiplier().compareTo(confirmedMultiplier)!=0)
             throw new ArenaProblem.Conflict("O multiplicador foi atualizado. Atualize o evento e confira o novo valor antes de confirmar.");
 
@@ -118,6 +119,8 @@ public class ArenaPredictionService {
         prediction.setPool(pool);
         prediction.setStakePoints(request.stakePoints());
         prediction.setMultiplier(confirmedMultiplier);
+        prediction.setMultiplierOrigin("INTERNAL_MODEL".equals(quote.mode())||"DYNAMIC".equals(quote.mode())?"INTERNAL_MODEL":"ADMIN_DEFINED");
+        prediction.setMultiplierModelVersion("INTERNAL_MODEL".equals(quote.mode())?"sports-prior-v3":"DYNAMIC".equals(quote.mode())?"demo-live-v2":null);
         prediction.setPotentialPoints(confirmedMultiplier.multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);
@@ -316,7 +319,7 @@ public class ArenaPredictionService {
                 value.getStakePoints(), value.getMultiplier(), value.getPotentialPoints(), value.getRewardedPoints(),
                 value.getStatus(), value.getPool() == null ? null : value.getPool().getId(), value.getPlacedAt(), value.getResolvedAt(),
                 canCancel(value), value.getEvent().getStatus().name(), value.getEvent().getChampionship().getSport().getCode(),
-                value.getEvent().getChampionship().getSport().getName(), value.getEvent().isDemo());
+                value.getEvent().getChampionship().getSport().getName(), value.getEvent().isDemo(),value.getMultiplierOrigin(),value.getMultiplierModelVersion());
     }
 
     private boolean canCancel(ArenaPrediction prediction) {

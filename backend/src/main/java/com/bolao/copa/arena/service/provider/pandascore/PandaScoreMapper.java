@@ -43,7 +43,8 @@ public class PandaScoreMapper {
                 source.scheduledAt() != null ? source.scheduledAt() : source.beginAt(), source.endAt(), status,
                 homeScore, awayScore, bestOf, winner == null ? null : winner.toString(),
                 Boolean.TRUE.equals(source.forfeit()), Boolean.TRUE.equals(source.draw()),
-                status == EventStatus.LIVE && homeScore != null && awayScore != null, game.sportCode()));
+                status == EventStatus.LIVE && homeScore != null && awayScore != null, game.sportCode(),
+                java.util.Map.of(),List.of(),source.status(),null,null,java.util.Set.of("score"),SportsMatch.EventFormatHint.HEAD_TO_HEAD));
     }
 
     public SportsTeam team(PandaScoreDtos.Team source) {

@@ -78,7 +78,7 @@ public final class DemoAccessPolicy {
         // Retain restrictions if quick access is disabled after a token was issued.
         if (path.equals("/api/admin") || path.startsWith("/api/admin/")) {
             return admin && properties.enabled() && reading && path.matches(
-                    "/api/admin/(?:dashboard|sports|championships|competitors|events|markets|users|pools|scoring-rules|reports|audit|settings|moderation|achievements|challenges|notifications|sports-sync/status|events/[1-9][0-9]*/market-templates)");
+                    "/api/admin/(?:dashboard|sports|championships|competitors|events|markets|users|pools|scoring-rules|reports|audit|settings|moderation|achievements|challenges|notifications|sports-sync/(?:status|providers)|events/[1-9][0-9]*/market-templates)");
         }
         if (reading) return true;
         if ("POST".equals(method) && (path.equals("/api/auth/logout") || path.equals("/auth/logout"))) return true;

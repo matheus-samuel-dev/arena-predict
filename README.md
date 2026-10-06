@@ -55,11 +55,23 @@ flowchart LR
     N -->|/api| S[Spring Boot]
     S --> P[(PostgreSQL)]
     S --> F[Flyway]
-    S --> D[Provider interno demo]
-    S --> X[SportsDataProvider / PandaScore]
+    R -->|lê snapshots, não consulta fornecedores| S
+    S --> C[MultiProviderSyncCoordinator: polling e lease por provider]
+    C --> G[SportsProviderRegistry]
+    G --> X[PandaScore: CS2 / LoL / Valorant]
+    G --> A[API-FOOTBALL / API-BASKETBALL / API-Tennis / API-FORMULA-1]
+    X --> M[SportsMatch canônico]
+    A --> M
+    M --> U[Upsert transacional e NO-OP por snapshot]
+    U --> P
+    P --> T[Contratos publicados por dados suportados]
+    T --> I[Modelo interno e snapshot do multiplicador]
+    I --> L[Palpites e liquidação idempotente]
+    L --> W[Wallet / ranking / progressão]
+    D[Orquestrador Demo separado] -->|mesmo domínio, identidade sandbox| T
 ```
 
-O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução.
+O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução. Os adapters reais estão implementados, mas aguardam credenciais: **não há prova de chamada autenticada nem provider anunciado como operacional**. Consulte a [matriz de cobertura, limitações e ativação](docs/provider-coverage.md) e a [auditoria anterior às alterações](docs/productization-audit.md).
 
 ### Organização do backend
 
@@ -161,7 +173,9 @@ PANDASCORE_VIDEOGAMES=csgo,lol,valorant
 PANDASCORE_LIVE_SCORES_ENABLED=false
 ```
 
-Preencha o token somente no arquivo privado, com a credencial obtida no [painel PandaScore](https://app.pandascore.co/). O token nunca é uma variável `VITE_*`. Sem token, a aplicação e o modo Demo continuam funcionando e a área administrativa informa a indisponibilidade da sincronização. Futebol, basquete e tênis dependem de outro provider; PandaScore cobre eSports.
+Preencha o token somente no arquivo privado, com a credencial obtida no [painel PandaScore](https://app.pandascore.co/). O token nunca é uma variável `VITE_*`. Sem token, a aplicação e o modo Demo continuam funcionando e a área administrativa informa a indisponibilidade da sincronização. PandaScore cobre eSports. Futebol (`API_FOOTBALL_KEY`), basquete (`API_BASKETBALL_KEY`), tênis singles (`API_TENNIS_KEY`) e F1 (`API_FORMULA1_KEY`) têm adapters independentes, inicialmente desativados e sem credencial. Ative a flag `*_ENABLED=true` correspondente somente após configurar a chave privada e ajustar o orçamento ao plano; recrie o serviço `backend`. Não existe chave padrão ou fallback fictício.
+
+A área técnica usa `GET /api/admin/sports-sync/providers`: capabilities, flag, presença de credencial, readiness, última tentativa, HTTP, sucesso, contadores e próxima execução por provider. O participante recebe apenas um resumo sanitizado em `/api/sports-sync/status`. `/api/events?page=0&size=24` pagina no banco e aceita `sport`, `status`, `source`, `championshipId`, `q`, `from` e `to`; limite de 48 por página. O contrato legado sem `page` é preservado. Dashboard e Ao vivo continuam lendo a mesma projeção de eventos LIVE, inclusive quando não há placar ou mercados.
 
 Por padrão: próximas partidas a cada 15 minutos; jogos ao vivo e próximos de começar a cada 2 minutos; resultados recentes a cada 5 minutos. As frequências, timeouts, orçamento de requisições e janela de correções são configuráveis. Resultados válidos reutilizam a pontuação e o ranking existentes, com processamento transacional e idempotente.
 
@@ -393,7 +407,7 @@ Consulte o Swagger UI para payloads, validações, enums internos e respostas at
 
 - a integração PandaScore precisa de credencial válida e plano compatível; live score e cobertura dependem do provedor, sem fallback fictício;
 - a jornada Demo usa duas contas e uma rodada compartilhadas; outro visitante pode conduzir ou restaurar a mesma rodada. O histórico arquivado e o ledger crescem conforme o uso, sem limpeza destrutiva automática;
-- o perfil automatizado de integração usa H2 em modo compatível com PostgreSQL; o smoke test final também foi executado contra PostgreSQL real, mas essa paridade ainda deve entrar no CI com Testcontainers;
+- a suíte completa usa H2 compatível com PostgreSQL; um job CI separado executa os contratos críticos contra PostgreSQL 16 efêmero, sem credenciais nem chamadas aos fornecedores esportivos;
 - a auditoria Chromium em `qa/browser-audit.cjs` cobre regressão visual, rede e
   persistência do ambiente demo; ela é executada localmente e ainda não faz
   parte do workflow de CI;
@@ -406,7 +420,7 @@ Consulte o Swagger UI para payloads, validações, enums internos e respostas at
 ## Próximos passos
 
 - adicionar testes E2E dos fluxos participante e administrador;
-- executar integrações contra PostgreSQL real em CI;
+- ampliar a cobertura PostgreSQL em CI além dos contratos críticos de integração e Demo;
 - ampliar cobertura de auditoria e correlação de requisições;
 - adicionar métricas, tracing e dashboards operacionais;
 - automatizar backup e restauração testada;

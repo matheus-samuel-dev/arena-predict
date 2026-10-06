@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { eventFormatLabel, eventScore } from "../app/sportsData";
+import { eventFormatLabel, eventScore, isExternalEvent } from "../app/sportsData";
 import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
@@ -46,6 +46,7 @@ export function eventParticipantViews(event: ArenaEvent): EventParticipantView[]
     });
   }
 
+  if (isExternalEvent(event) && ["RACE", "INDIVIDUAL"].includes(String(event.format).toUpperCase()) && !event.homeCompetitor && !event.awayCompetitor) return [];
   const [home, away] = eventTeams(event);
   return [home, away]
     .filter((competitor) => competitor.name || competitor.code)
@@ -65,6 +66,7 @@ export function isMultiParticipantEvent(event: ArenaEvent) {
 
 export function ParticipantList({ event, compact = false, limit = 6 }: { event: ArenaEvent; compact?: boolean; limit?: number }) {
   const participants = eventParticipantViews(event);
+  if (!participants.length) return <p className="score-unavailable">Participantes ainda não informados pelo provedor.</p>;
   const visible = participants.slice(0, compact ? Math.min(limit, 4) : limit);
   return (
     <div className={`mini-ranking event-participant-list ${compact ? "event-participant-list--compact" : ""}`} role="list" aria-label="Participantes e classificação">

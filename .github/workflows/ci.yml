@@ -66,3 +66,44 @@ jobs:
 
       - name: Executar verificação Maven
         run: mvn -B verify
+
+  backend-postgres:
+    name: Backend PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: arena_ci
+          POSTGRES_USER: arena_ci
+          # Disposable CI database only. This is not a deployment credential.
+          POSTGRES_PASSWORD: arena_ci_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arena_ci -d arena_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/arena_ci
+      SPRING_DATASOURCE_USERNAME: arena_ci
+      SPRING_DATASOURCE_PASSWORD: arena_ci_fixture
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Verificar contratos transacionais em PostgreSQL
+        run: mvn -B -Dtest=MultiProviderIntegrationTest,SportsSyncIntegrationTest,SportsSyncReviewIntegrationTest,ExternalMatchSettlementIntegrationTest,DemoScenarioIntegrationTest test

@@ -77,6 +77,18 @@ public class ArenaEvent {
     private String pendingResultData;
     @Column(nullable = false)
     private boolean resultReviewRequired;
+    @Column(length = 40) private String sourceStatus;
+    @Column(length = 64) private String sourceSnapshotHash;
+    @Column(length = 4000) private String sourceMetrics;
+    @Column(length = 20) private String dataQuality;
+    public String getSourceStatus() { return sourceStatus; }
+    public void setSourceStatus(String value) { sourceStatus=value; }
+    public String getSourceSnapshotHash() { return sourceSnapshotHash; }
+    public void setSourceSnapshotHash(String value) { sourceSnapshotHash=value; }
+    public String getSourceMetrics() { return sourceMetrics; }
+    public void setSourceMetrics(String value) { sourceMetrics=value; }
+    public String getDataQuality() { return dataQuality; }
+    public void setDataQuality(String value) { dataQuality=value; }
     @Version
     private long version;
 

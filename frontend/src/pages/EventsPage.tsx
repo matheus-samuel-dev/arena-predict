@@ -24,6 +24,8 @@ const statuses = [
   { value: "LIVE", label: "Ao vivo" },
   { value: "SCHEDULED", label: "Agendados" },
   { value: "FINISHED", label: "Encerrados" },
+  { value: "POSTPONED", label: "Adiados" },
+  { value: "CANCELLED", label: "Cancelados" },
 ];
 
 export function filterEventCatalog(events: ArenaEvent[], search: string, featuredOnly: boolean, source = "") {
@@ -50,17 +52,25 @@ export function EventsPage() {
   const sport = params.get("sport") || "";
   const featured = params.get("featured") === "true";
   const source = params.get("source") || "";
+  const championship = params.get("championship") || "";
+  const period = params.get("period") || "";
+  const page = Math.max(0, Number(params.get("page")) || 0);
   const [searchInput, setSearchInput] = useState(search);
 
   const { data, loading, error, reload, refresh } = useApiResource(
     async () => {
-      const [eventResponse, sportResponse] = await Promise.all([
-        eventsApi.list({ status: status || undefined, sport: sport || undefined, featured: featured || undefined, size: 48 }),
+      const now = new Date();
+      const from = period === "today" ? new Date(new Date().setHours(0,0,0,0)).toISOString() : period === "week" ? now.toISOString() : undefined;
+      const to = period === "today" ? new Date(new Date().setHours(23,59,59,999)).toISOString() : period === "week" ? new Date(now.getTime() + 7*86400000).toISOString() : undefined;
+      const [eventResponse, sportResponse, championshipResponse] = await Promise.all([
+        eventsApi.page({ status: status || undefined, sport: sport || undefined, featured: featured || undefined, size: 24, page,
+          q: search || undefined, source: source || undefined, championshipId: championship || undefined, from, to }),
         catalogApi.sports(),
+        catalogApi.championships(sport || undefined),
       ]);
-      return { events: asList(eventResponse), sports: asList(sportResponse) };
+      return { events: eventResponse.content, sports: asList(sportResponse), championships: asList(championshipResponse), total: eventResponse.totalElements || 0, pages: eventResponse.totalPages || 1 };
     },
-    [status, sport, featured],
+    [status, sport, featured, page, search, source, championship, period],
   );
   useVisibleRefresh(refresh);
 
@@ -72,6 +82,8 @@ export function EventsPage() {
 
   function update(key: string, value: string) {
     const next = new URLSearchParams(params);
+    if (key !== "page") next.delete("page");
+    if (key === "sport") next.delete("championship");
     if (value) next.set(key, value);
     else next.delete(key);
     setParams(next, { replace: true });
@@ -108,12 +120,15 @@ export function EventsPage() {
         {statuses.map((item) => <button type="button" aria-pressed={status === item.value} className={status === item.value ? "active" : ""} onClick={() => update("status", item.value)} key={item.value}>{item.value === "LIVE" && <Radio size={13} aria-hidden="true" />}{item.label}</button>)}
       </div>
 
-      <div className="results-summary event-results-summary"><span><Filter size={15} /> {events.length} {events.length === 1 ? "evento encontrado" : "eventos encontrados"}</span>
+      <div className="results-summary event-results-summary"><span><Filter size={15} /> {data?.total ?? events.length} {(data?.total ?? events.length) === 1 ? "evento encontrado" : "eventos encontrados"}</span>
+        <label className="event-source-filter">Campeonato<select aria-label="Filtrar campeonato" value={championship} onChange={(event) => update("championship", event.target.value)}><option value="">Todos</option>{data?.championships.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label className="event-source-filter">Período<select aria-label="Filtrar período" value={period} onChange={(event) => update("period", event.target.value)}><option value="">Todos</option><option value="today">Hoje</option><option value="week">Próximos 7 dias</option></select></label>
         <label className="event-source-filter">Origem<select aria-label="Filtrar origem dos eventos" value={source} onChange={(event) => update("source", event.target.value)}><option value="">Todas</option><option value="REAL">Dados reais</option><option value="DEMO">Demo</option></select></label>
-        {(search || status || sport || featured || source) && <button type="button" onClick={clear}>Limpar filtros</button>}
+        {(search || status || sport || featured || source || championship || period) && <button type="button" onClick={clear}>Limpar filtros</button>}
       </div>
 
       {events.length ? <div className="events-grid">{events.map((event) => <EventCard event={event} onPredict={setDraft} key={event.id} />)}</div> : <NoResults onClear={clear} />}
+      {(data?.pages ?? 1) > 1 && <nav className="results-summary" aria-label="Paginação de eventos"><Button variant="secondary" size="sm" disabled={page === 0} onClick={() => update("page", String(page - 1))}>Anterior</Button><span>Página {page + 1} de {data?.pages}</span><Button variant="secondary" size="sm" disabled={page + 1 >= (data?.pages ?? 1)} onClick={() => update("page", String(page + 1))}>Próxima</Button></nav>}
 
       <div className="virtual-footer-note"><ShieldCheck size={15} /> Coeficientes calculam recompensas apenas em pontos virtuais.</div>
       <PredictionComposer draft={draft} currentEvent={data?.events.find((item) => item.id === draft?.event.id) ?? null} onClose={() => setDraft(null)} onCreated={() => reload().catch(() => undefined)} />

@@ -88,7 +88,7 @@ class PandaScoreMapperTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"csgo,CS2", "lol,LOL", "valorant,VALORANT"})
+    @CsvSource({"csgo,CS2", "lol,LEAGUE_OF_LEGENDS", "valorant,VALORANT"})
     void keepsEachSupportedGameAndItsSeriesScore(String game,String code) throws Exception {
         var source=fixture("finished-match.json");
         source.set("videogame",json.readTree("{\"slug\":\""+game+"\"}"));
