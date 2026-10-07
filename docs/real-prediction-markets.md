@@ -41,4 +41,6 @@ O modelo demonstrativo e os adapters de outras modalidades são preservados. Coe
 
 O runner não consulta a PandaScore nem altera usuários/banco de produção. A captura autenticada é uma verificação manual separada na EC2, mantendo a credencial apenas no servidor. Os snapshots e relatórios de execução ficam fora do Git. Um replay histórico é identificado como replay; uma prova temporal registra os horários de captura, registro do palpite e término oficial, sem inventar resultado ou alterar status para preencher a interface.
 
+Com o argumento opcional `--persist`, o runner guarda seu banco H2 e um checkpoint ao lado do relatório, sempre fora do Git. Se o resultado não chegar dentro da janela de 30 minutos, executar novamente com os mesmos arquivos retoma os mesmos palpites e horários, sem recriá-los. A persistência é exclusivamente de QA; o driver permanece H2 local, com providers/scheduler externos desabilitados. Nunca utilizar paths de banco ou usuários de produção para essa verificação.
+
 Depois do deploy, os snapshots normais do scheduler reconciliam automaticamente eventos SCHEDULED/LIVE existentes, sem reset, migration ou alterações nos volumes PostgreSQL.
