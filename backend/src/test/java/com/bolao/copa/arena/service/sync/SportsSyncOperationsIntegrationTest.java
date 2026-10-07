@@ -67,7 +67,12 @@ class SportsSyncOperationsIntegrationTest {
         assertThat(stored.getHomeScore()).isNull();
         assertThat(stored.getAwayScore()).isNull();
         assertThat(stored.isDemo()).isFalse();
-        assertThat(arena.eventResponse(stored).markets()).isEmpty();
+        assertThat(arena.eventResponse(stored).markets()).singleElement().satisfies(market->{
+            assertThat(market.templateCode()).isEqualTo("SERIES_WINNER_LIVE");
+            assertThat(market.timingMode()).isEqualTo(MarketTimingMode.LIVE_ONLY);
+            assertThat(market.availability().allowed()).isTrue();
+            assertThat(market.options()).hasSize(2);
+        });
         assertThat(state.snapshot("PANDASCORE").inserted()).isEqualTo(1);
         assertThat(state.snapshot("PANDASCORE").updated()).isZero();
         assertThat(state.snapshot("PANDASCORE").schedulerTickAt()).isEqualTo(NOW);

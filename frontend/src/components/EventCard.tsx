@@ -151,7 +151,7 @@ export function EventCard({
 
       {!compact && showPreview && primaryMarket && (
         <div className="market-preview">
-          <div className="market-preview__title"><span>{marketDisplayName(primaryMarket)}</span><small>Multiplicador</small></div>
+          <div className="market-preview__title"><span>{marketDisplayName(primaryMarket)}</span><small>Multiplicador de pontos</small></div>
           <div className="market-options">
             {primaryMarket.options?.slice(0, 3).map((option) => (
               <button

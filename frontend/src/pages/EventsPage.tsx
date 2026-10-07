@@ -226,8 +226,8 @@ export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPred
       {!multiParticipant && !score && <p className="score-unavailable">{event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor."}</p>}
       <EventDataSource event={event} demoLabel="Demonstração" />
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
-      {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label="Mercados ainda não publicados" />}
-      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>{`Explorar todos (${event.markets?.length || 0})`}</Link></footer>
+      {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label={event.predictionAvailabilityLabel || "Mercados ainda não publicados"} />}
+      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>{event.availableMarketCount ? `Explorar opções (${event.availableMarketCount})` : "Ver detalhes"}</Link></footer>
     </article>
   );
 }
@@ -254,7 +254,7 @@ export function EventDetailsPage() {
       <PageHeader eyebrow={`${sportName(event.sport || event.sportName)} · ${championshipName(event.championship || event.championshipName)}`} title={eventTitle} description={multiParticipant ? "Acompanhe participantes, classificação e mercados disponíveis deste evento." : "Compare os mercados disponíveis e acompanhe todas as informações do evento."} actions={<StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} />} />
       <EventCard event={event} compact />
       <section className="event-detail-grid">
-        <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <CategorizedMarkets event={event} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title="Mercados ainda não publicados" description="A organização adicionará as opções antes do início do evento." />}</div>
+        <div>{multiParticipant && <section className="surface chart-panel"><h2>Participantes e classificação</h2><p>{["LIVE", "FINISHED"].includes(String(event.status).toUpperCase()) ? "Posições e marcas atualizadas para este evento." : "Lista confirmada pela organização para esta disputa."}</p><ParticipantList event={event} limit={100} /></section>}<h2>Mercados de previsão</h2>{event.markets?.length ? <CategorizedMarkets event={event} onPredict={setDraft} /> : <EmptyState icon={CalendarDays} title={event.predictionAvailabilityLabel || "Mercados ainda não publicados"} description={isExternalEvent(event) ? ["FINISHED", "CANCELLED"].includes(event.status) ? "Esta partida já foi encerrada e não aceita novos palpites." : "Os dados atuais desta partida não permitem publicar opções confiáveis. Você pode continuar acompanhando o evento." : "A organização adicionará as opções antes do início do evento."} />}</div>
         <aside className="surface event-info"><h2>Informações</h2><dl>
           <div><dt>Horário local</dt><dd>{dateTime(event.startsAt)}</dd></div>
           <div><dt>Local</dt><dd>{event.venue || "Não informado"}</dd></div>

@@ -66,7 +66,17 @@ public class SportsMatchSyncService {
         event.setLastSyncedAt(now);
         SportsMatch match=orient(source,event);
         String snapshotHash=snapshotHash(match);
-        if(!creating && snapshotHash.equals(event.getSourceSnapshotHash())) return false;
+        if(!creating && snapshotHash.equals(event.getSourceSnapshotHash())) {
+            // A new contract version must reconcile existing snapshots too; no provider refetch or event fabrication.
+            if(EsportsMarketFactory.supports(event) && !event.isResultReviewRequired()
+                    && (event.getStatus()==EventStatus.LIVE || event.getStatus()==EventStatus.SCHEDULED)) {
+                int previous=markets.findByEventOrderByIdAsc(event).size();
+                templates.generate(event.getId());
+                var current=markets.findByEventForUpdate(event); availability.closeDeterminedMarkets(current);
+                return current.size()>previous;
+            }
+            return false;
+        }
         if (!sameParticipants(match,event)) {
             review(event,source,"PARTICIPANTS_CHANGED"); return true;
         }
@@ -123,7 +133,7 @@ public class SportsMatchSyncService {
         } else { event.setHomeScore(null); event.setAwayScore(null); }
         event.setWinnerExternalId(match.winnerExternalId());
         if (match.endedAt()!=null) event.setFinishedAt(match.endedAt());
-        if (match.status()==EventStatus.SCHEDULED) templates.generate(event.getId());
+        if (match.status()==EventStatus.SCHEDULED || (match.status()==EventStatus.LIVE && EsportsMarketFactory.supports(event))) templates.generate(event.getId());
         var eventMarkets=markets.findByEventForUpdate(event);
         if(match.status()==EventStatus.POSTPONED) eventMarkets.stream().filter(m->m.getStatus()==MarketStatus.OPEN)
                 .forEach(m->{m.setStatus(MarketStatus.SUSPENDED);m.setStatusReason("Evento adiado pelo provedor.");});

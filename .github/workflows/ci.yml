@@ -106,4 +106,4 @@ jobs:
           java-version: 21
           cache: maven
       - name: Verificar contratos transacionais em PostgreSQL
-        run: mvn -B -Dtest=MultiProviderIntegrationTest,SportsSyncIntegrationTest,SportsSyncReviewIntegrationTest,ExternalMatchSettlementIntegrationTest,DemoScenarioIntegrationTest test
+        run: mvn -B -Dtest=MultiProviderIntegrationTest,SportsSyncIntegrationTest,SportsSyncReviewIntegrationTest,ExternalMatchSettlementIntegrationTest,DemoScenarioIntegrationTest,PandaScoreMarketFlowIntegrationTest test

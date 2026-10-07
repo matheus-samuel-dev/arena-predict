@@ -133,7 +133,7 @@ public class MarketSettlementEngine {
             case WINNER -> definition.options().stream().anyMatch(c -> c.key().equals(winner)) ? Outcome.winner(winner) : Outcome.voided();
             case DOUBLE_CHANCE -> new Outcome(winner.equals("HOME") ? Set.of("HOME_DRAW", "HOME_AWAY") : winner.equals("AWAY") ? Set.of("HOME_AWAY", "DRAW_AWAY") : Set.of("HOME_DRAW", "DRAW_AWAY"), false);
             case BOTH_SCORE -> Outcome.winner(home > 0 && away > 0 ? "YES" : "NO");
-            case TOTAL, HOME_TOTAL -> compared(BigDecimal.valueOf(home + (definition.strategy() == Strategy.TOTAL ? away : 0)).compareTo(definition.line()), "OVER", "UNDER");
+            case TOTAL, HOME_TOTAL, AWAY_TOTAL -> compared(BigDecimal.valueOf(definition.strategy()==Strategy.AWAY_TOTAL?away:home + (definition.strategy() == Strategy.TOTAL ? away : 0)).compareTo(definition.line()), "OVER", "UNDER");
             case HANDICAP -> compared(BigDecimal.valueOf(home).add(definition.line()).compareTo(BigDecimal.valueOf(away)), "HOME", "AWAY");
             case EXACT_SCORE -> {
                 String key = home + "_" + away;

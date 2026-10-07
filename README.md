@@ -162,6 +162,8 @@ O provider Demo continua interno e simulado. A integração opcional PandaScore 
 
 Veja [arquitetura, permissões, reset, migrations e roteiro de teste da demonstração](docs/demo-flow.md).
 
+O [fluxo de mercados reais de previsão](docs/real-prediction-markets.md) separa contratos pré-jogo e LIVE em CS2, Valorant e LoL. A PandaScore fornece resultados esportivos; o ArenaPredict define mercados liquidáveis e multiplicadores virtuais internos entre 1,10× e 8,00×, com origem e versão congeladas no palpite. Placar indisponível não impede o contrato de vencedor da série quando o resultado final é suportado.
+
 ## Integração esportiva real — eSports
 
 Configure no `.env` privado do backend/Compose:

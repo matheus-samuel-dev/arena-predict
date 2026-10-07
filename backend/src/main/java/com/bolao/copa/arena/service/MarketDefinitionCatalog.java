@@ -11,12 +11,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class MarketDefinitionCatalog {
     private final com.fasterxml.jackson.databind.ObjectMapper json;
-    public MarketDefinitionCatalog(com.fasterxml.jackson.databind.ObjectMapper json) { this.json = json; }
+    private final EsportsMarketFactory esports;
+    public MarketDefinitionCatalog(com.fasterxml.jackson.databind.ObjectMapper json) { this(json,new EsportsMarketFactory()); }
+    @org.springframework.beans.factory.annotation.Autowired
+    public MarketDefinitionCatalog(com.fasterxml.jackson.databind.ObjectMapper json,EsportsMarketFactory esports) { this.json=json; this.esports=esports; }
     public void snapshot(PredictionMarket market, Definition definition) {
         try { market.setDefinitionData(json.writeValueAsString(definition)); }
         catch (Exception error) { throw new IllegalStateException(error); }
     }
-    public enum Strategy { WINNER, DOUBLE_CHANCE, TOTAL, HOME_TOTAL, HANDICAP, BOTH_SCORE, EXACT_SCORE, MARGIN, SELECTION, RANK, HEAD_TO_HEAD }
+    public enum Strategy { WINNER, DOUBLE_CHANCE, TOTAL, HOME_TOTAL, AWAY_TOTAL, HANDICAP, BOTH_SCORE, EXACT_SCORE, MARGIN, SELECTION, RANK, HEAD_TO_HEAD }
     public record Choice(String key, String label, BigDecimal multiplier) { }
     public record Definition(String code, String name, String category, Strategy strategy, String metric,
                              BigDecimal line, MarketTimingMode timingMode, List<Choice> options,
@@ -25,6 +28,7 @@ public class MarketDefinitionCatalog {
     private static final MarketTimingMode LIVE = MarketTimingMode.LIVE_ENABLED;
 
     public List<Definition> definitions(ArenaEvent event, List<EventParticipant> participants) {
+        if(EsportsMarketFactory.supports(event)) return esports.definitions(event);
         // External matches publish only series-score markets. No map, round or
         // pistol contract may be sold when the provider cannot settle it.
         if (event.getExternalProvider() != null && List.of("CS2","VALORANT","LEAGUE_OF_LEGENDS").contains(event.getChampionship().getSport().getCode()) && (event.getBestOf() == null
@@ -178,6 +182,7 @@ public class MarketDefinitionCatalog {
                 case DOUBLE_CHANCE -> "Mais de uma seleção pode vencer: basta um dos resultados indicados ocorrer nos 90 minutos.";
                 case TOTAL -> "Compara a soma dos dois participantes com a linha indicada. Igualdade devolve os pontos.";
                 case HOME_TOTAL -> "Compara apenas os pontos do primeiro participante com a linha indicada. Igualdade devolve os pontos.";
+                case AWAY_TOTAL -> "Compara apenas os pontos do segundo participante com a linha indicada. Igualdade devolve os pontos.";
                 case HANDICAP -> "Aplica o ajuste indicado ao primeiro participante e compara os placares. Igualdade devolve os pontos.";
                 case BOTH_SCORE -> "Sim quando ambos os participantes têm pelo menos um gol nos 90 minutos.";
                 case EXACT_SCORE -> "Compara o placar final registrado com a seleção exata.";

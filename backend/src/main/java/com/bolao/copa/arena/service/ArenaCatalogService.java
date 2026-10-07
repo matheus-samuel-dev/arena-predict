@@ -468,14 +468,14 @@ public class ArenaCatalogService {
         return values.stream().map(value -> eventResponse(value,byEvent.getOrDefault(value.getId(),List.of()),byMarket,byParticipant.getOrDefault(value.getId(),List.of()))).toList();
     }
     private EventResponse eventResponse(ArenaEvent value,List<PredictionMarket> entities,Map<Long,List<MarketOption>> byMarket,List<EventParticipant> entries) {
-        List<MarketResponse> eventMarkets=entities.stream().map(m -> marketResponse(m,byMarket.getOrDefault(m.getId(),List.of()))).toList();
+        List<MarketResponse> eventMarkets=entities.stream().filter(m->m.getStatus()!=MarketStatus.DRAFT).map(m -> marketResponse(m,byMarket.getOrDefault(m.getId(),List.of()))).toList();
         return new EventResponse(value.getId(), value.getExternalKey(), value.getChampionship().getId(), value.getChampionship().getName(),
                 sportResponse(value.getChampionship().getSport()), value.getTitle(), value.getStage(), value.getVenue(), value.getBroadcast(),
                 value.getImageUrl(), competitorSummary(value.getHomeCompetitor()), competitorSummary(value.getAwayCompetitor()), value.getStartsAt(),
                 value.getPredictionClosesAt(), value.getStatus(), value.getFormat(), value.getBestOf(), value.getHomeScore(), value.getAwayScore(),
                 value.getClock(), value.getPeriod(), value.getLiveData(), value.isFeatured(), value.isDemo(),
                 entries.stream().map(this::eventParticipantResponse).toList(), eventMarkets,
-                (int)eventMarkets.stream().filter(m -> m.availability().allowed()).count(),MarketAvailabilityService.eventLabel(eventMarkets),
+                (int)eventMarkets.stream().filter(m -> m.availability().allowed()).count(),MarketAvailabilityService.eventLabel(value,eventMarkets),
                 settlement.data(value),definitions.resultSchema(value,entries,entities),
                 value.getExternalProvider(), value.getExternalId(), value.getLastSyncedAt(),
                 value.getResultProcessedAt(), value.getWinnerExternalId(), value.isLiveScoreAvailable(),

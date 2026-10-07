@@ -15,9 +15,10 @@ public class MarketTemplateService {
     private final MarketOptionRepository options;
     private final EventParticipantRepository participants;
     private final MarketDefinitionCatalog definitions;
+    private final VirtualMultiplierService virtual;
     public MarketTemplateService(ArenaEventRepository events, PredictionMarketRepository markets,
-            MarketOptionRepository options, EventParticipantRepository participants, MarketDefinitionCatalog definitions) {
-        this.events=events; this.markets=markets; this.options=options; this.participants=participants; this.definitions=definitions;
+            MarketOptionRepository options, EventParticipantRepository participants, MarketDefinitionCatalog definitions,VirtualMultiplierService virtual) {
+        this.events=events; this.markets=markets; this.options=options; this.participants=participants; this.definitions=definitions; this.virtual=virtual;
     }
     @Transactional
     public List<PredictionMarket> generateFromAdministration(Long eventId) {
@@ -36,7 +37,7 @@ public class MarketTemplateService {
         List<PredictionMarket> published = markets.findByEventOrderByIdAsc(event);
         for (var definition : definitions.definitions(event,participants.findByEventOrderByDisplayOrderAsc(event))) {
             var sameTemplate = published.stream().filter(m -> definition.code().equals(m.getTemplateCode())).findFirst();
-            if (sameTemplate.isPresent()) { result.add(sameTemplate.get()); continue; }
+            if (sameTemplate.isPresent()) { refreshOptions(sameTemplate.get()); result.add(sameTemplate.get()); continue; }
             String code = "AUTO_" + definition.code();
             PredictionMarket existing = markets.findByEventAndCode(event,code).orElse(null);
             if (existing!=null) { result.add(existing); continue; }
@@ -44,16 +45,28 @@ public class MarketTemplateService {
             market.setEvent(event); market.setCode(code); market.setTemplateCode(definition.code());
             market.setName(definition.name()); market.setCategory(definition.category());
             market.setTimingMode(definition.timingMode()); market.setStatus(MarketStatus.OPEN);
-            market.setOpensAt(event.getStartsAt().minusSeconds(7*86400));
-            market.setClosesAt(definition.timingMode()==MarketTimingMode.PRE_MATCH_ONLY ? event.getPredictionClosesAt() : event.getStartsAt().plusSeconds(8*3600));
+            boolean externalLive=EsportsMarketFactory.supports(event)&&definition.timingMode()==MarketTimingMode.LIVE_ONLY;
+            market.setOpensAt(externalLive?Instant.now():event.getStartsAt().minusSeconds(7*86400));
+            market.setClosesAt(externalLive?null:definition.timingMode()==MarketTimingMode.PRE_MATCH_ONLY ? event.getPredictionClosesAt() : event.getStartsAt().plusSeconds(8*3600));
             definitions.snapshot(market,definition); markets.save(market);
             for (var choice : definition.options()) {
                 MarketOption option = new MarketOption(); option.setMarket(market); option.setKey(choice.key());
                 option.setLabel(choice.label()); option.setMultiplier(choice.multiplier()); option.setActive(true); options.save(option);
             }
+            refreshOptions(market);
             result.add(market);
         }
         return result;
+    }
+
+    private void refreshOptions(PredictionMarket market) {
+        if(!EsportsMarketFactory.supports(market.getEvent()) || market.getStatus()!=MarketStatus.OPEN) return;
+        var selections=options.findByMarketOrderByIdAsc(market);
+        var quote=virtual.quote(market,selections);
+        for(var option:selections) {
+            option.setMultiplier(quote.multipliers().get(option.getKey()));
+            if(market.getTimingMode()==MarketTimingMode.LIVE_ONLY) option.setActive(virtual.possible(market,option.getKey()));
+        }
     }
 
     @Transactional(readOnly = true)

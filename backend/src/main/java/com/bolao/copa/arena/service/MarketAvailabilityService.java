@@ -24,6 +24,12 @@ public class MarketAvailabilityService {
             return no("RESULT_REVIEW", "Dados em revisão", "O provedor informou uma alteração que precisa de conferência antes de novos palpites.");
         if (event.getStatus() == EventStatus.FINISHED) return no("EVENT_FINISHED", "Evento encerrado", "Aguardando processamento dos resultados.");
         if (event.getStatus() == EventStatus.POSTPONED) return no("POSTPONED", "Evento adiado", "Aguarde a atualização do calendário.");
+        if(EsportsMarketFactory.supports(event) && event.getStatus()==EventStatus.LIVE && market.getTimingMode()==MarketTimingMode.LIVE_ONLY
+                && (event.getLastSyncedAt()==null || event.getLastSyncedAt().isBefore(now.minusSeconds(300))))
+            return no("STALE_LIVE", "Aguardando atualização da partida", "Os mercados ao vivo voltam a abrir após uma leitura recente dos dados esportivos.");
+        if(EsportsMarketFactory.supports(event) && event.getStatus()==EventStatus.LIVE && market.getTimingMode()==MarketTimingMode.LIVE_ONLY
+                && !event.isLiveScoreAvailable() && !"SERIES_WINNER_LIVE".equals(market.getTemplateCode()))
+            return no("LIVE_SCORE_REQUIRED", "Aguardando placar da série", "Este mercado precisa de um placar atualizado. O vencedor da série continua disponível.");
         if (market.getStatus() == MarketStatus.CLOSED) return no("CLOSED", "Palpites encerrados", market.getStatusReason()==null?"Este mercado foi encerrado definitivamente para novos palpites.":market.getStatusReason());
         if (market.getStatus() == MarketStatus.DRAFT) return no("DRAFT", "Aguardando abertura", "As seleções ainda não foram publicadas.");
         boolean started = event.getStatus() == EventStatus.LIVE || !now.isBefore(event.getStartsAt());
@@ -51,6 +57,13 @@ public class MarketAvailabilityService {
     private boolean outcomeAlreadyKnown(PredictionMarket market) {
         ArenaEvent event = market.getEvent();
         return definitions.definition(market, List.of()).map(d -> {
+            if(EsportsMarketFactory.supports(event) && event.isLiveScoreAvailable() && d.metric().equals("score")) {
+                var scores=SeriesOutcomeModel.scores(event);
+                if(scores.isEmpty()) return true;
+                var outcomes=scores.stream().map(score->d.options().stream().filter(option->SeriesOutcomeModel.wins(d,option.key(),score))
+                        .map(MarketDefinitionCatalog.Choice::key).collect(java.util.stream.Collectors.toSet())).distinct().count();
+                return outcomes==1;
+            }
             int[] current=pricing.current(event,d.metric());
             if(current==null) return false;
             return (d.metric().equals("score") && seriesOutcomeKnown(event, d)) || switch (d.strategy()) {
@@ -108,6 +121,15 @@ public class MarketAvailabilityService {
         if (count > 0) return "Aberto para palpites · " + count + (count == 1 ? " mercado" : " mercados");
         return markets.stream().filter(m -> "SUSPENDED".equals(m.availability().code())).findFirst()
                 .or(() -> markets.stream().findFirst()).map(m -> m.availability().label()).orElse("Aguardando publicação de mercados");
+    }
+    public static String eventLabel(ArenaEvent event,List<com.bolao.copa.arena.api.ArenaDtos.MarketResponse> markets) {
+        if(markets.isEmpty()) {
+            if(event.getStatus()==EventStatus.FINISHED)return "Evento encerrado";
+            if(event.getStatus()==EventStatus.CANCELLED)return "Evento cancelado";
+            if(event.getStatus()==EventStatus.LIVE && event.getExternalProvider()!=null)return "Mercados ao vivo indisponíveis para este evento";
+            if(event.getExternalProvider()!=null)return "Dados insuficientes para publicar mercados confiáveis";
+        }
+        return eventLabel(markets);
     }
     private MarketAvailability no(String code, String label, String reason) { return new MarketAvailability(false, code, label, reason); }
 }

@@ -14,11 +14,17 @@ public class DemoProbabilityEngine {
     private static final double CURVE_ANCHOR = (MAX.doubleValue() - 2) / (2 - MIN.doubleValue());
     private final MarketDefinitionCatalog definitions;
     private final ObjectMapper json;
-    public DemoProbabilityEngine(MarketDefinitionCatalog definitions, ObjectMapper json) { this.definitions=definitions; this.json=json; }
-    public record Quote(Map<String, BigDecimal> multipliers, String mode, String reason) { }
+    private final VirtualMultiplierService virtual;
+    public DemoProbabilityEngine(MarketDefinitionCatalog definitions, ObjectMapper json) { this(definitions,json,new VirtualMultiplierService(definitions)); }
+    @org.springframework.beans.factory.annotation.Autowired
+    public DemoProbabilityEngine(MarketDefinitionCatalog definitions, ObjectMapper json, VirtualMultiplierService virtual) { this.definitions=definitions; this.json=json; this.virtual=virtual; }
+    public record Quote(Map<String, BigDecimal> multipliers, String mode, String reason, String modelVersion) {
+        public Quote(Map<String,BigDecimal> multipliers,String mode,String reason){this(multipliers,mode,reason,null);}
+    }
     private record FinalScore(int home, int away, double probability) { }
 
     public Quote quote(PredictionMarket market, List<MarketOption> options) {
+        if(EsportsMarketFactory.supports(market.getEvent()) && market.getTemplateCode()!=null) return virtual.quote(market,options);
         Map<String,BigDecimal> values=new LinkedHashMap<>();
         options.forEach(o -> values.put(o.getKey(), o.getMultiplier().max(MIN).min(MAX).setScale(2,RoundingMode.HALF_UP)));
         var definition=definitions.definition(market,List.of()).orElse(null);
@@ -58,6 +64,7 @@ public class DemoProbabilityEngine {
             case WINNER -> key.equals("HOME")?s.home()>s.away():key.equals("AWAY")?s.away()>s.home():s.home()==s.away();
             case TOTAL -> key.equals("OVER") ? s.home()+s.away()>line : s.home()+s.away()<line;
             case HOME_TOTAL -> key.equals("OVER") ? s.home()>line : s.home()<line;
+            case AWAY_TOTAL -> key.equals("OVER") ? s.away()>line : s.away()<line;
             case HANDICAP -> key.equals("HOME") ? s.home()+line>s.away() : s.home()+line<s.away();
             case BOTH_SCORE -> key.equals("YES")== (s.home()>0 && s.away()>0);
             case DOUBLE_CHANCE -> switch(key) { case "HOME_DRAW" -> s.home()>=s.away(); case "HOME_AWAY" -> s.home()!=s.away(); default -> s.home()<=s.away(); };

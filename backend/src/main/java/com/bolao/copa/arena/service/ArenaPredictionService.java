@@ -120,7 +120,7 @@ public class ArenaPredictionService {
         prediction.setStakePoints(request.stakePoints());
         prediction.setMultiplier(confirmedMultiplier);
         prediction.setMultiplierOrigin("INTERNAL_MODEL".equals(quote.mode())||"DYNAMIC".equals(quote.mode())?"INTERNAL_MODEL":"ADMIN_DEFINED");
-        prediction.setMultiplierModelVersion("INTERNAL_MODEL".equals(quote.mode())?"sports-prior-v3":"DYNAMIC".equals(quote.mode())?"demo-live-v2":null);
+        prediction.setMultiplierModelVersion(quote.modelVersion()!=null?quote.modelVersion():"INTERNAL_MODEL".equals(quote.mode())?"sports-prior-v3":"DYNAMIC".equals(quote.mode())?"demo-live-v2":null);
         prediction.setPotentialPoints(confirmedMultiplier.multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);

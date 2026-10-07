@@ -55,10 +55,10 @@ class ExternalMatchSettlementIntegrationTest {
     void officialMatchesPublishOnlyIdempotentPreMatchSeriesMarkets(int bestOf) {
         var event = fixture(bestOf, true);
         var generated = templates.generate(event.getId());
-        assertThat(generated).hasSize(bestOf == 1 ? 1 : 4);
+        assertThat(generated).hasSize(bestOf == 1 ? 1 : 6);
         assertThat(generated).allSatisfy(market -> {
             assertThat(market.getTimingMode()).isEqualTo(MarketTimingMode.PRE_MATCH_ONLY);
-            assertThat(market.getTemplateCode()).isIn("SERIES_WINNER", "TOTAL_MAPS", "MAP_HANDICAP", "SERIES_SCORE");
+            assertThat(market.getTemplateCode()).isIn("SERIES_WINNER", "TOTAL_MAPS", "MAP_HANDICAP", "SERIES_SCORE", "HOME_MAP", "AWAY_MAP");
             assertThat(catalog.marketResponse(market).pricingReason()).contains("não são odds");
         });
         assertThat(templates.generate(event.getId())).extracting(PredictionMarket::getId)
