@@ -32,12 +32,16 @@ public class ApiFootballProvider extends DocumentedSportsProvider {
         // Football contracts settle on regulation time, never on a penalty shootout or extra-time aggregate.
         JsonNode score=status==EventStatus.FINISHED?s.path("score").path("fulltime"):s.path("goals");
         Integer hs=number(score.path("home")),as=number(score.path("away"));
-        // During extra time/penalties the regulation score is already the contractual result.
-        if(Set.of("ET","BT","P").contains(raw)) { hs=number(s.path("score").path("fulltime").path("home")); as=number(s.path("score").path("fulltime").path("away")); }
         Map<String,String> data=new TreeMap<>();
         pair(data,"firstHalf",number(s.path("score").path("halftime").path("home")),number(s.path("score").path("halftime").path("away")));
+        // LIVE displays the actual game. A finished 90-minute contract retains its distinct scope.
+        if(status==EventStatus.FINISHED) pair(data,"fullMatch",number(s.path("goals").path("home")),number(s.path("goals").path("away")));
+        pair(data,"penalties",number(s.path("score").path("penalty").path("home")),number(s.path("score").path("penalty").path("away")));
+        String officialWinner=status!=EventStatus.FINISHED?null:s.path("teams").path("home").path("winner").asBoolean(false)?home.externalId():
+                s.path("teams").path("away").path("winner").asBoolean(false)?away.externalId():
+                        winner(home,away,number(s.path("goals").path("home")),number(s.path("goals").path("away")));
         return new SportsMatch(required(fixture.path("id")),home.name()+" vs "+away.name(),home,away,league(s.path("league")),
-                instant(fixture.path("date")),null,status,hs,as,null,winner(home,away,hs,as),false,hs!=null&&hs.equals(as),
+                instant(fixture.path("date")),null,status,hs,as,null,officialWinner,false,hs!=null&&hs.equals(as),
                 hs!=null&&as!=null,"FOOTBALL",data,List.of(),raw,text(fixture.path("status").path("elapsed")),
                 switch(raw) {case "1H" -> "1º tempo";case "HT" -> "Intervalo";case "2H" -> "2º tempo";case "ET","BT" -> "Prorrogação";case "P" -> "Pênaltis";default -> null;},
                 Set.of("score"),SportsMatch.EventFormatHint.HEAD_TO_HEAD);

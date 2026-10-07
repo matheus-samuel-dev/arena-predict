@@ -44,7 +44,18 @@ class TraditionalProviderContractTest {
         var match=new ApiFootballProvider(env,json).map(source);
         assertThat(match.status()).isEqualTo(EventStatus.FINISHED);assertThat(match.homeScore()).isEqualTo(1);assertThat(match.awayScore()).isEqualTo(1);
         assertThat(match.draw()).isTrue();assertThat(match.resultData()).containsEntry("firstHalfAway","1");
+        assertThat(match.resultData()).containsEntry("fullMatchHome","3").containsEntry("penaltiesHome","5");
         assertThat(match.bestOf()).isNull();assertThat(match.winnerExternalId()).isNull();
+    }
+    @Test void liveExtraTimeShowsActualGoalsWhileRegulationContractsRemainSeparate() throws Exception {
+        var source=json.readTree("""
+                {"fixture":{"id":104,"date":"2026-10-06T18:00:00+00:00","status":{"short":"ET","elapsed":105}},
+                 "league":{"id":1,"name":"Contract fixture"},"teams":{"home":{"id":10,"name":"Home"},"away":{"id":20,"name":"Away"}},
+                 "goals":{"home":3,"away":2},"score":{"fulltime":{"home":1,"away":1}}}
+                """);
+        var match=new ApiFootballProvider(env,json).map(source);
+        assertThat(match.status()).isEqualTo(EventStatus.LIVE);assertThat(match.homeScore()).isEqualTo(3);assertThat(match.awayScore()).isEqualTo(2);
+        assertThat(match.period()).isEqualTo("Prorrogação");assertThat(match.winnerExternalId()).isNull();
     }
     @Test void basketballUsesTotalIncludingOvertimeAndPreservesPeriods() throws Exception {
         var source=json.readTree("""

@@ -28,3 +28,7 @@ export function eventScore(event: ArenaEvent): readonly [number | string, number
   if (homeScore == null || awayScore == null || homeScore === "" || awayScore === "") return null;
   return [homeScore, awayScore];
 }
+export function eventScoreScope(event: ArenaEvent) {
+  const sport = typeof event.sport === "object" ? event.sport.code : event.sport || event.sportName;
+  return isExternalEvent(event) && event.status === "FINISHED" && ["FOOTBALL","FUTEBOL"].includes(String(sport).toUpperCase()) ? "90 minutos" : null;
+}

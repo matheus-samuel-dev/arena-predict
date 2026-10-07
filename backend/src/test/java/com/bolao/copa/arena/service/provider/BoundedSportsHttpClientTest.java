@@ -42,4 +42,24 @@ class BoundedSportsHttpClientTest {
         assertThatThrownBy(()->client.payload("/games",Map.of())).isInstanceOf(SportsProviderException.class).extracting("reason").isEqualTo(SportsProviderException.Reason.RATE_LIMITED);
         assertThat(client.nextAllowedRequestAt()).isAfter(Instant.now().plusSeconds(3600));server.verify();
     }
+    @Test void statusReadsNeverWaitForAnInFlightProviderResponse() throws Exception {
+        var entered=new java.util.concurrent.CountDownLatch(1);var release=new java.util.concurrent.CountDownLatch(1);
+        var builder=RestClient.builder().baseUrl("https://provider.example.test");var server=MockRestServiceServer.bindTo(builder).build();
+        var config=new ProviderConfig(new MockEnvironment().withProperty("CONTRACT_KEY","test-only-fixture-credential"),"CONTRACT","CONTRACT_KEY",
+                "https://provider.example.test",SportsHttpSettings.Authentication.HEADER);
+        server.expect(requestTo("https://provider.example.test/games")).andRespond(request->{
+            entered.countDown();try {release.await(5,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException ex){Thread.currentThread().interrupt();}
+            return withSuccess("[]",MediaType.APPLICATION_JSON).createResponse(request);
+        });
+        var client=new BoundedSportsHttpClient(config,new ObjectMapper(),builder.build(),Clock.systemUTC());
+        try(var workers=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var request=workers.submit(()->client.payload("/games",Map.of()));
+            try {
+                assertThat(entered.await(3,java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                var metadata=workers.submit(()->{client.lastHttpStatus();client.remainingRequests();return client.nextAllowedRequestAt();});
+                assertThat(metadata.get(1,java.util.concurrent.TimeUnit.SECONDS)).isNull();
+            } finally {release.countDown();}
+            request.get(3,java.util.concurrent.TimeUnit.SECONDS);server.verify();
+        }
+    }
 }

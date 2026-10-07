@@ -19,7 +19,7 @@ Não há odds externas no contrato implementado. `INTERNAL_MODEL` é um coeficie
 
 ## Contratos e limites
 
-- Futebol: `NS/TBD → SCHEDULED`; `1H/HT/2H/ET/BT/P/LIVE → LIVE`; `FT/AET/PEN → FINISHED`; `PST/INT/SUSP → POSTPONED`; `CANC/ABD/AWD/WO → CANCELLED`. Contratos de 90 minutos usam `score.fulltime`, nunca o placar de pênaltis. Resultados incompletos aguardam dados/revisão.
+- Futebol: `NS/TBD → SCHEDULED`; `1H/HT/2H/ET/BT/P/LIVE → LIVE`; `FT/AET/PEN → FINISHED`; `PST/INT/SUSP → POSTPONED`; `CANC/ABD/AWD/WO → CANCELLED`. LIVE exibe `goals`, inclusive durante prorrogação. Na finalização, contratos de 90 minutos usam `score.fulltime`, nunca pênaltis; a UI identifica esse escopo e preserva placar do evento e pênaltis como informações distintas. Resultados incompletos aguardam dados/revisão.
 - Basquete: `NS → SCHEDULED`; `Q1/Q2/Q3/Q4/OT/BT/HT → LIVE`; `FT/AOT → FINISHED`; `POST/SUSP → POSTPONED`; `CANC/AWD/ABD → CANCELLED`. `scores.*.total` inclui prorrogação. Não assume duração de quarto que o payload não fornece.
 - Tênis: `event_live=1`/`Set N → LIVE`, `Finished → FINISHED`; cancelamento/retirada/walkover anulam; adiamento/interrupção suspendem. `event_final_result` representa sets. Games são somados somente quando todos os sets finais estão presentes. Não infere BO3/BO5 por gênero ou torneio. Doubles ficam fora do adapter: identidade estável da dupla ainda não validada. Status não reconhecido falha explicitamente.
 - F1: `Scheduled/Live/Completed/Cancelled/Postponed` mapeiam os estados correspondentes. Não interpreta calendário como corrida ao vivo. `position=0`/DNF permanece sem posição inventada. Só importa sessões `Race`, não quali/prática como corrida.

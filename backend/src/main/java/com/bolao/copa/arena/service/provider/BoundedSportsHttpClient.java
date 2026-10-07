@@ -40,10 +40,10 @@ public class BoundedSportsHttpClient {
     private final ArrayDeque<Instant> requestTimes = new ArrayDeque<>();
     private final ArrayDeque<Instant> dailyTimes = new ArrayDeque<>();
     private final ArrayDeque<Instant> minuteTimes = new ArrayDeque<>();
-    private Instant retryAt = Instant.EPOCH;
+    private volatile Instant retryAt = Instant.EPOCH;
     private Reason cooldownReason = Reason.RATE_LIMITED;
-    private Long remainingRequests;
-    private Integer lastHttpStatus;
+    private volatile Long remainingRequests;
+    private volatile Integer lastHttpStatus;
 
     public BoundedSportsHttpClient(SportsHttpSettings properties, ObjectMapper json) {
         this(properties, json, buildHttp(properties), Clock.systemUTC());
@@ -78,13 +78,13 @@ public class BoundedSportsHttpClient {
     public boolean configured() { return properties.getApiToken() != null && !properties.getApiToken().isBlank(); }
 
     /** Safe operational metadata; never exposes credentials, URLs or response bodies. */
-    public synchronized Instant nextAllowedRequestAt() {
+    public Instant nextAllowedRequestAt() {
         return clock.instant().isBefore(retryAt) ? retryAt : null;
     }
 
     /** Last quota reported by the provider; null means no valid header was received. */
-    public synchronized Long remainingRequests() { return remainingRequests; }
-    public synchronized Integer lastHttpStatus() { return lastHttpStatus; }
+    public Long remainingRequests() { return remainingRequests; }
+    public Integer lastHttpStatus() { return lastHttpStatus; }
 
     public <T> List<T> list(String path, Map<String, String> query, Class<T> itemType) {
         List<T> items = new ArrayList<>();

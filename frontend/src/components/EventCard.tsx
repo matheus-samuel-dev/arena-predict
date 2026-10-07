@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { eventFormatLabel, eventScore, isExternalEvent } from "../app/sportsData";
+import { eventFormatLabel, eventScore, eventScoreScope, isExternalEvent } from "../app/sportsData";
 import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
@@ -101,7 +101,7 @@ export function EventCard({
   const isLive = ["LIVE", "AO_VIVO"].includes(String(event.status).toUpperCase());
   const isFinished = ["FINISHED", "ENCERRADO"].includes(String(event.status).toUpperCase());
   const score = eventScore(event);
-  const format = eventFormatLabel(event);
+  const format = eventScoreScope(event) || eventFormatLabel(event);
   const multiParticipant = isMultiParticipantEvent(event);
   const predictionOpen = isPredictionOpen(event);
   const demoReadOnly = predictionReadOnly(event);

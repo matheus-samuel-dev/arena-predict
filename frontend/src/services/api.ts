@@ -259,7 +259,7 @@ function normalizeEvent(event: ArenaEvent): ArenaEvent {
 function canonicalStatistics(data?: Record<string,string>) {
   if (!data) return undefined;
   const values: Record<string,string> = {};
-  const labels: Record<string,string> = {firstHalf:"Intervalo",quarter1:"1º quarto",quarter2:"2º quarto",quarter3:"3º quarto",quarter4:"4º quarto",set1:"1º set",set2:"2º set",set3:"3º set",set4:"4º set",set5:"5º set",games:"Games"};
+  const labels: Record<string,string> = {fullMatch:"Placar do evento",penalties:"Pênaltis",firstHalf:"Intervalo",quarter1:"1º quarto",quarter2:"2º quarto",quarter3:"3º quarto",quarter4:"4º quarto",set1:"1º set",set2:"2º set",set3:"3º set",set4:"4º set",set5:"5º set",games:"Games"};
   Object.entries(labels).forEach(([key,label]) => {
     if (data[`${key}Home`] != null && data[`${key}Away`] != null) values[label] = `${data[`${key}Home`]} × ${data[`${key}Away`]}`;
   });

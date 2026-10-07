@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SportsSyncSummary } from "../components/SportsSyncSummary";
 import { eventsApi } from "../services/api";
-import { eventSourceLabel } from "../app/sportsData";
+import { eventSourceLabel, eventScoreScope } from "../app/sportsData";
 import { ParticipantList } from "../components/EventCard";
 import type { ArenaEvent } from "../types";
 
@@ -35,5 +35,11 @@ describe("providers reais preparados sem mascarar credenciais ausentes", () => {
     render(<ParticipantList event={{id:7,startsAt:"2026-10-06T19:00:00Z",status:"LIVE",format:"RACE",externalProvider:"API_FORMULA1",participants:[],markets:[]} as ArenaEvent} />);
     expect(screen.getByText("Participantes ainda não informados pelo provedor.")).toBeInTheDocument();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+  it("identifica o placar regulamentar sem alterar o escopo de outros esportes", () => {
+    const event = {id:8,startsAt:"2026-10-06T19:00:00Z",status:"FINISHED",sportName:"Futebol",externalProvider:"API_FOOTBALL",markets:[]} as ArenaEvent;
+    expect(eventScoreScope(event)).toBe("90 minutos");
+    expect(eventScoreScope({...event,status:"LIVE"})).toBeNull();
+    expect(eventScoreScope({...event,sportName:"Basquete"})).toBeNull();
   });
 });
