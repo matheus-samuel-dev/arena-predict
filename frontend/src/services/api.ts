@@ -68,6 +68,7 @@ function normalizeSession(payload: Partial<AuthSession> & { id?: number }): Auth
     role: normalizeRole(payload.role),
     avatarUrl: payload.avatarUrl,
     demoProfile: payload.demoProfile === "ADMIN" || payload.demoProfile === "PARTICIPANT" ? payload.demoProfile : null,
+    ...(payload.demoTraining ? { demoTraining: true } : {}),
   };
 }
 
@@ -336,10 +337,10 @@ export const authApi = {
       throw error;
     }
   },
-  async demo(profile: "PARTICIPANT" | "ADMIN") {
+  async demo(profile: "PARTICIPANT" | "ADMIN", training = false) {
     const result = await request<AuthSession>("/auth/demo", {
       method: "POST",
-      body: { profile },
+      body: training ? { profile, training } : { profile },
       auth: false,
     });
     return normalizeSession(result);
@@ -358,9 +359,11 @@ export const authApi = {
   logout: () => request<void>("/auth/logout", { method: "POST" }),
 };
 
+function trainingPath() { return sessionStorage.read()?.demoTraining ? "/training" : ""; }
+
 export const dashboardApi = {
   async get() {
-    const result = await request<DashboardData>("/dashboard");
+    const result = await request<DashboardData>(`${trainingPath()}/dashboard`);
     return {
       ...result,
       featuredEvents: result.featuredEvents?.map(normalizeEvent),
@@ -397,7 +400,7 @@ export const demoApi = {
 
 export const predictionsApi = {
   list: (filters: { status?: string; page?: number; size?: number } = {}) =>
-    request<Prediction[] | PageResponse<Prediction>>(`/predictions${query(filters)}`),
+    request<Prediction[] | PageResponse<Prediction>>(`${trainingPath()}/predictions${query(filters)}`),
   create: (payload: {
     eventId: number | string;
     marketId: number | string;
@@ -407,7 +410,7 @@ export const predictionsApi = {
     poolId?: number | string;
     idempotencyKey?: string;
   }) =>
-    request<Prediction>("/predictions", {
+    request<Prediction>(`${trainingPath()}/predictions`, {
       method: "POST",
       body: payload,
       idempotencyKey: payload.idempotencyKey,
@@ -420,9 +423,9 @@ export const predictionsApi = {
 };
 
 export const walletApi = {
-  get: () => request<Wallet>("/wallet"),
+  get: () => request<Wallet>(`${trainingPath()}/wallet`),
   transactions: (page = 0, size = 30) =>
-    request<WalletTransaction[] | PageResponse<WalletTransaction>>(`/wallet/transactions${query({ page, size })}`),
+    request<WalletTransaction[] | PageResponse<WalletTransaction>>(`${trainingPath()}/wallet/transactions${query({ page, size })}`),
 };
 
 export const poolsApi = {
@@ -442,11 +445,11 @@ export const poolsApi = {
 
 export const rankingsApi = {
   list: (filters: { period?: string; sport?: string; championship?: string; scope?: string; source?: string } = {}) =>
-    request<RankingRow[] | PageResponse<RankingRow>>(`/rankings${query(filters)}`).then((result) => asList(result).map(normalizeRanking)),
+    request<RankingRow[] | PageResponse<RankingRow>>(`${trainingPath()}/rankings${query(filters)}`).then((result) => asList(result).map(normalizeRanking)),
 };
 
 export const notificationsApi = {
-  list: () => request<Notification[] | PageResponse<Notification>>("/notifications").then((result) => asList(result).map((item) => ({ ...item, link: item.link || item.targetUrl }))),
+  list: () => request<Notification[] | PageResponse<Notification>>(`${trainingPath()}/notifications`).then((result) => asList(result).map((item) => ({ ...item, link: item.link || item.targetUrl }))),
   read: (id: number | string) => request<Notification>(`/notifications/${id}/read`, { method: "PATCH" }),
   readAll: () => request<void>("/notifications/read-all", { method: "PATCH" }),
 };
@@ -458,7 +461,7 @@ export const catalogApi = {
 };
 
 export const profileApi = {
-  get: () => request<PlayerProfile>("/profile"),
+  get: () => request<PlayerProfile>(`${trainingPath()}/profile`),
   update: (payload: Record<string, unknown>) => request<PlayerProfile>("/profile", { method: "PATCH", body: payload }),
   changePassword: (payload: { currentPassword: string; newPassword: string }) =>
     request<void>("/profile/password", { method: "PATCH", body: payload }),
@@ -467,11 +470,11 @@ export const profileApi = {
 };
 
 export const achievementsApi = {
-  list: () => request<Achievement[] | PageResponse<Achievement>>("/achievements"),
+  list: () => request<Achievement[] | PageResponse<Achievement>>(`${trainingPath()}/achievements`),
 };
 
 export const challengesApi = {
-  list: () => request<Challenge[] | PageResponse<Challenge>>("/challenges"),
+  list: () => request<Challenge[] | PageResponse<Challenge>>(`${trainingPath()}/challenges`),
 };
 
 export const communityApi = {

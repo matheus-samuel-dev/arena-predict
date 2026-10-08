@@ -54,6 +54,18 @@ class PandaScoreMapperTest {
     }
 
     @Test
+    void runningRestGamesIdentifyOnlyOneCurrentMapWithoutInventingRounds() throws Exception {
+        var source=fixture("running-matches.json");
+        source.set("games",json.readTree("[{\"id\":8,\"position\":1,\"status\":\"finished\",\"finished\":true},{\"id\":9,\"position\":2,\"status\":\"running\",\"finished\":false}]"));
+        var match=map(source,true);
+        assertThat(match.period()).isEqualTo("Mapa 2 em andamento");
+        assertThat(match.clock()).isNull();assertThat(match.resultData()).isEmpty();
+        source.set("games",json.readTree("[{\"id\":8,\"position\":1,\"status\":\"running\"},{\"id\":9,\"position\":2,\"status\":\"running\"}]"));
+        assertThat(map(source,true).period()).isNull();
+        source.remove("games");assertThat(map(source,true).period()).isNull();
+    }
+
+    @Test
     void mapsFinishedResultEvenWithoutPaidLiveCapability() throws Exception {
         SportsMatch match = map(fixture("finished-match.json"), false);
         assertThat(match.status()).isEqualTo(EventStatus.FINISHED);

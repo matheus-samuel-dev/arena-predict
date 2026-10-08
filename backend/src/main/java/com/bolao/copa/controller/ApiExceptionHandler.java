@@ -65,6 +65,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error(exception.getMessage()));
     }
 
+    @ExceptionHandler(com.bolao.copa.arena.service.LiveTrainingService.TrainingCapacityException.class)
+    ResponseEntity<Map<String,Object>> handleTrainingCapacity(com.bolao.copa.arena.service.LiveTrainingService.TrainingCapacityException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).header("Retry-After","60").body(error(exception.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<Map<String, Object>> handleUnexpected(Exception exception) {
         LOGGER.error("Erro inesperado na API", exception);

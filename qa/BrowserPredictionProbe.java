@@ -25,7 +25,7 @@ public class BrowserPredictionProbe {
             var tx=new org.springframework.transaction.support.TransactionTemplate(app.getBean(org.springframework.transaction.PlatformTransactionManager.class));
             var before=json.readValue(Files.readString(beforeFile),PandaScoreDtos.Match.class);
             if(!"running".equals(before.status()))throw new IllegalStateException("Authentic running snapshot required");
-            var source=mapper.match(before,false).orElseThrow();sync.synchronize("PANDASCORE",source,catalog.synchronize("PANDASCORE",List.of(source)));
+            var source=mapper.match(before,true).orElseThrow();sync.synchronize("PANDASCORE",source,catalog.synchronize("PANDASCORE",List.of(source)));
             long eventId=tx.execute(s->events.findByExternalProviderAndExternalId("PANDASCORE",source.externalId()).orElseThrow().getId());
             System.out.println("BROWSER_QA READY eventId="+eventId+" externalId="+source.externalId()+" localPort=8088; register through UI");
             long deadline=System.currentTimeMillis()+30*60_000L;
@@ -40,6 +40,10 @@ public class BrowserPredictionProbe {
                 var proof=new LinkedHashMap<String,Object>();proof.put("mode","isolated browser replay of authenticated snapshots; not a temporal live claim");proof.put("externalId",source.externalId());
                 proof.put("predictions",rows.stream().map(p->Map.of("id",p.getId(),"stake",p.getStakePoints(),"multiplier",p.getMultiplier(),"reward",p.getRewardedPoints(),"status",p.getStatus())).toList());
                 proof.put("credits",rows.stream().map(p->ledger.findByIdempotencyKey("prediction-win:"+p.getId()).orElseThrow().getAmount()).toList());proof.put("resultRetries",10);
+                var db=app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+                proof.put("trainingPredictions",db.queryForList("select id,event_id,stake_points,multiplier,status,rewarded_points from demo_training_predictions order by id"));
+                proof.put("trainingCredits",db.queryForList("select amount from demo_training_ledger where type='PREDICTION_WON' order by id"));
+                proof.put("trainingSessions",db.queryForList("select balance,lifetime_used,lifetime_earned from demo_training_sessions order by created_at"));
                 try{Files.writeString(proofFile,json.writerWithDefaultPrettyPrinter().writeValueAsString(proof));}catch(java.io.IOException e){throw new RuntimeException(e);}return null;});
             System.out.println("BROWSER_QA RESULT_PROCESSED; inspect predictions, wallet, statistics and ranking in UI");
             Thread.sleep(10*60_000L);

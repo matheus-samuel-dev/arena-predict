@@ -49,7 +49,7 @@ class DemoAuthServiceTest {
                 jwtService,
                 properties,
                 playerProfiles,
-                new DemoAccessPolicy(properties)
+                new DemoAccessPolicy(properties), org.mockito.Mockito.mock(com.bolao.copa.arena.service.LiveTrainingService.class)
         );
     }
 

@@ -15,7 +15,8 @@ import org.springframework.validation.annotation.Validated;
 public class PandaScoreProperties implements com.bolao.copa.arena.service.provider.SportsHttpSettings {
     private String apiToken = "";
     private String baseUrl = "https://api.pandascore.co";
-    private boolean liveScoresEnabled;
+    // REST results include series scores on Fixtures; this does not enable paid WebSockets.
+    private boolean liveScoresEnabled = true;
     @NotEmpty private List<@Pattern(regexp = "csgo|lol|valorant") String> videogames = List.of("csgo", "lol", "valorant");
     @Min(100) @Max(30000) private int connectTimeoutMs = 3000;
     @Min(100) @Max(60000) private int readTimeoutMs = 8000;

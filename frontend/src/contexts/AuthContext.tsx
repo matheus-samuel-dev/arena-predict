@@ -9,7 +9,7 @@ interface AuthContextValue {
   initializing: boolean;
   authenticating: boolean;
   login: (email: string, password: string) => Promise<AuthSession>;
-  demoLogin: (profile: "PARTICIPANT" | "ADMIN") => Promise<AuthSession>;
+  demoLogin: (profile: "PARTICIPANT" | "ADMIN", training?: boolean) => Promise<AuthSession>;
   register: (payload: { name: string; email: string; password: string }) => Promise<AuthSession>;
   logout: (silent?: boolean) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -121,9 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const demoLogin = useCallback(
-    (profile: "PARTICIPANT" | "ADMIN") => authenticate(async () => {
+    (profile: "PARTICIPANT" | "ADMIN", training = false) => authenticate(async () => {
         clearSession();
-        const authenticated = await authApi.demo(profile);
+        const authenticated = await authApi.demo(profile, training);
         const expectedRole = profile === "ADMIN" ? "ADMIN" : "PARTICIPANTE";
         if (authenticated.role !== expectedRole) {
           throw new Error("O perfil demonstrativo retornado não corresponde ao acesso solicitado.");

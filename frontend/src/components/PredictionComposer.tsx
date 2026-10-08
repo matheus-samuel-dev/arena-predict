@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
-import { createIdempotencyKey, poolsApi, predictionsApi } from "../services/api";
+import { createIdempotencyKey, poolsApi, predictionsApi, sessionStorage } from "../services/api";
 import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
 import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
@@ -66,6 +66,7 @@ export function PredictionComposer({
   const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
   const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
   const demoRestricted = Boolean((currentEvent || draft?.event) && predictionReadOnly((currentEvent || draft?.event)!)) && !demoScenario;
+  const training = Boolean(sessionStorage.read()?.demoTraining);
   const selectionAllowed = !demoRestricted && currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
   const { wallet, refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
@@ -91,7 +92,7 @@ export function PredictionComposer({
   }, [selectionKey]);
 
   useEffect(() => {
-    if (!draft || demoScenario || demoRestricted || draft.event.demoManaged) {
+    if (!draft || training || demoScenario || demoRestricted || draft.event.demoManaged) {
       setAvailablePools([]);
       setPoolsError("");
       setPoolsLoading(false);
@@ -112,7 +113,7 @@ export function PredictionComposer({
       })
       .finally(() => active && setPoolsLoading(false));
     return () => { active = false; };
-  }, [draft?.event.id, demoScenario, demoRestricted]);
+  }, [draft?.event.id, training, demoScenario, demoRestricted]);
 
   useEffect(() => {
     if (draft && !confirmed) {
@@ -181,7 +182,7 @@ export function PredictionComposer({
             <div><small>{marketDisplayName(draft.market)}</small><strong>{draft.option.label || draft.option.name}</strong></div>
             <b title="Multiplicador">{multiplier(coefficient)}</b>
           </div>
-          <p className="prediction-multiplier-note">Multiplicador registrado junto ao seu palpite.</p>
+          <p className="prediction-multiplier-note">{training ? "Palpite de demonstração — pontos exclusivamente virtuais. Carteira e histórico exclusivos deste treino." : "Multiplicador registrado junto ao seu palpite."}</p>
           <label className="stake-field" htmlFor="prediction-stake">
             <span>Pontos virtuais</span>
             <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
@@ -189,7 +190,7 @@ export function PredictionComposer({
             <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
             <small id="prediction-stake-help">Saldo disponível: <strong>{points(balance)} pts</strong></small>
           </label>
-          {!demoScenario && !draft.event.demoManaged && <label className="prediction-pool-field">
+          {!training && !demoScenario && !draft.event.demoManaged && <label className="prediction-pool-field">
             <span>Vincular a um bolão <small>(opcional)</small></span>
             <div><Trophy size={17} /><select value={poolId} onChange={(event) => setPoolId(event.target.value)} disabled={poolsLoading || submitting}><option value="">Palpite individual</option>{availablePools.map((pool) => <option value={String(pool.id)} key={pool.id}>{pool.name}</option>)}</select></div>
             {poolsLoading && <small>Carregando seus grupos...</small>}

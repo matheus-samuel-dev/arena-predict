@@ -102,7 +102,7 @@ export function EventCard({
   const isLive = ["LIVE", "AO_VIVO"].includes(String(event.status).toUpperCase());
   const isFinished = ["FINISHED", "ENCERRADO"].includes(String(event.status).toUpperCase());
   const score = eventScore(event);
-  const format = eventScoreScope(event) || eventFormatLabel(event);
+  const format = [eventScoreScope(event), eventFormatLabel(event)].filter(Boolean).join(" · ");
   const multiParticipant = isMultiParticipantEvent(event);
   const predictionOpen = isPredictionOpen(event);
   const demoReadOnly = predictionReadOnly(event);

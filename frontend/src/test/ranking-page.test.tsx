@@ -17,6 +17,7 @@ listRanking.mockResolvedValue(rankingRows);
 listSports.mockResolvedValue([{ id: 7, name: "Counter-Strike 2", slug: "CS2" }]);
 
 vi.mock("../services/api", () => ({
+  sessionStorage: { read: () => null },
   rankingsApi: { list: (filters: unknown) => listRanking(filters) },
   catalogApi: { sports: () => listSports() },
   asList: (value: unknown) => Array.isArray(value) ? value : [],

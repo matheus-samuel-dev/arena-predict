@@ -78,6 +78,14 @@ public final class DemoAccessPolicy {
         boolean admin = sameEmail(email, properties.adminEmail()) && hasAuthority(authentication, "ROLE_ADMIN");
         boolean participant = sameEmail(email, properties.participantEmail()) && hasAuthority(authentication, "ROLE_PARTICIPANTE");
         boolean reading = "GET".equals(method) || "HEAD".equals(method);
+        boolean training = authentication.getDetails() instanceof JwtAuthenticationFilter.TrainingIdentity;
+        if (path.equals("/api/training") || path.startsWith("/api/training/"))
+            return properties.enabled() && participant && training && (reading || ("POST".equals(method) && path.equals("/api/training/predictions")));
+        if (training) {
+            if (!participant || !properties.enabled()) return false;
+            if (!reading) return "POST".equals(method) && path.equals("/api/auth/logout");
+            if (path.matches("/api/(?:predictions|wallet|dashboard|statistics|notifications|profile|demo|achievements|challenges)(?:/.*)?")) return false;
+        }
         if (path.equals("/api/demo") || path.startsWith("/api/demo/")) {
             if (!properties.enabled()) return false;
             if (reading) return (admin || participant) && path.equals("/api/demo/scenario");

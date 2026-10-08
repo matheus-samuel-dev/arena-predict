@@ -39,6 +39,13 @@ public class JwtService {
         return generate(user, Instant.now(), expiration);
     }
 
+    public String generateTraining(User user, String sessionId) {
+        Instant now=Instant.now();
+        return Jwts.builder().subject(user.getEmail()).claim(ROLE_CLAIM,user.getRole().canonical().name())
+                .claim(TOKEN_TYPE_CLAIM,ACCESS_TOKEN_TYPE).claim("trainingSession",sessionId)
+                .issuedAt(Date.from(now)).expiration(Date.from(now.plus(Duration.ofHours(24)))).signWith(key).compact();
+    }
+
     String generate(User user, Instant issuedAt, Duration validity) {
         var canonicalRole = user.getRole().canonical();
         return Jwts.builder()
@@ -78,7 +85,8 @@ public class JwtService {
                 subject,
                 role,
                 claims.getIssuedAt() == null ? null : claims.getIssuedAt().toInstant(),
-                claims.getExpiration() == null ? null : claims.getExpiration().toInstant()
+                claims.getExpiration() == null ? null : claims.getExpiration().toInstant(),
+                claims.get("trainingSession",String.class)
         );
     }
 
@@ -95,6 +103,7 @@ public class JwtService {
                 .anyMatch(authority -> expectedAuthority.equals(authority.getAuthority()));
     }
 
-    public record TokenClaims(String subject, UserRole role, Instant issuedAt, Instant expiresAt) {
+    public record TokenClaims(String subject, UserRole role, Instant issuedAt, Instant expiresAt, String trainingSession) {
+        public TokenClaims(String subject, UserRole role, Instant issuedAt, Instant expiresAt) { this(subject,role,issuedAt,expiresAt,null); }
     }
 }

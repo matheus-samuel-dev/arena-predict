@@ -25,10 +25,17 @@ export function eventScore(event: ArenaEvent): readonly [number | string, number
   const homeScore = event.homeScore ?? home.score;
   const awayScore = event.awayScore ?? away.score;
   if (["LIVE", "AO_VIVO"].includes(event.status) && isExternalEvent(event) && event.liveScoreAvailable === false) return null;
+  if (isStaleLiveScore(event)) return null;
   if (homeScore == null || awayScore == null || homeScore === "" || awayScore === "") return null;
   return [homeScore, awayScore];
 }
+export function isStaleLiveScore(event: ArenaEvent) {
+  if (!isExternalEvent(event) || !["LIVE", "AO_VIVO"].includes(event.status)) return false;
+  const read = Date.parse(event.lastSyncedAt || "");
+  return !Number.isFinite(read) || Date.now() - read > 300_000;
+}
 export function eventScoreScope(event: ArenaEvent) {
   const sport = typeof event.sport === "object" ? event.sport.code : event.sport || event.sportName;
+  if (event.externalProvider === "PANDASCORE") return String(sport).toUpperCase() === "LEAGUE_OF_LEGENDS" ? "Jogos da série" : "Mapas da série";
   return isExternalEvent(event) && event.status === "FINISHED" && ["FOOTBALL","FUTEBOL"].includes(String(sport).toUpperCase()) ? "90 minutos" : null;
 }

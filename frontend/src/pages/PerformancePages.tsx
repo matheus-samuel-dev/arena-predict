@@ -5,10 +5,12 @@ import { enumLabel } from "../app/presentation";
 import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, StatusBadge, UserAvatar } from "../components/UI";
 import { useApiResource } from "../hooks/useApiResource";
 import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
-import { achievementsApi, asList, catalogApi, challengesApi, predictionsApi, rankingsApi } from "../services/api";
+import { TrainingNotice } from "../components/TrainingNotice";
+import { achievementsApi, asList, catalogApi, challengesApi, predictionsApi, rankingsApi, sessionStorage } from "../services/api";
 import type { Achievement, Challenge, RankingRow } from "../types";
 
 export function RankingsPage() {
+  const training = Boolean(sessionStorage.read()?.demoTraining);
   const [period, setPeriod] = useState("WEEKLY");
   const [scope, setScope] = useState("GLOBAL");
   const [sport, setSport] = useState("");
@@ -31,11 +33,12 @@ export function RankingsPage() {
     : rows;
   return (
     <>
-      <PageHeader eyebrow="PLACAR DA COMUNIDADE" title="Rankings" description="Compare consistência, precisão e evolução em diferentes períodos e modalidades." />
+      <PageHeader eyebrow={training ? "PROGRESSO PRIVADO" : "PLACAR DA COMUNIDADE"} title="Rankings" description={training ? "Somente os resultados deste treino. Você não participa do ranking real nem compara dados de outros visitantes." : "Compare consistência, precisão e evolução em diferentes períodos e modalidades."} />
       <section className="ranking-controls surface">
-        <div className="filter-tabs" role="group" aria-label="Filtrar ranking por período">{[{ value: "WEEKLY", label: "Semanal" }, { value: "MONTHLY", label: "Mensal" }, { value: "ALL", label: "Geral" }].map((item) => <button type="button" aria-pressed={period === item.value} className={period === item.value ? "active" : ""} onClick={() => setPeriod(item.value)} key={item.value}>{item.label}</button>)}</div>
+        <TrainingNotice />
+        {!training && <div className="filter-tabs" role="group" aria-label="Filtrar ranking por período">{[{ value: "WEEKLY", label: "Semanal" }, { value: "MONTHLY", label: "Mensal" }, { value: "ALL", label: "Geral" }].map((item) => <button type="button" aria-pressed={period === item.value} className={period === item.value ? "active" : ""} onClick={() => setPeriod(item.value)} key={item.value}>{item.label}</button>)}</div>}
         <div className="ranking-controls__fields">
-          <label className="select-field"><select value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filtrar ranking por origem"><option value="ALL">Real e demonstração</option><option value="REAL">Eventos reais</option><option value="DEMO">Demonstração</option></select></label>
+          {!training && <label className="select-field"><select value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filtrar ranking por origem"><option value="ALL">Real e demonstração</option><option value="REAL">Eventos reais</option><option value="DEMO">Demonstração</option></select></label>}
           <label className="ranking-participant-search">
             <Search size={17} aria-hidden="true" />
             <input
@@ -47,7 +50,7 @@ export function RankingsPage() {
               autoComplete="off"
             />
           </label>
-          <label className="select-field"><Users size={16} aria-hidden="true" /><select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Filtrar ranking por grupo"><option value="GLOBAL">Todos os participantes</option><option value="FRIENDS">Entre amigos</option></select><ChevronDown size={15} aria-hidden="true" /></label>
+          {!training && <label className="select-field"><Users size={16} aria-hidden="true" /><select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Filtrar ranking por grupo"><option value="GLOBAL">Todos os participantes</option><option value="FRIENDS">Entre amigos</option></select><ChevronDown size={15} aria-hidden="true" /></label>}
           <label className="select-field"><Trophy size={16} aria-hidden="true" /><select value={sport} onChange={(event) => setSport(event.target.value)} aria-label="Filtrar ranking por modalidade"><option value="">Todas as modalidades</option>{(data?.sports || []).map((item) => <option value={item.slug || item.id} key={item.id}>{item.name}</option>)}</select><ChevronDown size={15} aria-hidden="true" /></label>
         </div>
       </section>

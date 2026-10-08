@@ -12,6 +12,7 @@ export interface User {
 
 export interface AuthSession extends User {
   token: string;
+  demoTraining?: boolean;
 }
 
 export type EventStatus =

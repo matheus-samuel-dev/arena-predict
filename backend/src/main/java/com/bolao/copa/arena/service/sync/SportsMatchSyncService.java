@@ -31,15 +31,17 @@ public class SportsMatchSyncService {
     private final AdminAuditService audit;
     private final ObjectMapper json;
     private final EventParticipantRepository participants;
+    private final LiveTrainingService training;
 
     public SportsMatchSyncService(ArenaEventRepository events, CompetitorRepository teams,
             ChampionshipRepository championships, PredictionMarketRepository markets, MarketTemplateService templates,
             ArenaPredictionService predictions, MarketAvailabilityService availability, SportsSyncStateStore state,
-            AdminAuditService audit, ObjectMapper json, EventParticipantRepository participants) {
+            AdminAuditService audit, ObjectMapper json, EventParticipantRepository participants, LiveTrainingService training) {
         this.events=events; this.teams=teams; this.championships=championships; this.markets=markets;
         this.templates=templates; this.predictions=predictions; this.availability=availability;
         this.state=state; this.audit=audit; this.json=json;
         this.participants=participants;
+        this.training=training;
     }
 
     @Transactional
@@ -122,6 +124,7 @@ public class SportsMatchSyncService {
         syncParticipants(event,match,refs);
         if (match.status()==EventStatus.CANCELLED) {
             predictions.cancelEvent(event.getId());
+            training.settleOfficial(event);
             log.info("[SPORTS_SYNC] Match cancelled externalId={} refunds processed",match.externalId());
             return true;
         }
@@ -146,6 +149,7 @@ public class SportsMatchSyncService {
             log.info("[PREDICTION] Processing provider result matchId={} score={}-{}",event.getId(),match.homeScore(),match.awayScore());
             if(match.formatHint()!=SportsMatch.EventFormatHint.RACE || !eventMarkets.isEmpty()) predictions.settleDerived(event);
             event.setResultProcessedAt(now); event.setResultFingerprint(fingerprint(match));
+            training.settleOfficial(event);
             audit.record("EXTERNAL_RESULT_PROCESSED","EVENT",event.getId(),"Resultado recebido de "+provider+"; palpites processados pelas regras existentes.");
             log.info("[RANKING] Result processed matchId={}; ranking projections updated",event.getId());
         } else if (match.status()==EventStatus.FINISHED && match.formatHint()!=SportsMatch.EventFormatHint.RACE

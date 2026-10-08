@@ -26,17 +26,19 @@ public class DemoAuthService {
     private final DemoProperties properties;
     private final PlayerProfileRepository playerProfiles;
     private final DemoAccessPolicy demoAccess;
+    private final com.bolao.copa.arena.service.LiveTrainingService training;
 
     public DemoAuthService(UserRepository users, JwtService jwtService, DemoProperties properties, PlayerProfileRepository playerProfiles,
-                           DemoAccessPolicy demoAccess) {
+                           DemoAccessPolicy demoAccess, com.bolao.copa.arena.service.LiveTrainingService training) {
         this.users = users;
         this.jwtService = jwtService;
         this.properties = properties;
         this.playerProfiles = playerProfiles;
         this.demoAccess = demoAccess;
+        this.training = training;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse access(DemoAccessRequest request) {
         var expectedRole = request.profile().userRole();
         var configuredEmail = request.profile() == com.bolao.copa.dto.AuthDtos.DemoProfile.ADMIN
@@ -47,6 +49,12 @@ public class DemoAuthService {
                 .orElseThrow(DemoAccessUnavailableException::new);
         if (user.getRole() == null || user.getRole().canonical() != expectedRole || demoAccess.demoProfile(user) != request.profile()) {
             throw new DemoAccessUnavailableException();
+        }
+        if(request.training()) {
+            demoAccess.requireDemoParticipant(user);
+            String session=training.createSession();
+            return new AuthResponse(jwtService.generateTraining(user,session),user.getId(),"Jogador Demo",user.getEmail(),
+                    user.getRole().canonical(),null,request.profile(),true);
         }
 
         return new AuthResponse(

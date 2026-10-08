@@ -48,6 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetails.getAuthorities()
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            if(token.trainingSession()!=null) authentication.setDetails(new TrainingIdentity(java.util.UUID.fromString(token.trainingSession()).toString()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (RuntimeException invalidOrExpiredToken) {
             // Invalid credentials are intentionally not logged or exposed. Protected
@@ -55,6 +56,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
     }
+
+    public record TrainingIdentity(String sessionId) { }
 
     private boolean isBearer(String header) {
         return header != null

@@ -32,7 +32,7 @@ public class ArenaPredictionService {
     private final MarketDefinitionCatalog definitions;
     private final MarketSettlementEngine settlement;
     private final EventParticipantRepository participants;
-    private final DemoProbabilityEngine pricing;
+    private final PredictionSelectionRules selectionRules;
     private final DemoAccessPolicy demoAccess;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
@@ -41,10 +41,10 @@ public class ArenaPredictionService {
                                   PointWalletService wallets, ArenaNotificationService notifications,
                                   ProgressionService progression, AdminAuditService audit,
                                   MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
-                                  MarketSettlementEngine settlement, EventParticipantRepository participants, DemoProbabilityEngine pricing,
+                                  MarketSettlementEngine settlement, EventParticipantRepository participants, PredictionSelectionRules selectionRules,
                                   DemoAccessPolicy demoAccess) {
         this.demoAccess = demoAccess;
-        this.pricing=pricing;
+        this.selectionRules=selectionRules;
         this.predictions = predictions;
         this.events = events;
         this.markets = markets;
@@ -95,11 +95,8 @@ public class ArenaPredictionService {
         if (!market.getEvent().getId().equals(event.getId())) throw new ArenaProblem.RuleViolation("O mercado não pertence ao evento informado.");
         MarketOption option = options.findByIdAndMarket(request.optionId(), market)
                 .orElseThrow(() -> new ArenaProblem.NotFound("Opção de palpite não encontrada."));
-        validateOpen(event, market, option, request.stakePoints());
-        var quote=pricing.quote(market,List.of(option));
+        var quote=selectionRules.confirm(market,option,request);
         var confirmedMultiplier=quote.multipliers().get(option.getKey());
-        if(request.expectedMultiplier()!=null && request.expectedMultiplier().compareTo(confirmedMultiplier)!=0)
-            throw new ArenaProblem.Conflict("O multiplicador foi atualizado. Atualize o evento e confira o novo valor antes de confirmar.");
 
         ArenaPool pool = null;
         if (request.poolId() != null) {
@@ -329,15 +326,6 @@ public class ArenaPredictionService {
                 && availability.evaluate(prediction.getMarket()).allowed();
     }
 
-    private void validateOpen(ArenaEvent event, PredictionMarket market, MarketOption option, int stake) {
-        MarketAvailability decision=availability.evaluate(market);
-        if (!decision.allowed()) throw new ArenaProblem.RuleViolation(decision.label()+". "+decision.reason());
-        if (!option.isActive()) throw new ArenaProblem.RuleViolation("Esta opção está suspensa.");
-        if (stake < market.getMinimumPoints())
-            throw new ArenaProblem.RuleViolation("O mínimo para este mercado é " + market.getMinimumPoints() + " pontos.");
-        if (stake > MAX_PREDICTION_STAKE_POINTS)
-            throw new ArenaProblem.RuleViolation("O máximo por palpite é " + MAX_PREDICTION_STAKE_POINTS + " pontos.");
-    }
     private void lockMarketEvent(Long id) {
         Long eventId=markets.eventIdForMarket(id).orElseThrow(() -> new ArenaProblem.NotFound("Mercado não encontrado."));
         events.findByIdForUpdate(eventId).orElseThrow();

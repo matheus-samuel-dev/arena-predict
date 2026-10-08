@@ -46,8 +46,9 @@ public final class AuthDtos {
 
     public record DemoAccessRequest(
             @NotNull(message = "Escolha um perfil de demonstração.")
-            DemoProfile profile
+            DemoProfile profile, boolean training
     ) {
+        public DemoAccessRequest(DemoProfile profile) { this(profile,false); }
     }
 
     public enum DemoProfile {
@@ -82,8 +83,11 @@ public final class AuthDtos {
             String email,
             UserRole role,
             String avatarUrl,
-            DemoProfile demoProfile
+            DemoProfile demoProfile, boolean demoTraining
     ) {
+        public AuthResponse(String token, Long userId, String name, String email, UserRole role, String avatarUrl, DemoProfile demoProfile) {
+            this(token,userId,name,email,role,avatarUrl,demoProfile,false);
+        }
         public AuthResponse(String token, Long userId, String name, String email, UserRole role) {
             this(token, userId, name, email, role, null, null);
         }

@@ -46,7 +46,7 @@ export function LoginPage() {
 
   useEffect(() => {
     document.title = `${brand.name} — ${brand.tagline}`;
-    if (session) navigate(postLoginDestination(session.role, redirectTo, session.demoProfile), { replace: true });
+    if (session) navigate(session.demoTraining ? "/live" : postLoginDestination(session.role, redirectTo, session.demoProfile), { replace: true });
   }, [session, navigate, redirectTo]);
 
   function showValidationError(field: "name" | "email" | "password", message: string) {
@@ -113,9 +113,9 @@ export function LoginPage() {
     setFormError(null);
     setErrorField(null);
     try {
-      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
+      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT", profile !== "admin");
       notify(`Acesso demonstrativo como ${profile === "admin" ? "administrador" : "participante"} iniciado.`, "success");
-      navigate(postLoginDestination(authenticated.role, "/app", authenticated.demoProfile), { replace: true });
+      navigate(authenticated.demoTraining ? "/live" : postLoginDestination(authenticated.role, "/app", authenticated.demoProfile), { replace: true });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Não foi possível iniciar o acesso demonstrativo.");
     }

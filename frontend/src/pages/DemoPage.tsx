@@ -1,5 +1,6 @@
 import { ArrowRight, CheckCircle2, Gamepad2, Play, RefreshCcw, RotateCcw, ShieldCheck, Target, Trophy, Users } from "lucide-react";
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { dateTime, eventTeams, multiplier, points } from "../app/format";
 import { EventCard } from "../components/EventCard";
 import { PredictionComposer } from "../components/PredictionComposer";
@@ -18,10 +19,11 @@ const actions: Record<Action, string> = { start: "Iniciar partida Demo", result:
 const finals = [[2, 0], [2, 1], [0, 2], [1, 2]] as const;
 
 export function DemoPage() {
-  const { user, demoLogin, authenticating } = useAuth();
+  const { user, session, demoLogin, authenticating } = useAuth();
   const { refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
-  const { data, loading, error, refreshing, refresh, accept } = useDemoScenario(user?.userId, Boolean(user?.demoProfile));
+  const guided = Boolean(user?.demoProfile) && !session?.demoTraining;
+  const { data, loading, error, refreshing, refresh, accept } = useDemoScenario(user?.userId, guided);
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
   const [confirmation, setConfirmation] = useState<{ action: Action; generation: number; eventId: number | string } | null>(null);
   const [score, setScore] = useState("2:0");
@@ -29,7 +31,7 @@ export function DemoPage() {
   const busyRef = useRef(false);
   const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
-  useVisibleRefresh(refresh, 15_000, Boolean(user?.demoProfile) && !busy && !authenticating);
+  useVisibleRefresh(refresh, 15_000, guided && !busy && !authenticating);
 
   async function switchProfile(profile: DemoProfile) {
     if (busyRef.current || authenticating) return;
@@ -66,6 +68,7 @@ export function DemoPage() {
   }
 
   if (!user?.demoProfile) return <div className="demo-journey"><PageHeader eyebrow="LABORATÓRIO ARENA" title="Experimente a Arena" description="Entre com uma conta Demo para experimentar a rodada compartilhada." /><section className="surface demo-profiles"><div><h2>Escolha um perfil Demo</h2><p>Participante Demo registra palpites; Administrador Demo conduz a rodada. A troca usa uma conta compartilhada de demonstração.</p></div><div role="group" aria-label="Trocar perfil Demo"><Button disabled={authenticating} onClick={() => void switchProfile("PARTICIPANT")}><Target size={17} /> Participante Demo</Button><Button variant="secondary" disabled={authenticating} onClick={() => void switchProfile("ADMIN")}><ShieldCheck size={17} /> Administrador Demo</Button></div></section></div>;
+  if(session?.demoTraining) return <section className="surface"><PageHeader eyebrow="DEMONSTRAÇÃO" title="Seu treino ao vivo" description="Carteira e palpites exclusivos desta sessão. As partidas reais seguem o resultado oficial." /><Link className="button button--primary" to="/live">Escolher partida ao vivo</Link><p>A demonstração guiada possui rodada e saldo compartilhados, separados deste treino.</p><Button variant="secondary" disabled={authenticating} onClick={() => void switchProfile("PARTICIPANT")}>Usar demonstração guiada compartilhada</Button></section>;
   if (loading) return <PageSkeleton cards={3} />;
   if (!data) return <ErrorState message={error || "Demonstração indisponível neste ambiente."} onRetry={() => void refresh().catch(() => undefined)} />;
   const event = data.event;

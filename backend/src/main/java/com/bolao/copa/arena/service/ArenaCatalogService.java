@@ -468,17 +468,19 @@ public class ArenaCatalogService {
         return values.stream().map(value -> eventResponse(value,byEvent.getOrDefault(value.getId(),List.of()),byMarket,byParticipant.getOrDefault(value.getId(),List.of()))).toList();
     }
     private EventResponse eventResponse(ArenaEvent value,List<PredictionMarket> entities,Map<Long,List<MarketOption>> byMarket,List<EventParticipant> entries) {
+        boolean staleScore=value.getExternalProvider()!=null && value.getStatus()==EventStatus.LIVE
+                && (value.getLastSyncedAt()==null || value.getLastSyncedAt().isBefore(Instant.now().minusSeconds(300)));
         List<MarketResponse> eventMarkets=entities.stream().filter(m->m.getStatus()!=MarketStatus.DRAFT).map(m -> marketResponse(m,byMarket.getOrDefault(m.getId(),List.of()))).toList();
         return new EventResponse(value.getId(), value.getExternalKey(), value.getChampionship().getId(), value.getChampionship().getName(),
                 sportResponse(value.getChampionship().getSport()), value.getTitle(), value.getStage(), value.getVenue(), value.getBroadcast(),
                 value.getImageUrl(), competitorSummary(value.getHomeCompetitor()), competitorSummary(value.getAwayCompetitor()), value.getStartsAt(),
-                value.getPredictionClosesAt(), value.getStatus(), value.getFormat(), value.getBestOf(), value.getHomeScore(), value.getAwayScore(),
-                value.getClock(), value.getPeriod(), value.getLiveData(), value.isFeatured(), value.isDemo(),
+                value.getPredictionClosesAt(), value.getStatus(), value.getFormat(), value.getBestOf(), staleScore?null:value.getHomeScore(), staleScore?null:value.getAwayScore(),
+                staleScore?null:value.getClock(), staleScore?null:value.getPeriod(), value.getLiveData(), value.isFeatured(), value.isDemo(),
                 entries.stream().map(this::eventParticipantResponse).toList(), eventMarkets,
                 (int)eventMarkets.stream().filter(m -> m.availability().allowed()).count(),MarketAvailabilityService.eventLabel(value,eventMarkets),
                 settlement.data(value),definitions.resultSchema(value,entries,entities),
                 value.getExternalProvider(), value.getExternalId(), value.getLastSyncedAt(),
-                value.getResultProcessedAt(), value.getWinnerExternalId(), value.isLiveScoreAvailable(),
+                value.getResultProcessedAt(), value.getWinnerExternalId(), !staleScore && value.isLiveScoreAvailable(),
                 value.isResultReviewRequired(), value.isDemoManaged(), value.isDemoArchived(),
                 value.getExternalProvider()==null?(value.isDemo()?"DEMO":null):value.getLastSyncedAt()==null?"DELAYED":
                         value.getLastSyncedAt().isBefore(Instant.now().minusSeconds(1200))?"DELAYED":"SNAPSHOT");

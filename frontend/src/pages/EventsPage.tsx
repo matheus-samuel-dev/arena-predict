@@ -3,13 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, sportName } from "../app/format";
 import { enumLabel } from "../app/presentation";
-import { eventFormatLabel, eventScore, eventSourceLabel, isExternalEvent } from "../app/sportsData";
+import { eventFormatLabel, eventScore, eventScoreScope, eventSourceLabel, isExternalEvent } from "../app/sportsData";
 import { predictionReadOnly } from "../app/predictionAccess";
 import { EventDataSource } from "../components/EventDataSource";
 import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList, SportBadge } from "../components/EventCard";
 import { TeamLogo } from "../components/TeamLogo";
 import { PredictionComposer } from "../components/PredictionComposer";
 import { SportsSyncSummary } from "../components/SportsSyncSummary";
+import { TrainingNotice } from "../components/TrainingNotice";
 import { Button, EmptyState, ErrorState, NoResults, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -191,6 +192,7 @@ export function LiveEventsPage() {
         )}
       />
       {user?.role === "ADMIN" && <SportsSyncSummary />}
+      <TrainingNotice />
       {events.length ? (
         <div className="live-layout">
           <div className="event-list">{events.map((event) => <LiveEventPanel event={event} onPredict={setDraft} key={event.id} />)}</div>
@@ -221,7 +223,7 @@ export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPred
       <header><div><SportBadge label={sportName(event.sport || event.sportName)} /><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
       {multiParticipant ? <ParticipantList event={event} limit={12} /> : <div className="live-scoreboard">
         <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="md" /><strong>{home.name || home.code}</strong></div>
-        <b aria-label={score ? `Placar ${score[0]} a ${score[1]}` : "Placar indisponível"}>{score ? <>{score[0]}<i>:</i>{score[1]}</> : "—"}{format && <small>{format.startsWith("BO") ? format : enumLabel(format)}</small>}</b>
+        <b aria-label={score ? `Placar ${score[0]} a ${score[1]}` : "Placar indisponível"}>{score ? <>{score[0]}<i>:</i>{score[1]}</> : "—"}{format && <small>{format.startsWith("BO") ? format : enumLabel(format)}</small>}{eventScoreScope(event) && <small>{eventScoreScope(event)}</small>}</b>
         <div><TeamLogo name={away.name || away.code} code={away.code} logoUrl={away.logoUrl || away.imageUrl} size="md" /><strong>{away.name || away.code}</strong></div>
       </div>}
       {!multiParticipant && !score && <p className="score-unavailable">{event.demoManaged ? "Aguardando o resultado da rodada Demo." : "Placar ao vivo indisponível pelo provedor."}</p>}

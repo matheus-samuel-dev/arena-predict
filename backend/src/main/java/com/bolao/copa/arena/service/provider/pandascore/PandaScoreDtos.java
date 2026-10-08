@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.List;
 
-/** Only fixtures fields are consumed. No dependency on paid game/statistics schemas. */
+/** REST fixtures fields only; series results are distinct from paid live frames/rounds. */
 public final class PandaScoreDtos {
     private PandaScoreDtos() { }
 
@@ -15,7 +15,10 @@ public final class PandaScoreDtos {
     public record Match(Long id, String name, Instant scheduledAt, Instant beginAt, Instant endAt,
             String status, String matchType, Integer numberOfGames, Long winnerId, Team winner,
             Boolean forfeit, Boolean draw, List<Opponent> opponents, List<Result> results,
-            Tournament tournament, League league, Series serie, Videogame videogame) { }
+            Tournament tournament, League league, Series serie, Videogame videogame, List<Game> games) { }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Game(Long id, Integer position, String status, Boolean finished) { }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Opponent(String type, Team opponent) { }

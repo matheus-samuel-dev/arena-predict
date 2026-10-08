@@ -49,6 +49,7 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/app" element={<h1>Área do participante</h1>} />
+        <Route path="/live" element={<h1>Treino ao vivo</h1>} />
         <Route path="/admin" element={<h1>Área administrativa</h1>} />
         <Route path="/demo" element={<h1>Jornada Demo</h1>} />
       </Routes>
@@ -97,13 +98,13 @@ describe("segurança e demonstração do login", () => {
   });
 
   it.each([
-    ["participant", "PARTICIPANTE", "Área do participante", "participante"],
+    ["participant", "PARTICIPANTE", "Treino ao vivo", "participante"],
     ["admin", "ADMIN", "Área administrativa", "administrador"],
   ] as const)(
     "solicita somente o perfil previsto no acesso demonstrativo de %s",
     async (profile, role, destination, notificationProfile) => {
       mocks.demoEnabled = true;
-      mocks.demoLogin.mockResolvedValue(session(role));
+      mocks.demoLogin.mockResolvedValue({ ...session(role), demoTraining: profile === "participant" });
       const user = userEvent.setup();
       renderLogin();
 
@@ -112,7 +113,7 @@ describe("segurança e demonstração do login", () => {
       }));
 
       expect(mocks.demoLogin).toHaveBeenCalledTimes(1);
-      expect(mocks.demoLogin).toHaveBeenCalledWith(profile === "admin" ? "ADMIN" : "PARTICIPANT");
+      expect(mocks.demoLogin).toHaveBeenCalledWith(profile === "admin" ? "ADMIN" : "PARTICIPANT", profile === "participant");
       expect(mocks.login).not.toHaveBeenCalled();
       expect(await screen.findByRole("heading", { name: destination })).toBeInTheDocument();
       expect(mocks.notify).toHaveBeenCalledWith(

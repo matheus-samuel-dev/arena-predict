@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { dateTime, multiplier, points, predictionStatusLabel } from "../app/format";
 import { Button, EmptyState, ErrorState, Modal, PageHeader, PageSkeleton, StatusBadge } from "../components/UI";
 import { useToast } from "../contexts/ToastContext";
+import { TrainingNotice } from "../components/TrainingNotice";
 import { useAppData } from "../contexts/AppDataContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { asList, predictionsApi, walletApi } from "../services/api";
@@ -77,6 +78,7 @@ export function PredictionsPage() {
     <>
       <PageHeader eyebrow="MINHA ATIVIDADE" title="Meus palpites" description="Acompanhe cada leitura, resultado e recompensa em pontos virtuais." actions={<Link className="button button--primary button--md" to="/events"><Target size={17} /> Novo palpite</Link>} />
 
+      <TrainingNotice />
       <section className="metric-grid">
         {[
           { label: "Palpites ativos", value: active, icon: Clock3, tone: "violet" },

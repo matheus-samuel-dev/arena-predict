@@ -38,13 +38,28 @@ public class PandaScoreMapper {
         Long winner = winnerId(source);
         Integer bestOf = "best_of".equals(source.matchType()) && source.numberOfGames() != null && List.of(1, 3, 5).contains(source.numberOfGames())
                 ? source.numberOfGames() : null;
+        if(status==EventStatus.LIVE && bestOf!=null && homeScore!=null && awayScore!=null
+                && (homeScore>bestOf/2+1 || awayScore>bestOf/2+1
+                || (homeScore==bestOf/2+1 && awayScore==bestOf/2+1))) {
+            homeScore=null;awayScore=null;
+        }
         return Optional.of(new SportsMatch(source.id().toString(), clean(source.name()), home, away,
                 championship(source.tournament(), source.league(), source.serie()),
                 source.scheduledAt() != null ? source.scheduledAt() : source.beginAt(), source.endAt(), status,
                 homeScore, awayScore, bestOf, winner == null ? null : winner.toString(),
                 Boolean.TRUE.equals(source.forfeit()), Boolean.TRUE.equals(source.draw()),
                 status == EventStatus.LIVE && homeScore != null && awayScore != null, game.sportCode(),
-                java.util.Map.of(),List.of(),source.status(),null,null,java.util.Set.of("score"),SportsMatch.EventFormatHint.HEAD_TO_HEAD));
+                java.util.Map.of(),List.of(),source.status(),null,currentGame(source,game,status),java.util.Set.of("score"),SportsMatch.EventFormatHint.HEAD_TO_HEAD));
+    }
+
+    private static String currentGame(PandaScoreDtos.Match source, PandaScoreGame game, EventStatus status) {
+        if (status != EventStatus.LIVE || source.games() == null) return null;
+        var running = source.games().stream().filter(g -> g != null && g.id() != null && g.id() > 0
+                && g.position() != null && g.position() > 0 && "running".equals(g.status())
+                && !Boolean.TRUE.equals(g.finished())).toList();
+        if (running.size() != 1) return null;
+        return ("LEAGUE_OF_LEGENDS".equals(game.sportCode()) ? "Jogo " : "Mapa ")
+                + running.getFirst().position() + " em andamento";
     }
 
     public SportsTeam team(PandaScoreDtos.Team source) {

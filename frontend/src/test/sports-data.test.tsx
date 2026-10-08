@@ -13,6 +13,7 @@ import type { ArenaEvent } from "../types";
 const real: ArenaEvent = {
   id: 42, status: "LIVE", externalProvider: "PANDASCORE", externalId: "938291", demo: false,
   startsAt: "2026-09-24T21:00:00Z", sport: "Counter-Strike 2", championship: "IEM Cologne",
+  lastSyncedAt: new Date().toISOString(),
   homeCompetitor: { name: "Team Liquid", logoUrl: "https://cdn.example.com/liquid.png" },
   awayCompetitor: { name: "Natus Vincere", logoUrl: "https://cdn.example.com/navi.png" },
   homeScore: null, awayScore: null, bestOf: null, liveScoreAvailable: false,
