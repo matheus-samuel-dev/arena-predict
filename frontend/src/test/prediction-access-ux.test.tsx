@@ -10,8 +10,8 @@ describe("acesso funcional sem enfraquecer autorização",()=>{
   it("oferece CTA para rodada separada e esclarece participação real",()=>{
     render(<MemoryRouter><DemoPredictionAccess event={{id:1,demo:false,externalProvider:"PANDASCORE"} as ArenaEvent}/></MemoryRouter>);
     expect(screen.getByRole("link",{name:"Fazer um palpite Demo"})).toHaveAttribute("href","/demo");
-    expect(screen.getByText(/use uma conta cadastrada/)).toBeInTheDocument();
-    expect(screen.getByText(/rodada demonstrativa separada/)).toBeInTheDocument();
+    expect(screen.getByText(/Entrar no treino ao vivo/)).toBeInTheDocument();
+    expect(screen.getByText(/carteira e histórico isolados/)).toBeInTheDocument();
   });
   it("não chama um evento demonstrativo de real",()=>{
     render(<MemoryRouter><DemoPredictionAccess event={{id:1,demo:true,demoManaged:true} as ArenaEvent}/></MemoryRouter>);

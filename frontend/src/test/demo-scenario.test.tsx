@@ -19,6 +19,7 @@ const event: ArenaEvent = { id: 77, startsAt: "2026-10-01T20:00:00Z", status: "S
 const scenario: DemoScenario = { generation: 5, championship: { id: 80, name: "Arena Demo Cup" }, event, history: [], predictions: [], ranking: [{ position: 1, userId: 2, name: "Jogador Demo", points: 250, hits: 2, currentUser: true }], canManage: false, canPredict: true, updatedAt: "2026-10-01T18:00:00Z", notice: "Contas e rodada compartilhadas entre visitantes." };
 function renderDemo() { return render(<MemoryRouter><DemoPage /></MemoryRouter>); }
 async function ready() { return await screen.findByRole("heading", { name: "Experimente a Arena" }); }
+
 function admin(value: Partial<DemoScenario> = {}) { state.profile = "ADMIN"; mocks.scenario.mockResolvedValue({ ...scenario, canManage: true, canPredict: false, ...value }); }
 
 describe("jornada Demo integrada", () => {
@@ -45,6 +46,12 @@ describe("jornada Demo integrada", () => {
     expect(mocks.listPools).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Continuar na Arena" }));
     await waitFor(() => expect(mocks.scenario).toHaveBeenCalledTimes(2));
+  });
+
+  it("permite trocar da rodada compartilhada para treino isolado sem simular ou resetar",async()=>{
+    renderDemo();await ready();fireEvent.click(screen.getByRole("button",{name:"Entrar no treino ao vivo"}));
+    await waitFor(()=>expect(mocks.demoLogin).toHaveBeenCalledWith("PARTICIPANT",true));
+    expect(mocks.start).not.toHaveBeenCalled();expect(mocks.result).not.toHaveBeenCalled();expect(mocks.reset).not.toHaveBeenCalled();
   });
 
   it("admin precisa confirmar início e o estado resultante vem do servidor", async () => {

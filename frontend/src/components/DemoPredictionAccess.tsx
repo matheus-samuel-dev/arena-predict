@@ -6,7 +6,7 @@ export function DemoPredictionAccess({ event, onContinue }: { event: ArenaEvent;
   return <div className="demo-guidance" role="note" aria-label="Como experimentar os palpites">
     <p>{event.demo
       ? "Esta rodada permite palpites com Participante Demo. Você pode trocar de perfil na demonstração."
-      : "Para participar de eventos reais, use uma conta cadastrada. O Jogador Demo experimenta os mesmos palpites e pontos em uma rodada demonstrativa separada."}</p>
+      : "O Jogador Demo pode experimentar partidas reais no treino ao vivo, com carteira e histórico isolados. Abra a demonstração e escolha Entrar no treino ao vivo. Contas cadastradas possuem histórico permanente."}</p>
     <Link className="button button--primary button--sm" to="/demo" onClick={onContinue}>Fazer um palpite Demo</Link>
   </div>;
 }

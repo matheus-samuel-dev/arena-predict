@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle2, Gamepad2, Play, RefreshCcw, RotateCcw, ShieldCheck, Target, Trophy, Users } from "lucide-react";
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { dateTime, eventTeams, multiplier, points } from "../app/format";
 import { EventCard } from "../components/EventCard";
 import { PredictionComposer } from "../components/PredictionComposer";
@@ -20,6 +20,7 @@ const finals = [[2, 0], [2, 1], [0, 2], [1, 2]] as const;
 
 export function DemoPage() {
   const { user, session, demoLogin, authenticating } = useAuth();
+  const navigate = useNavigate();
   const { refreshWallet, refreshNotifications } = useAppData();
   const { notify } = useToast();
   const guided = Boolean(user?.demoProfile) && !session?.demoTraining;
@@ -33,10 +34,10 @@ export function DemoPage() {
   const [success, setSuccess] = useState("");
   useVisibleRefresh(refresh, 15_000, guided && !busy && !authenticating);
 
-  async function switchProfile(profile: DemoProfile) {
+  async function switchProfile(profile: DemoProfile, training = false) {
     if (busyRef.current || authenticating) return;
     setDraft(null); setConfirmation(null); setActionError("");
-    try { await demoLogin(profile); }
+    try { await (training ? demoLogin(profile,true) : demoLogin(profile)); if(training) navigate("/live"); }
     catch (reason) { notify(reason instanceof Error ? reason.message : "Não foi possível trocar o perfil Demo.", "error"); }
   }
 
@@ -91,6 +92,7 @@ export function DemoPage() {
   return <div className="demo-journey">
     <PageHeader eyebrow={`LABORATÓRIO ARENA · RODADA ${data.generation}`} title="Experimente a Arena" description="Escolha um placar, acompanhe a partida e veja o resultado transformar o ranking." actions={<Button variant="secondary" size="sm" loading={refreshing} disabled={busy} onClick={() => void refresh().catch(() => undefined)}><RefreshCcw size={16} /> Atualizar</Button>} />
     <aside className="demo-shared-notice" role="note"><Users size={20} /><div><strong>Uma demonstração compartilhada</strong><p>{data.notice || "As contas e a rodada Demo são compartilhadas entre visitantes. Outro visitante pode iniciar ou finalizar esta partida."} Todos os pontos são virtuais.</p></div></aside>
+    <Button variant="secondary" disabled={busy || authenticating} onClick={() => void switchProfile("PARTICIPANT",true)}>Entrar no treino ao vivo</Button>
     <section className="surface demo-profiles" aria-label="Perfil da demonstração"><div><span className="eyebrow">SEU PAPEL NESTA JORNADA</span><h2>{user?.demoProfile === "ADMIN" ? "Administrador Demo" : user?.demoProfile === "PARTICIPANT" ? "Participante Demo" : "Escolha um perfil Demo"}</h2><p>O participante registra o palpite. O administrador conduz somente a rodada demonstrativa.</p></div><div role="group" aria-label="Trocar perfil Demo"><Button variant={user?.demoProfile === "PARTICIPANT" ? "primary" : "secondary"} aria-pressed={user?.demoProfile === "PARTICIPANT"} disabled={busy || authenticating || user?.demoProfile === "PARTICIPANT"} onClick={() => void switchProfile("PARTICIPANT")}><Target size={17} /> Participante Demo</Button><Button variant={user?.demoProfile === "ADMIN" ? "primary" : "secondary"} aria-pressed={user?.demoProfile === "ADMIN"} disabled={busy || authenticating || user?.demoProfile === "ADMIN"} onClick={() => void switchProfile("ADMIN")}><ShieldCheck size={17} /> Administrador Demo</Button></div></section>
     <ol className="demo-steps" aria-label="Etapas da demonstração">{["Escolha seu placar", "Inicie a partida", "Simule o resultado", "Confira o ranking"].map((label, index) => <li key={label} aria-current={step === index + 1 ? "step" : undefined} className={step > index + 1 ? "complete" : ""}><span>{step > index + 1 ? <CheckCircle2 size={17} /> : index + 1}</span>{label}</li>)}</ol>
     {error && <div className="demo-feedback demo-feedback--error" role="alert">{error} Os últimos dados continuam visíveis.</div>}
