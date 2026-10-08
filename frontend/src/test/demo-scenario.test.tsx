@@ -198,6 +198,15 @@ describe("jornada Demo integrada", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it("oferece preparação explícita de nova rodada sem reset ou promoção implícita", async () => {
+    mocks.scenario.mockResolvedValue({ ...scenario, event: { ...event, status: "FINISHED" } });
+    renderDemo();
+    fireEvent.click(await screen.findByRole("button", { name: "Preparar nova rodada Demo" }));
+    expect(mocks.demoLogin).toHaveBeenCalledWith("ADMIN");
+    expect(mocks.reset).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it("abre o produto completo após login Demo e permite consulta administrativa", async () => {
     expect(postLoginDestination("ADMIN", "/admin/results", "ADMIN")).toBe("/admin");
     expect(postLoginDestination("PARTICIPANTE", "/events", "PARTICIPANT")).toBe("/events");
