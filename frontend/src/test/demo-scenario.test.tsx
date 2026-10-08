@@ -174,7 +174,7 @@ describe("jornada Demo integrada", () => {
     render(<MemoryRouter><EventCard event={event} onPredict={choose} /><MarketList event={event} markets={event.markets!} onPredict={choose} /><PredictionComposer draft={{ event, market: event.markets![0], option: event.markets![0].options[0] }} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByRole("button", { name: /FURIA 2 × 1 NAVI/ })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Confirmar palpite" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Ir para a demonstração" }).every((link) => link.getAttribute("href") === "/demo")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "Fazer um palpite Demo" }).every((link) => link.getAttribute("href") === "/demo")).toBe(true);
     expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.listPools).not.toHaveBeenCalled();
     expect(choose).not.toHaveBeenCalled();
   });

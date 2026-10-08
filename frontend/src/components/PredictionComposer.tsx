@@ -1,6 +1,5 @@
 import { CheckCircle2, Coins, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
@@ -9,6 +8,7 @@ import { predictionReadOnly } from "../app/predictionAccess";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
 import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
 import { Button, Modal } from "./UI";
+import { DemoPredictionAccess } from "./DemoPredictionAccess";
 
 const MINIMUM_POINTS = 10;
 export const MAXIMUM_STAKE_POINTS = 20_000;
@@ -166,7 +166,7 @@ export function PredictionComposer({
     }
   }
 
-  if (draft && demoRestricted) return <Modal open onClose={onClose} title="Palpites da conta Demo" size="sm"><p>{draft.event.demoManaged ? "Esta partida pertence à demonstração guiada. Use Participante Demo para registrar um palpite." : "Participante Demo registra palpites em eventos de demonstração internos. Este evento está disponível para consulta."}</p><Link to="/demo" className="button button--primary button--md" onClick={onClose}>Ir para a demonstração</Link></Modal>;
+  if (draft && demoRestricted) return <Modal open onClose={onClose} title="Palpites da conta Demo" size="sm"><DemoPredictionAccess event={draft.event} onContinue={onClose} /></Modal>;
 
   return (
     <Modal open={Boolean(draft)} onClose={closeComposer} title={confirmed ? "Palpite confirmado" : "Confirmar palpite"} size="sm">

@@ -34,6 +34,7 @@ const configuredApiBase = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/
 // origem (http://localhost:8080) quanto a base completa (.../api) no ambiente.
 const API_BASE = configuredApiBase.endsWith("/api") ? configuredApiBase : `${configuredApiBase}/api`;
 const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 12_000);
+const AUTH_COMMAND_TIMEOUT_MS = 30_000;
 export const AUTH_STORAGE_KEY = `${brand.storageNamespace}:session`;
 
 export class ApiError extends Error {
@@ -317,12 +318,23 @@ export const authApi = {
       method: "POST",
       body: { email, password },
       auth: false,
+      timeoutMs: AUTH_COMMAND_TIMEOUT_MS,
     });
     return normalizeSession(result);
   },
   async register(payload: { name: string; email: string; password: string }) {
-    const result = await request<AuthSession>("/auth/register", { method: "POST", body: payload, auth: false });
-    return normalizeSession(result);
+    try {
+      const result = await request<AuthSession>("/auth/register", { method: "POST", body: payload, auth: false, timeoutMs: AUTH_COMMAND_TIMEOUT_MS });
+      return normalizeSession(result);
+    } catch (error) {
+      // A lost response can follow a committed registration. Authenticate once
+      // with the submitted credentials; never repeat the account-creation write.
+      if (error instanceof ApiError && ["REQUEST_TIMEOUT", "NETWORK_ERROR"].includes(error.code || "")) {
+        try { return await authApi.login(payload.email, payload.password); }
+        catch { /* The original failure remains authoritative if authentication fails. */ }
+      }
+      throw error;
+    }
   },
   async demo(profile: "PARTICIPANT" | "ADMIN") {
     const result = await request<AuthSession>("/auth/demo", {

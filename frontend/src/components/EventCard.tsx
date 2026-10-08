@@ -9,6 +9,7 @@ import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } f
 import { StatusBadge } from "./UI";
 import { TeamLogo } from "./TeamLogo";
 import { EventDataSource } from "./EventDataSource";
+import { DemoPredictionAccess } from "./DemoPredictionAccess";
 
 export interface EventParticipantView {
   id: number | string;
@@ -170,7 +171,7 @@ export function EventCard({
 
       <footer className="event-card__foot">
         <span className={predictionOpen ? "event-availability event-availability--open" : "event-availability"}><Clock3 size={14} /> {event.predictionAvailabilityLabel || "Mercados ainda não publicados"}</span>
-        <Link to={`/events/${event.id}`}>{predictionOpen && !demoReadOnly ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
+        <Link to={demoReadOnly ? "/demo" : `/events/${event.id}`}>{demoReadOnly ? "Fazer um palpite Demo" : predictionOpen ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
       </footer>
       {event.featured && <span className="featured-corner" title="Evento em destaque"><Sparkles size={13} /></span>}
     </article>
@@ -220,7 +221,7 @@ export function MarketList({
   const demoReadOnly = predictionReadOnly(event);
   return (
     <div className="market-list">
-      {demoReadOnly && <p className="demo-guidance">{event.demoManaged ? "Use Participante Demo para registrar palpites nesta rodada." : "Esta conta pode consultar o evento. Para testar palpites, escolha um evento de demonstração."} <Link to="/demo">Ir para a demonstração</Link></p>}
+      {demoReadOnly && <DemoPredictionAccess event={event} />}
       {markets.map((market) => {
         const disabled = !isMarketOpen(market);
         return (
