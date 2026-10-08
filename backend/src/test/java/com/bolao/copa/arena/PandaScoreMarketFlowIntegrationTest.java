@@ -33,6 +33,7 @@ class PandaScoreMarketFlowIntegrationTest {
     @Autowired ArenaCatalogService api;
     @Autowired ArenaPoolRankingService rankings;
     @Autowired PointLedgerRepository ledger;
+    @Autowired PointWalletService wallets;
     @Autowired UserRepository users;
     @Autowired MarketAvailabilityService availability;
     @Autowired MarketTemplateService templates;
@@ -124,6 +125,15 @@ class PandaScoreMarketFlowIntegrationTest {
         var finalEvent=e;
         assertThatThrownBy(()->commands.place(new PlacePredictionRequest(finalEvent.getId(),m.getId(),options.findByMarketAndKey(m,"HOME").orElseThrow().getId(),25,null,"late"),"late",user)).isInstanceOf(ArenaProblem.RuleViolation.class);
     }
+    @Test void permanentlyClosedMarketRemainsClosedWhenLiveSnapshotIsStaleOrScoreDisappears() {
+        var e=apply(snapshot("CS2",3,EventStatus.LIVE,1,1,true));
+        var total=market(e,"TOTAL_MAPS_LIVE");
+        assertThat(total.getStatus()).isEqualTo(MarketStatus.CLOSED);
+        e.setLastSyncedAt(Instant.now().minusSeconds(301));e.setLiveScoreAvailable(false);
+        assertThat(availability.evaluate(total).code()).isEqualTo("CLOSED");
+        assertThat(availability.evaluate(total).allowed()).isFalse();
+    }
+
     @Test void staleLiveSuspendsAndFreshIdenticalSnapshotRestoresWithoutDuplicate() {
         var snapshot=snapshot("CS2",3,EventStatus.LIVE,null,null,false);var e=apply(snapshot);
         var m=market(e,"SERIES_WINNER_LIVE");e.setLastSyncedAt(Instant.now().minusSeconds(301));
@@ -160,6 +170,15 @@ class PandaScoreMarketFlowIntegrationTest {
     void virtualCurveIsFiniteAndBounded(double probability) {
         assertThat(VirtualMultiplierService.multiplier(probability)).isBetween(new BigDecimal("1.10"),new BigDecimal("8.00"));
     }
+    @Test void dashboardMovementAggregateCountsDebitsAndCreditsWithoutChangingBalance() {
+        var user=RegularTestUsers.freshParticipant(users);
+        long balance=wallets.wallet(user).balance(),before=ledger.totalAbsoluteMovement();
+        wallets.apply(user,-25,PointTransactionType.PREDICTION_PLACED,"aggregate-debit-"+id,"TEST",id,"Débito de QA");
+        wallets.apply(user,40,PointTransactionType.PREDICTION_WON,"aggregate-credit-"+id,"TEST",id,"Crédito de QA");
+        assertThat(ledger.totalAbsoluteMovement()).isEqualTo(before+65);
+        assertThat(wallets.wallet(user).balance()).isEqualTo(balance+15);
+    }
+
     @Test void invalidNumbersAreRejectedInsteadOfPublished() {
         for(double p:new double[]{Double.NaN,Double.POSITIVE_INFINITY,Double.NEGATIVE_INFINITY,-0.1,1.1})
             assertThatThrownBy(()->VirtualMultiplierService.multiplier(p)).isInstanceOf(IllegalArgumentException.class);

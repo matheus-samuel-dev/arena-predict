@@ -78,7 +78,7 @@ public class ArenaDashboardService {
 
     @Transactional(readOnly = true)
     public AdminDashboardResponse adminDashboard() {
-        long pointsMoved = ledger.findAll().stream().mapToLong(entry -> Math.abs(entry.getAmount())).sum();
+        long pointsMoved = ledger.totalAbsoluteMovement();
         return new AdminDashboardResponse(users.count(), eventRepository.countByStatus(EventStatus.LIVE),
                 eventRepository.countByStatus(EventStatus.SCHEDULED) + eventRepository.countByStatus(EventStatus.OPEN_FOR_PREDICTIONS),
                 predictions.countByStatus(PredictionStatus.ACTIVE), catalog.listEvents(null, null, null).stream().mapToLong(EventResponse::availableMarketCount).sum(),

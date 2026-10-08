@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PointWalletService {
-    public static final int INITIAL_DEMO_POINTS = 5_000;
+    public static final int INITIAL_VIRTUAL_POINTS = 5_000;
     private final PointWalletRepository wallets;
     private final PointLedgerRepository ledger;
     private final UserRepository users;
@@ -37,18 +37,18 @@ public class PointWalletService {
         return wallets.findByUser(lockedUser).orElseGet(() -> {
             PointWallet wallet = new PointWallet();
             wallet.setUser(lockedUser);
-            wallet.setBalance(INITIAL_DEMO_POINTS);
+            wallet.setBalance(INITIAL_VIRTUAL_POINTS);
             wallet.setLifetimeEarned(0);
             wallet = wallets.saveAndFlush(wallet);
             PointLedgerEntry initial = new PointLedgerEntry();
             initial.setWallet(wallet);
             initial.setType(PointTransactionType.INITIAL_BONUS);
-            initial.setAmount(INITIAL_DEMO_POINTS);
-            initial.setBalanceAfter(INITIAL_DEMO_POINTS);
+            initial.setAmount(INITIAL_VIRTUAL_POINTS);
+            initial.setBalanceAfter(INITIAL_VIRTUAL_POINTS);
             initial.setIdempotencyKey("initial-bonus:user:" + lockedUser.getId());
             initial.setReferenceType("USER");
             initial.setReferenceId(lockedUser.getId().toString());
-            initial.setDescription("Bônus inicial de demonstração");
+            initial.setDescription("Bônus inicial de pontos virtuais");
             ledger.save(initial);
             return wallet;
         });

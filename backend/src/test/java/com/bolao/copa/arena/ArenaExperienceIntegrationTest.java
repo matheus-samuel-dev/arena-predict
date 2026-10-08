@@ -317,7 +317,7 @@ class ArenaExperienceIntegrationTest {
         var wallet = wallets.wallet(newcomer);
         var playerDashboard = dashboard.dashboard(newcomer);
 
-        assertThat(wallet.balance()).isEqualTo(PointWalletService.INITIAL_DEMO_POINTS);
+        assertThat(wallet.balance()).isEqualTo(PointWalletService.INITIAL_VIRTUAL_POINTS);
         assertThat(wallet.lifetimeEarned()).isZero();
         assertThat(playerDashboard.xp()).isZero();
         assertThat(playerDashboard.level()).isEqualTo(1);

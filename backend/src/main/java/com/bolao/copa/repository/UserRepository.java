@@ -28,5 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Page<User> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
             String name, String email, Pageable pageable);
-    Page<User> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    @Query("select user from User user where lower(user.email) in :emails and lower(user.name) like lower(concat('%', :name, '%'))")
+    Page<User> findDemonstrationUsers(@Param("emails") java.util.Collection<String> emails,
+                                     @Param("name") String name, Pageable pageable);
 }

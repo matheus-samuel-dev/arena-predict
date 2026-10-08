@@ -2,6 +2,7 @@ package com.bolao.copa.security;
 
 import com.bolao.copa.arena.domain.ArenaEvent;
 import com.bolao.copa.config.DemoProperties;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import com.bolao.copa.dto.AuthDtos.DemoProfile;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.entity.UserRole;
@@ -14,6 +15,15 @@ public final class DemoAccessPolicy {
     private final DemoProperties properties;
 
     public DemoAccessPolicy(DemoProperties properties) { this.properties = properties; }
+
+    /** Public examples cannot enumerate a registered visitor's wallet/profile. */
+    public java.util.Set<String> demonstrationEmails() {
+        var emails=new java.util.HashSet<String>();
+        DemoParticipantCatalog.participants().forEach(p->emails.add(p.email().toLowerCase(java.util.Locale.ROOT)));
+        emails.add(properties.adminEmail().trim().toLowerCase(java.util.Locale.ROOT));
+        emails.add(properties.participantEmail().trim().toLowerCase(java.util.Locale.ROOT));
+        return java.util.Set.copyOf(emails);
+    }
 
     public boolean isDemoAccount(User user) {
         return persisted(user) && isReservedDemoEmail(user.getEmail());

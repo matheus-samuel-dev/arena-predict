@@ -79,7 +79,7 @@ public class DemoScenarioFactory {
     public void ensureDemoBalance(long generation) {
         User participant = users.findByEmailIgnoreCase(demo.participantEmail()).orElseThrow();
         wallets.lockParticipant(participant);
-        long missing = Math.max(0, PointWalletService.INITIAL_DEMO_POINTS - wallets.wallet(participant).balance());
+        long missing = Math.max(0, PointWalletService.INITIAL_VIRTUAL_POINTS - wallets.wallet(participant).balance());
         if (missing > 0) wallets.apply(participant, missing, PointTransactionType.INITIAL_BONUS,
                 "controlled-demo-refill:" + generation, "DEMO_ROUND", Long.toString(generation),
                 "Reposição de pontos virtuais para repetir a demonstração");

@@ -24,14 +24,14 @@ public class MarketAvailabilityService {
             return no("RESULT_REVIEW", "Dados em revisão", "O provedor informou uma alteração que precisa de conferência antes de novos palpites.");
         if (event.getStatus() == EventStatus.FINISHED) return no("EVENT_FINISHED", "Evento encerrado", "Aguardando processamento dos resultados.");
         if (event.getStatus() == EventStatus.POSTPONED) return no("POSTPONED", "Evento adiado", "Aguarde a atualização do calendário.");
+        if (market.getStatus() == MarketStatus.CLOSED) return no("CLOSED", "Palpites encerrados", market.getStatusReason()==null?"Este mercado foi encerrado definitivamente para novos palpites.":market.getStatusReason());
+        if (market.getStatus() == MarketStatus.DRAFT) return no("DRAFT", "Aguardando abertura", "As seleções ainda não foram publicadas.");
         if(EsportsMarketFactory.supports(event) && event.getStatus()==EventStatus.LIVE && market.getTimingMode()==MarketTimingMode.LIVE_ONLY
                 && (event.getLastSyncedAt()==null || event.getLastSyncedAt().isBefore(now.minusSeconds(300))))
             return no("STALE_LIVE", "Aguardando atualização da partida", "Os mercados ao vivo voltam a abrir após uma leitura recente dos dados esportivos.");
         if(EsportsMarketFactory.supports(event) && event.getStatus()==EventStatus.LIVE && market.getTimingMode()==MarketTimingMode.LIVE_ONLY
                 && !event.isLiveScoreAvailable() && !"SERIES_WINNER_LIVE".equals(market.getTemplateCode()))
             return no("LIVE_SCORE_REQUIRED", "Aguardando placar da série", "Este mercado precisa de um placar atualizado. O vencedor da série continua disponível.");
-        if (market.getStatus() == MarketStatus.CLOSED) return no("CLOSED", "Palpites encerrados", market.getStatusReason()==null?"Este mercado foi encerrado definitivamente para novos palpites.":market.getStatusReason());
-        if (market.getStatus() == MarketStatus.DRAFT) return no("DRAFT", "Aguardando abertura", "As seleções ainda não foram publicadas.");
         boolean started = event.getStatus() == EventStatus.LIVE || !now.isBefore(event.getStartsAt());
         if (market.getTimingMode() == MarketTimingMode.PRE_MATCH_ONLY && started)
             return no("EVENT_STARTED", "Encerrado após o início", "Este mercado aceita palpites somente no pré-jogo.");

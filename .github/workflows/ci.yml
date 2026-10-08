@@ -41,6 +41,9 @@ jobs:
       - name: Executar testes
         run: npm run test:run
 
+      - name: Verificar ESLint
+        run: npm run lint
+
       - name: Gerar build
         run: npm run build
 
@@ -106,4 +109,4 @@ jobs:
           java-version: 21
           cache: maven
       - name: Verificar contratos transacionais em PostgreSQL
-        run: mvn -B -Dtest=MultiProviderIntegrationTest,SportsSyncIntegrationTest,SportsSyncReviewIntegrationTest,ExternalMatchSettlementIntegrationTest,DemoScenarioIntegrationTest,PandaScoreMarketFlowIntegrationTest test
+        run: mvn -B -Dtest=MultiProviderIntegrationTest,SportsSyncIntegrationTest,SportsSyncReviewIntegrationTest,ExternalMatchSettlementIntegrationTest,DemoScenarioIntegrationTest,PandaScoreMarketFlowIntegrationTest,DemoSecurityIntegrationTest test

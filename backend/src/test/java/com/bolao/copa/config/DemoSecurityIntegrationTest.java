@@ -100,6 +100,18 @@ class DemoSecurityIntegrationTest {
     }
 
     @Test
+    void publicDemoBackofficeCannotEnumerateRegisteredVisitorWalletsOrProfiles() throws Exception {
+        var visitor=RegularTestUsers.freshParticipant(users);
+        visitor.setName("Private visitor audit " + visitor.getId());users.saveAndFlush(visitor);
+        String demo="Bearer " + quickAccess("ADMIN");
+        http.perform(get("/api/admin/users").param("search",visitor.getName()).header("Authorization",demo))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        String admin="Bearer " + jwt.generate(RegularTestUsers.admin(users));
+        http.perform(get("/api/admin/users").param("search",visitor.getName()).header("Authorization",admin))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
     void normalParticipantKeepsCommunityCommandsWithoutAdministrativeOrDemoPrivileges() throws Exception {
         var participant = RegularTestUsers.participant(users);
         String auth = "Bearer " + jwt.generate(participant);

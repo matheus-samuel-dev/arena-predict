@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 public interface PointLedgerRepository extends JpaRepository<PointLedgerEntry, Long> {
     Optional<PointLedgerEntry> findByIdempotencyKey(String key);
+    @Query("select coalesce(sum(abs(entry.amount)), 0) from PointLedgerEntry entry")
+    long totalAbsoluteMovement();
     List<PointLedgerEntry> findTop100ByWalletOrderByCreatedAtDesc(PointWallet wallet);
     @Override
     @EntityGraph(attributePaths = {"wallet", "wallet.user"})

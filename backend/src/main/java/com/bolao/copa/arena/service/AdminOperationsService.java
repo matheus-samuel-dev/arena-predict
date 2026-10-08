@@ -92,11 +92,11 @@ public class AdminOperationsService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AdminUserResponse> users(int page, int size, String search, boolean namesOnly) {
+    public Page<AdminUserResponse> users(int page, int size, String search, boolean demonstrationOnly) {
         Pageable pageable = page(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<User> result = hasText(search)
-                ? namesOnly ? users.findByNameContainingIgnoreCase(search.trim(), pageable)
-                        : users.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search.trim(), search.trim(), pageable)
+        Page<User> result = demonstrationOnly
+                ? users.findDemonstrationUsers(demoAccess.demonstrationEmails(), hasText(search)?search.trim():"", pageable)
+                : hasText(search) ? users.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search.trim(), search.trim(), pageable)
                 : users.findAll(pageable);
         Map<Long, PointWallet> walletByUser = result.isEmpty() ? Map.of() : wallets.findByUserIn(result.getContent()).stream()
                 .collect(Collectors.toMap(wallet -> wallet.getUser().getId(), Function.identity()));
@@ -212,7 +212,7 @@ public class AdminOperationsService {
                         enabled(demoLiveProvider), Boolean.toString(demoLiveProvider), "DEMO"),
                 setting("initial-demo-points", "Bônus inicial demo",
                         "Saldo inicial concedido apenas em pontos virtuais.", "ACTIVE",
-                        Integer.toString(PointWalletService.INITIAL_DEMO_POINTS), "VIRTUAL_POINTS"),
+                        Integer.toString(PointWalletService.INITIAL_VIRTUAL_POINTS), "VIRTUAL_POINTS"),
                 setting("virtual-points-policy", "Natureza dos pontos", VIRTUAL_POINTS_NOTICE,
                         "ENFORCED", "SEM_VALOR_FINANCEIRO", "VIRTUAL_POINTS")
         );
