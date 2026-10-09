@@ -493,7 +493,7 @@ public class ArenaCatalogService {
         return new MarketResponse(value.getId(), value.getCode(), value.getName(), availability.effectiveStatus(value,selections), value.getMinimumPoints(),
                 value.getResultOptionKey(), selections.stream().map(o -> new MarketOptionResponse(o.getId(),o.getKey(),o.getLabel(),quote.multipliers().get(o.getKey()),o.isActive())).toList(),value.getCategory(),value.getTemplateCode(),
                 value.getTimingMode(),value.getOpensAt(),value.getClosesAt(),availability.withOptions(value,selections),
-                definitions.definition(value,List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Mercado personalizado: resultado conferido manualmente pela organização."),quote.mode(),quote.reason());
+                definitions.definition(value,List.of()).map(MarketDefinitionCatalog.Definition::settlementDescription).orElse("Mercado personalizado: resultado conferido manualmente pela organização."),quote.mode(),quote.reason(),quote.assessment());
     }
     private void applyResultData(ArenaEvent event,Map<String,String> data,Boolean finish,Boolean settle) {
         var entries=eventParticipants.findByEventOrderByDisplayOrderAsc(event);

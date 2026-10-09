@@ -32,16 +32,18 @@ public class SportsMatchSyncService {
     private final ObjectMapper json;
     private final EventParticipantRepository participants;
     private final LiveTrainingService training;
+    private final HistoricalTeamStrengthService pricingHistory;
 
     public SportsMatchSyncService(ArenaEventRepository events, CompetitorRepository teams,
             ChampionshipRepository championships, PredictionMarketRepository markets, MarketTemplateService templates,
             ArenaPredictionService predictions, MarketAvailabilityService availability, SportsSyncStateStore state,
-            AdminAuditService audit, ObjectMapper json, EventParticipantRepository participants, LiveTrainingService training) {
+            AdminAuditService audit, ObjectMapper json, EventParticipantRepository participants, LiveTrainingService training,HistoricalTeamStrengthService pricingHistory) {
         this.events=events; this.teams=teams; this.championships=championships; this.markets=markets;
         this.templates=templates; this.predictions=predictions; this.availability=availability;
         this.state=state; this.audit=audit; this.json=json;
         this.participants=participants;
         this.training=training;
+        this.pricingHistory=pricingHistory;
     }
 
     @Transactional
@@ -149,6 +151,7 @@ public class SportsMatchSyncService {
             log.info("[PREDICTION] Processing provider result matchId={} score={}-{}",event.getId(),match.homeScore(),match.awayScore());
             if(match.formatHint()!=SportsMatch.EventFormatHint.RACE || !eventMarkets.isEmpty()) predictions.settleDerived(event);
             event.setResultProcessedAt(now); event.setResultFingerprint(fingerprint(match));
+            pricingHistory.invalidateAfterCommit();
             training.settleOfficial(event);
             audit.record("EXTERNAL_RESULT_PROCESSED","EVENT",event.getId(),"Resultado recebido de "+provider+"; palpites processados pelas regras existentes.");
             log.info("[RANKING] Result processed matchId={}; ranking projections updated",event.getId());
@@ -293,6 +296,7 @@ public class SportsMatchSyncService {
             String pending=json.writeValueAsString(candidate);
             if (!pending.equals(event.getPendingResultData())) {
                 event.setPendingResultData(pending); event.setResultReviewRequired(true);
+                pricingHistory.invalidateAfterCommit();
                 markets.findByEventForUpdate(event).stream().filter(m -> m.getStatus()==MarketStatus.OPEN)
                         .forEach(m -> { m.setStatus(MarketStatus.SUSPENDED); m.setStatusReason("Dados do provedor sob revisão administrativa."); });
                 audit.record("EXTERNAL_RESULT_REVIEW_REQUIRED","EVENT",event.getId(),"Atualização externa requer revisão: "+reason);

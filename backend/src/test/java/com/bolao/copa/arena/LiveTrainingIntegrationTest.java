@@ -61,7 +61,7 @@ class LiveTrainingIntegrationTest {
                 .andExpect(status().is(code)).andReturn();return json.readTree(result.getResponse().getContentAsString());
     }
     @Test void twoVisitorsPersistSeparateWalletsAndCannotReadOrWriteTheSharedAccount() throws Exception {
-        var event=apply(EventStatus.LIVE,null,null,false);String first=enter(),second=enter();
+        var event=apply(EventStatus.LIVE,0,0,true);String first=enter(),second=enter();
         assertThat(jwt.parse(first).trainingSession()).isNotEqualTo(jwt.parse(second).trainingSession());
         long normalCount=normalPredictions.count();var row=place(first,request(event,"HOME","one"),201);
         assertThat(row.get("demo").asBoolean()).isTrue();assertThat(row.get("canCancel").asBoolean()).isFalse();
@@ -75,7 +75,7 @@ class LiveTrainingIntegrationTest {
         assertThat(normalPredictions.count()).isEqualTo(normalCount);assertThat(event.isDemo()).isFalse();assertThat(event.getStatus()).isEqualTo(EventStatus.LIVE);
     }
     @Test void officialResultPaysExactlyOnceAndLeavesNormalWalletAndHistoryUntouched() throws Exception {
-        var event=apply(EventStatus.LIVE,null,null,false);String winner=enter(),loser=enter();
+        var event=apply(EventStatus.LIVE,0,0,true);String winner=enter(),loser=enter();
         var regular=RegularTestUsers.freshParticipant(users);normalCommands.place(request(event,"HOME","normal"),"normal",regular);
         long beforeNormalCount=normalPredictions.count();long normalInitial=wallets.wallet(regular).balance();
         var won=place(winner,request(event,"HOME","win"),201);place(loser,request(event,"AWAY","lose"),201);
@@ -92,7 +92,7 @@ class LiveTrainingIntegrationTest {
         assertThat(db.queryForObject("select rewarded_points from demo_training_predictions where id=?",Integer.class,won.get("id").asLong())).isEqualTo(50);
     }
     @Test void retryIsSingleDebitAndConflictingPayloadOrInsufficientBalanceRollBack() throws Exception {
-        var event=apply(EventStatus.LIVE,null,null,false);String token=enter();var request=request(event,"HOME","retry");
+        var event=apply(EventStatus.LIVE,0,0,true);String token=enter();var request=request(event,"HOME","retry");
         var first=place(token,request,201);var retry=place(token,request,201);assertThat(retry.get("id")).isEqualTo(first.get("id"));
         place(token,request(event,"AWAY","retry"),409);
         var tooMuch=new PlacePredictionRequest(event.getId(),request.marketId(),request.optionId(),6000,null,"poor",request.expectedMultiplier());
@@ -101,7 +101,7 @@ class LiveTrainingIntegrationTest {
         assertThat(db.queryForObject("select count(*) from demo_training_predictions where session_id=?",Long.class,jwt.parse(token).trainingSession())).isEqualTo(1);
     }
     @Test void officialCancellationRefundsOnce() throws Exception {
-        var event=apply(EventStatus.LIVE,null,null,false);String token=enter();place(token,request(event,"HOME","cancel"),201);
+        var event=apply(EventStatus.LIVE,0,0,true);String token=enter();place(token,request(event,"HOME","cancel"),201);
         apply(EventStatus.CANCELLED,null,null,false);apply(EventStatus.CANCELLED,null,null,false);
         http.perform(get("/api/training/predictions").header("Authorization","Bearer "+token)).andExpect(jsonPath("$[0].status").value("REFUNDED"));
         http.perform(get("/api/training/wallet").header("Authorization","Bearer "+token)).andExpect(jsonPath("$.balance").value(5000));
@@ -130,7 +130,7 @@ class LiveTrainingIntegrationTest {
         assertThat(api.eventResponse(event).homeScore()).isEqualTo(2);
     }
     @Test void incompleteOfficialResultNeverPaysUntilConfirmed() throws Exception {
-        var event=apply(EventStatus.LIVE,null,null,false);String token=enter();place(token,request(event,"HOME","pending"),201);
+        var event=apply(EventStatus.LIVE,0,0,true);String token=enter();place(token,request(event,"HOME","pending"),201);
         apply(EventStatus.FINISHED,null,null,false);
         http.perform(get("/api/training/predictions").header("Authorization","Bearer "+token)).andExpect(jsonPath("$[0].status").value("ACTIVE"));
         http.perform(get("/api/training/wallet").header("Authorization","Bearer "+token)).andExpect(jsonPath("$.balance").value(4975));

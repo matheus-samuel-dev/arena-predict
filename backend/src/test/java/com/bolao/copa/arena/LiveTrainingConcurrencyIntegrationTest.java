@@ -33,7 +33,7 @@ class LiveTrainingConcurrencyIntegrationTest {
     private Long eventId;private String session;private String token;private MarketResponse market;
     private void prepare() throws Exception {
         var source=new SportsMatch(fixture,"Fixture concorrente de treino",new SportsTeam("h-"+fixture,"A",null,null),new SportsTeam("a-"+fixture,"B",null,null),
-                new SportsChampionship("c-"+fixture,"Teste concorrente",null,"2026",null,null,null,null,null),Instant.now(),null,EventStatus.LIVE,null,null,3,null,false,false,false,"CS2");
+                new SportsChampionship("c-"+fixture,"Teste concorrente",null,"2026",null,null,null,null,null),Instant.now(),null,EventStatus.LIVE,0,0,3,null,false,false,true,"CS2");
         sync.synchronize("PANDASCORE",source,catalog.synchronize("PANDASCORE",List.of(source)));
         eventId=db.queryForObject("select id from arena_events where external_provider='PANDASCORE' and external_id=?",Long.class,fixture);
         market=api.eventResponse(eventId).markets().getFirst();

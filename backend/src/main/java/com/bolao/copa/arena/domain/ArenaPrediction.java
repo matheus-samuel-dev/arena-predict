@@ -9,6 +9,9 @@ import java.time.Instant;
 @Entity
 @Table(name = "arena_predictions")
 public class ArenaPrediction {
+    @Column(columnDefinition="text") private String pricingSnapshot;
+    public String getPricingSnapshot() { return pricingSnapshot; }
+    public void setPricingSnapshot(String value) { pricingSnapshot=value; }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "user_id")

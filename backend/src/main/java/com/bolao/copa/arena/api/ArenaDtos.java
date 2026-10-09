@@ -36,7 +36,8 @@ public final class ArenaDtos {
     public record MarketResponse(Long id, String code, String name, MarketStatus status, int minimumPoints,
                                  String resultOptionKey, List<MarketOptionResponse> options, String category,
                                  String templateCode, MarketTimingMode timingMode, Instant opensAt, Instant closesAt,
-                                 MarketAvailability availability, String settlementDescription, String pricingMode, String pricingReason) { }
+                                 MarketAvailability availability, String settlementDescription, String pricingMode, String pricingReason,
+                                 com.bolao.copa.arena.service.PricingAssessment pricing) { }
     public record EventResponse(Long id, String externalKey, Long championshipId, String championship,
                                 SportResponse sport, String title, String stage, String venue, String broadcast,
                                 String imageUrl, CompetitorSummary homeCompetitor, CompetitorSummary awayCompetitor,

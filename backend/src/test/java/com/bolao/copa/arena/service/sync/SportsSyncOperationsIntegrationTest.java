@@ -70,7 +70,9 @@ class SportsSyncOperationsIntegrationTest {
         assertThat(arena.eventResponse(stored).markets()).singleElement().satisfies(market->{
             assertThat(market.templateCode()).isEqualTo("SERIES_WINNER_LIVE");
             assertThat(market.timingMode()).isEqualTo(MarketTimingMode.LIVE_ONLY);
-            assertThat(market.availability().allowed()).isTrue();
+            assertThat(market.availability().allowed()).isFalse();
+            assertThat(market.availability().code()).isEqualTo("PRICING_DATA_REQUIRED");
+            assertThat(market.pricing().confidence()).isEqualTo("NONE");
             assertThat(market.options()).hasSize(2);
         });
         assertThat(state.snapshot("PANDASCORE").inserted()).isEqualTo(1);

@@ -33,6 +33,7 @@ public class ArenaPredictionService {
     private final MarketSettlementEngine settlement;
     private final EventParticipantRepository participants;
     private final PredictionSelectionRules selectionRules;
+    private final PricingSnapshotCodec pricingSnapshots;
     private final DemoAccessPolicy demoAccess;
 
     public ArenaPredictionService(ArenaPredictionRepository predictions, ArenaEventRepository events,
@@ -42,8 +43,9 @@ public class ArenaPredictionService {
                                   ProgressionService progression, AdminAuditService audit,
                                   MarketAvailabilityService availability, MarketDefinitionCatalog definitions,
                                   MarketSettlementEngine settlement, EventParticipantRepository participants, PredictionSelectionRules selectionRules,
-                                  DemoAccessPolicy demoAccess) {
+                                  DemoAccessPolicy demoAccess,PricingSnapshotCodec pricingSnapshots) {
         this.demoAccess = demoAccess;
+        this.pricingSnapshots=pricingSnapshots;
         this.selectionRules=selectionRules;
         this.predictions = predictions;
         this.events = events;
@@ -118,6 +120,7 @@ public class ArenaPredictionService {
         prediction.setMultiplier(confirmedMultiplier);
         prediction.setMultiplierOrigin("INTERNAL_MODEL".equals(quote.mode())||"DYNAMIC".equals(quote.mode())?"INTERNAL_MODEL":"ADMIN_DEFINED");
         prediction.setMultiplierModelVersion(quote.modelVersion()!=null?quote.modelVersion():"INTERNAL_MODEL".equals(quote.mode())?"sports-prior-v3":"DYNAMIC".equals(quote.mode())?"demo-live-v2":null);
+        prediction.setPricingSnapshot(pricingSnapshots.encode(quote.assessment()));
         prediction.setPotentialPoints(confirmedMultiplier.multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);

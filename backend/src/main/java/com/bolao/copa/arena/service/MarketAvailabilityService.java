@@ -50,6 +50,8 @@ public class MarketAvailabilityService {
         // A scheduled event whose clock expired requires an explicit live update.
         if (started && event.getStatus() != EventStatus.LIVE)
             return no("WAITING_LIVE", "Aguardando atualização ao vivo", "O início previsto passou; aguarde a confirmação do evento ao vivo.");
+        if(event.getExternalProvider()!=null && market.getTemplateCode()!=null && "UNAVAILABLE".equals(pricing.quote(market,List.of()).mode()))
+            return no("PRICING_DATA_REQUIRED","Aguardando dados para precificação","Os dados atuais não permitem estimar este mercado com segurança. Aguarde uma atualização.");
         return new MarketAvailability(true, "OPEN", started ? "Aberto ao vivo" : "Aberto para palpites",
                 event.getExternalProvider() == null ? "Multiplicadores demonstrativos; pontos exclusivamente virtuais."
                         : "Multiplicadores de pontos virtuais definidos pelo Arena Predict; sem odds externas.");

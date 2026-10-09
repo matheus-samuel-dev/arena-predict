@@ -55,7 +55,8 @@ class MultiProviderIntegrationTest {
         var user=RegularTestUsers.freshParticipant(users);long before=wallets.wallet(user).balance();
         var placed=command.place(new PlacePredictionRequest(event.getId(),market.getId(),selection.getId(),25,null,"multi-"+sport),"multi-"+sport,user);
         var prediction=predictions.findById(placed.id()).orElseThrow();
-        assertThat(prediction.getMultiplierOrigin()).isEqualTo("INTERNAL_MODEL");assertThat(prediction.getMultiplierModelVersion()).isEqualTo("sports-prior-v3");
+        assertThat(prediction.getMultiplierOrigin()).isEqualTo("INTERNAL_MODEL");assertThat(prediction.getMultiplierModelVersion()).isEqualTo(RealSportProbabilityService.VERSION);
+        assertThat(prediction.getPricingSnapshot()).isNotNull();
         var frozen=prediction.getMultiplier();
         assertThat(apply(provider,match(sport,EventStatus.LIVE,null,null))).isTrue();
         assertThat(api.liveEvents()).extracting(e->e.id()).contains(event.getId());

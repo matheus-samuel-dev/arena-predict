@@ -27,11 +27,13 @@ public class LiveTrainingService {
     private final MarketDefinitionCatalog definitions;
     private final MarketSettlementEngine engine;
     private final EventParticipantRepository participants;
+    private final PricingSnapshotCodec pricingSnapshots;
     public LiveTrainingService(JdbcTemplate db, ArenaEventRepository events, PredictionMarketRepository markets,
             MarketOptionRepository options, PredictionSelectionRules rules, MarketDefinitionCatalog definitions,
-            MarketSettlementEngine engine, EventParticipantRepository participants) {
+            MarketSettlementEngine engine, EventParticipantRepository participants,PricingSnapshotCodec pricingSnapshots) {
         this.db=db;this.events=events;this.markets=markets;this.options=options;this.rules=rules;
         this.definitions=definitions;this.engine=engine;this.participants=participants;
+        this.pricingSnapshots=pricingSnapshots;
     }
     @Transactional
     public String createSession() {
@@ -91,6 +93,7 @@ public class LiveTrainingService {
         var values=new HashMap<String,Object>();
         values.put("session_id",session); values.put("event_id",event.getId()); values.put("market_id",market.getId()); values.put("option_id",option.getId());
         values.put("stake_points",request.stakePoints());values.put("multiplier",multiplier);values.put("model_version",quote.modelVersion());
+        values.put("pricing_snapshot",pricingSnapshots.encode(quote.assessment()));
         values.put("potential_points",multiplier.multiply(BigDecimal.valueOf(request.stakePoints())).setScale(0,RoundingMode.DOWN).intValueExact());
         values.put("rewarded_points",0);values.put("status","ACTIVE");values.put("idempotency_key",key);values.put("placed_at",stamp(Instant.now()));
         long id=new SimpleJdbcInsert(db).withTableName("demo_training_predictions").usingGeneratedKeyColumns("id").executeAndReturnKey(values).longValue();

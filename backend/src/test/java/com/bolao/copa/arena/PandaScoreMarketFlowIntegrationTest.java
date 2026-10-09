@@ -67,16 +67,20 @@ class PandaScoreMarketFlowIntegrationTest {
                 .allSatisfy(o->{String[] pair=o.getKey().split("_");assertThat(Math.max(Integer.parseInt(pair[0]),Integer.parseInt(pair[1]))).isEqualTo(bo/2+1);});
     }
     @ParameterizedTest @ValueSource(strings={"CS2","VALORANT","LEAGUE_OF_LEGENDS"})
-    void discoveredLiveWithoutScorePublishesWinnerWithoutRetroactivePrematch(String sport) {
+    void discoveredLiveWithoutScorePreservesWinnerContractButSuspendsUnverifiedPricing(String sport) {
         var e=apply(snapshot(sport,3,EventStatus.LIVE,null,null,false));
         assertThat(markets.findByEventOrderByIdAsc(e)).singleElement().satisfies(m->{
             assertThat(m.getTemplateCode()).isEqualTo("SERIES_WINNER_LIVE");
             assertThat(m.getTimingMode()).isEqualTo(MarketTimingMode.LIVE_ONLY);
-            assertThat(m.getClosesAt()).isNull();assertThat(availability.evaluate(m).allowed()).isTrue();
+            assertThat(m.getClosesAt()).isNull();assertThat(availability.evaluate(m).allowed()).isFalse();
+            assertThat(availability.evaluate(m).code()).isEqualTo("PRICING_DATA_REQUIRED");
+            assertThat(api.marketResponse(m).pricing().available()).isFalse();
+            assertThat(api.marketResponse(m).pricing().confidence()).isEqualTo("NONE");
             assertThat(api.marketResponse(m).options()).allSatisfy(o->assertThat(o.multiplier()).isEqualByComparingTo("2.00"));
         });
         assertThat(api.eventResponse(e.getId()).homeScore()).isNull();
-        assertThat(api.eventResponse(e.getId()).availableMarketCount()).isEqualTo(1);
+        assertThat(api.eventResponse(e.getId()).availableMarketCount()).isZero();
+        assertThat(api.liveEvents()).anyMatch(item->item.id().equals(e.getId()));
     }
     @Test void unconfirmedFormatDoesNotPublishImpossibleContracts() {
         var e=apply(snapshot("CS2",null,EventStatus.LIVE,null,null,false));
@@ -92,11 +96,11 @@ class PandaScoreMarketFlowIntegrationTest {
         assertThat(market(e,"HOME_MAP_LIVE").getStatusReason()).contains("placar ao vivo");
         assertThat(api.eventResponse(e.getId()).availableMarketCount()).isGreaterThan(1);
     }
-    @Test void lossOfScoreSuspendsDerivedContractsButKeepsWinnerAvailable() {
+    @Test void lossOfScoreSuspendsAllStateDependentPricingWithoutDeletingContracts() {
         var e=apply(snapshot("VALORANT",3,EventStatus.LIVE,1,0,true));
         apply(snapshot("VALORANT",3,EventStatus.LIVE,null,null,false));
         assertThat(availability.evaluate(market(e,"TOTAL_MAPS_LIVE")).code()).isEqualTo("LIVE_SCORE_REQUIRED");
-        assertThat(availability.evaluate(market(e,"SERIES_WINNER_LIVE")).allowed()).isTrue();
+        assertThat(availability.evaluate(market(e,"SERIES_WINNER_LIVE")).code()).isEqualTo("PRICING_DATA_REQUIRED");
     }
     @Test void determinedTotalClosesBeforeFinalAndPrematchCannotReopen() {
         var e=apply(snapshot("CS2",3,EventStatus.SCHEDULED,null,null,false));
@@ -107,7 +111,7 @@ class PandaScoreMarketFlowIntegrationTest {
         templates.generate(e.getId());assertThat(market(e,"SERIES_WINNER").getStatus()).isEqualTo(MarketStatus.CLOSED);
     }
     @Test void finalResultPaysWinnerUpdatesRankingAndNeverPaysLoserOrRetries() {
-        var e=apply(snapshot("CS2",3,EventStatus.LIVE,null,null,false));
+        var e=apply(snapshot("CS2",3,EventStatus.LIVE,0,0,true));
         var user=RegularTestUsers.freshParticipant(users);var losingUser=RegularTestUsers.freshParticipant(users);
         var m=market(e,"SERIES_WINNER_LIVE");
         var win=commands.place(new PlacePredictionRequest(e.getId(),m.getId(),options.findByMarketAndKey(m,"HOME").orElseThrow().getId(),25,null,"win"),"win",user);
@@ -135,7 +139,7 @@ class PandaScoreMarketFlowIntegrationTest {
     }
 
     @Test void staleLiveSuspendsAndFreshIdenticalSnapshotRestoresWithoutDuplicate() {
-        var snapshot=snapshot("CS2",3,EventStatus.LIVE,null,null,false);var e=apply(snapshot);
+        var snapshot=snapshot("CS2",1,EventStatus.LIVE,0,0,true);var e=apply(snapshot);
         var m=market(e,"SERIES_WINNER_LIVE");e.setLastSyncedAt(Instant.now().minusSeconds(301));
         assertThat(availability.evaluate(m).code()).isEqualTo("STALE_LIVE");
         apply(snapshot);assertThat(availability.evaluate(m).allowed()).isTrue();

@@ -74,9 +74,28 @@ export interface PredictionMarket {
   closesAt?: string | null;
   availability?: MarketAvailability;
   settlementDescription?: string;
-  pricingMode?: "STATIC" | "DYNAMIC" | "INTERNAL_MODEL";
+  pricingMode?: "STATIC" | "DYNAMIC" | "INTERNAL_MODEL" | "UNAVAILABLE";
   pricingReason?: string;
+  pricing?: ProbabilityPricing | null;
   options: PredictionOption[];
+}
+
+export interface ProbabilityPricing {
+  available: boolean;
+  probabilities: Record<string, number>;
+  refundProbability: number;
+  modelVersion: string;
+  evidenceSource: string;
+  confidence: "NONE" | "LOW" | "MODERATE";
+  dataRevision: string;
+  dataAsOf?: string | null;
+  homeSamples: number;
+  awaySamples: number;
+  headToHeadSamples: number;
+  limitations: string[];
+  rewardPolicy: string;
+  uncappedMultipliers: Record<string, number>;
+  rewardLimitedOptions: string[];
 }
 
 export interface MarketAvailability {

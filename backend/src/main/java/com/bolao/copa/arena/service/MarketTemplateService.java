@@ -16,9 +16,11 @@ public class MarketTemplateService {
     private final EventParticipantRepository participants;
     private final MarketDefinitionCatalog definitions;
     private final VirtualMultiplierService virtual;
+    private final PricingSnapshotCodec pricingSnapshots;
     public MarketTemplateService(ArenaEventRepository events, PredictionMarketRepository markets,
-            MarketOptionRepository options, EventParticipantRepository participants, MarketDefinitionCatalog definitions,VirtualMultiplierService virtual) {
+            MarketOptionRepository options, EventParticipantRepository participants, MarketDefinitionCatalog definitions,VirtualMultiplierService virtual,PricingSnapshotCodec pricingSnapshots) {
         this.events=events; this.markets=markets; this.options=options; this.participants=participants; this.definitions=definitions; this.virtual=virtual;
+        this.pricingSnapshots=pricingSnapshots;
     }
     @Transactional
     public List<PredictionMarket> generateFromAdministration(Long eventId) {
@@ -63,6 +65,7 @@ public class MarketTemplateService {
         if(!EsportsMarketFactory.supports(market.getEvent()) || market.getStatus()!=MarketStatus.OPEN) return;
         var selections=options.findByMarketOrderByIdAsc(market);
         var quote=virtual.quote(market,selections);
+        market.setPricingSnapshot(pricingSnapshots.encode(quote.assessment()));
         for(var option:selections) {
             option.setMultiplier(quote.multipliers().get(option.getKey()));
             if(market.getTimingMode()==MarketTimingMode.LIVE_ONLY) option.setActive(virtual.possible(market,option.getKey()));
