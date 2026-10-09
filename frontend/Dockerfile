@@ -29,7 +29,13 @@ ENV VITE_API_TIMEOUT_MS=${VITE_API_TIMEOUT_MS}
 
 RUN npm run build
 
+ARG APP_BUILD_REVISION=unknown
+RUN node -e 'require("fs").writeFileSync("dist/version.json", JSON.stringify({revision:process.argv[1]}))' "$APP_BUILD_REVISION"
+
 FROM nginx:1.27-alpine
+
+ARG APP_BUILD_REVISION=unknown
+LABEL org.opencontainers.image.revision=${APP_BUILD_REVISION}
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

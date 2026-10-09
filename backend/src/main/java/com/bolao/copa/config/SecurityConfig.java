@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 "/api/auth/login", "/api/auth/register",
                                 "/api/auth/demo").permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/actuator/health", "/actuator/health/**",
+                                "/actuator/health", "/actuator/health/**", "/api/version",
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         // The former PIX/Mercado Pago surface is intentionally retired.

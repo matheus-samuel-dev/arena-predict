@@ -5,6 +5,7 @@ import { championshipName, dateTime, eventStatusLabel, eventTeams, multiplier, s
 import { enumLabel } from "../app/presentation";
 import { eventFormatLabel, eventScore, eventScoreScope, isExternalEvent } from "../app/sportsData";
 import { predictionReadOnly } from "../app/predictionAccess";
+import { pricingSummary, seriesProgressSummary } from "../app/pricingPresentation";
 import type { ArenaEvent, EventCompetitor, PredictionDraft, PredictionMarket } from "../types";
 import { StatusBadge } from "./UI";
 import { TeamLogo } from "./TeamLogo";
@@ -222,8 +223,11 @@ export function MarketList({
   return (
     <div className="market-list">
       {demoReadOnly && <DemoPredictionAccess event={event} />}
-      {markets.map((market) => {
+      {markets.map((market, index) => {
         const disabled = !isMarketOpen(market);
+        const summary = pricingSummary(market);
+        const showSummary = summary && (index === 0 || summary !== pricingSummary(markets[index - 1]));
+        const progress = market.pricing?.available ? seriesProgressSummary(event) : undefined;
         return (
           <section className="surface market-block" key={market.id}>
             <div className="market-block__head">
@@ -249,7 +253,7 @@ export function MarketList({
               ))}
             </div>
             <div className="market-block__secondary">
-              {market.pricingReason && <span>{market.pricingReason}</span>}
+              {showSummary && <span>{summary}{progress ? ` ${progress}` : ""}</span>}
               <span>{enumLabel(market.timingMode || "PRE_MATCH_ONLY")}</span>
               {market.closesAt && <span>Fecha em {dateTime(market.closesAt)}</span>}
               <MarketRuleDisclosure market={market} />
@@ -282,7 +286,7 @@ export function marketAvailabilityStatus(market: PredictionMarket) {
   if (market.availability?.allowed) return "OPEN";
   switch (market.availability?.code) {
     case "CANCELLED": return "CANCELED";
-    case "SUSPENDED": case "OPTIONS_SUSPENDED": case "POSTPONED": return "SUSPENDED";
+    case "SUSPENDED": case "OPTIONS_SUSPENDED": case "POSTPONED": case "PRICING_DATA_REQUIRED": return "SUSPENDED";
     case "SETTLED": return "SETTLED";
     case "DRAFT": case "NOT_YET_OPEN": case "WAITING_LIVE": return "PENDING";
     default: return "CLOSED";
@@ -312,6 +316,12 @@ export function MarketRuleDisclosure({ market }: { market: PredictionMarket }) {
       <dl>
         <div><dt>Como funciona</dt><dd>{market.settlementDescription || "Escolha uma opção válida antes do fechamento indicado."}</dd></div>
         <div><dt>Disponibilidade</dt><dd>{availabilityDetail}</dd></div>
+        {market.pricing && market.pricingReason && <div><dt>Como o multiplicador é calculado</dt><dd>{market.pricingReason}</dd></div>}
+        {market.pricing && <>
+          <div><dt>Confiança da estimativa</dt><dd>{market.pricing.confidence === "MODERATE" ? "Moderada" : market.pricing.confidence === "LOW" ? "Baixa" : "Sem estimativa disponível"}</dd></div>
+          <div><dt>Histórico elegível</dt><dd>{market.pricing.homeSamples} / {market.pricing.awaySamples} séries por equipe; {market.pricing.headToHeadSamples} confrontos diretos.</dd></div>
+          <div><dt>Dados e versão</dt><dd>{market.pricing.dataAsOf ? dateTime(market.pricing.dataAsOf) : "Horário indisponível"} · {market.pricing.modelVersion}</dd></div>
+        </>}
         <div><dt>Fechamento</dt><dd>{market.closesAt ? dateTime(market.closesAt) : "Definido pelo estado do evento."}</dd></div>
         <div><dt>Empate ou cancelamento</dt><dd>Empates seguem a regra acima. Se o mercado for cancelado, os pontos utilizados são devolvidos.</dd></div>
       </dl>

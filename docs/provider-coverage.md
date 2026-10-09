@@ -1,21 +1,21 @@
 # Cobertura dos providers reais
 
-Auditoria em 06/10/2026. Nenhum dos cinco adapters possui credencial no ambiente auditado. **Nenhum está operacional ou autenticado**. Fixtures automatizadas não são partidas publicadas nem evidência de acesso real.
+Estado publicado auditado em 09/10/2026: **PandaScore autenticada e operacional para CS2, LoL e Valorant**, com placar da série REST quando disponível. Os quatro adapters tradicionais continuam sem credenciais. Fixtures automatizadas não são prova de acesso real. A visão administrativa é a autoridade sobre a saúde atual.
 
 | Modalidade | Adapter | Configuração privada | Capabilities implementadas | Contratos publicados | Situação |
 |---|---|---|---|---|---|
 | Futebol | API-FOOTBALL v3 | `API_FOOTBALL_KEY`, `API_FOOTBALL_ENABLED=true` | Agenda, LIVE, placar, equipes, campeonatos, resultado de 90 min | Resultado, dupla possibilidade, gols, ambas marcam, placar exato; somente pré-jogo | READY_FOR_CREDENTIAL |
 | Basquete | API-BASKETBALL v1 | `API_BASKETBALL_KEY`, `API_BASKETBALL_ENABLED=true` | Agenda, LIVE, placar com prorrogação, quartos, equipes, campeonatos | Vencedor, handicap, totais, margem; somente pré-jogo | READY_FOR_CREDENTIAL |
 | Tênis | API-Tennis | `API_TENNIS_KEY`, `API_TENNIS_ENABLED=true` | Singles, agenda, LIVE, sets, games completos, atletas e torneios | Vencedor; formato desconhecido bloqueia placar exato/total/handicap de sets | READY_FOR_CREDENTIAL |
-| CS2 | PandaScore Fixtures | `PANDASCORE_API_TOKEN`, `SPORTS_SYNC_ENABLED=true` | Agenda, LIVE, séries, equipes, torneios, resultado | Vencedor, total/handicap/placar da série quando BO1/3/5 confirmado | READY_FOR_CREDENTIAL |
-| Valorant | PandaScore Fixtures | Mesma configuração PandaScore | Igual CS2; estatísticas de rounds não anunciadas | Contratos da série confirmada | READY_FOR_CREDENTIAL |
-| League of Legends | PandaScore Fixtures | Mesma configuração PandaScore | Agenda, LIVE, resultado da série; código canônico `LEAGUE_OF_LEGENDS` | Contratos da série confirmada | READY_FOR_CREDENTIAL |
+| CS2 | PandaScore Fixtures | `PANDASCORE_API_TOKEN`, `SPORTS_SYNC_ENABLED=true` | Agenda, LIVE, séries, equipes, torneios, resultado | Contratos da série quando BO1/3/5 confirmado | OPERATIONAL na auditoria |
+| Valorant | PandaScore Fixtures | Mesma configuração PandaScore | Igual CS2; estatísticas de rounds não anunciadas | Contratos da série confirmada | OPERATIONAL na auditoria |
+| League of Legends | PandaScore Fixtures | Mesma configuração PandaScore | Agenda, LIVE, resultado da série; código canônico `LEAGUE_OF_LEGENDS` | Contratos da série confirmada | OPERATIONAL na auditoria |
 | Automobilismo | API-FORMULA-1 v1 | `API_FORMULA1_KEY`, `API_FORMULA1_ENABLED=true` | Corridas F1, calendário, LIVE, voltas quando disponíveis, classificação final e DNF | Nenhum: classificação parcial/DNF e grid ainda não permitem prometer liquidação dos contratos atuais | READY_FOR_CREDENTIAL para importação; mercados bloqueados |
 | Vôlei | Sem adapter nesta entrega | Dependente de outro provider | Dataset Demo existente preservado | Contratos Demo existentes | DEMO_TEMPORARILY |
 | Futebol americano | Sem adapter nesta entrega | Dependente de outro provider | Dataset Demo existente preservado | Contratos Demo existentes | DEMO_TEMPORARILY |
 | Dota 2 | Sem adapter nesta entrega | Precisa validar cobertura/plano antes de habilitar | Dataset Demo existente preservado | Contratos Demo existentes | DEMO_TEMPORARILY |
 
-Não há odds externas no contrato implementado. `INTERNAL_MODEL` é um coeficiente de pontos virtuais baseado em um prior esportivo explícito, não uma previsão calibrada por histórico das equipes. Origem e versão ficam congeladas no palpite. Futebol usa Poisson simétrico (1,3 gol por equipe); basquete distribuição de pontos com média 108 para NBA e 80 nas demais competições, desvio 14, e desempate simétrico; séries conhecidas usam segmentos de probabilidade 0,5; tênis sem formato publica somente vencedor simétrico. Limites 1,05–15,00. `ADMIN_DEFINED` identifica o fallback. Demo ao vivo mantém o modelo v2 existente. Não há aleatoriedade ou odds fictícias atribuídas a um fornecedor.
+Não há odds externas. O motor atual está documentado em [probability-model-v2.md](probability-model-v2.md): eSports usam histórico oficial suficiente ou prior equilibrado, condicionados ao placar confirmado. Modalidades tradicionais têm regras próprias, ainda sem validação com providers reais. Limites de recompensa real 1,10–8,00; modelo Demo legado preservado. Probabilidade, confiança, origem e multiplicador aceito são auditáveis. Nenhum coeficiente é uma odd oficial da PandaScore.
 
 ## Contratos e limites
 

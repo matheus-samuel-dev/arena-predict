@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest(controllers = {AuthController.class, DemoAuthController.class, RbacProbeController.class})
+@WebMvcTest(controllers = {AuthController.class, DemoAuthController.class, RbacProbeController.class, com.bolao.copa.controller.BuildVersionController.class})
 @Import({
         SecurityConfig.class,
         JwtService.class,
@@ -47,6 +47,14 @@ import org.springframework.web.bind.annotation.RestController;
         "app.demo.enabled=true"
 })
 class SecurityConfigTest {
+    @Test
+    void publicVersionExposesArtifactIdentityWithoutCredentials() throws Exception {
+        mockMvc.perform(get("/api/version"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value("unknown"))
+                .andExpect(jsonPath("$.pricingModel").value("arena-strength-series-v2"))
+                .andExpect(jsonPath("$.length()").value(2));
+    }
     static {
         // The desktop runtime uses a newer JDK than the project's Java 21 target.
         System.setProperty("net.bytebuddy.experimental", "true");

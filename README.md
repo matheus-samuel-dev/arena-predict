@@ -71,7 +71,7 @@ flowchart LR
     D[Orquestrador Demo separado] -->|mesmo domínio, identidade sandbox| T
 ```
 
-O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução. Os adapters reais estão implementados, mas aguardam credenciais: **não há prova de chamada autenticada nem provider anunciado como operacional**. Consulte a [matriz de cobertura, limitações e ativação](docs/provider-coverage.md) e a [auditoria anterior às alterações](docs/productization-audit.md).
+O frontend é servido pelo Nginx, que também encaminha `/api/*` ao backend. O Spring Boot concentra autenticação, autorização, validações e transações. O PostgreSQL persiste o domínio; o Flyway controla sua evolução. Na auditoria publicada de 09/10/2026, PandaScore está autenticada e sincroniza CS2, LoL e Valorant. Os adapters tradicionais aguardam credenciais. Consulte também [modelo probabilístico e limitações](docs/probability-model-v2.md) e [verificação da implantação](docs/deployment-verification.md). Relatórios anteriores descrevem o estado nas respectivas datas. Consulte a [matriz de cobertura, limitações e ativação](docs/provider-coverage.md) e a [auditoria anterior às alterações](docs/productization-audit.md).
 
 ### Organização do backend
 
@@ -145,7 +145,7 @@ XP, nível, sequência, precisão, desafios e conquistas são calculados a parti
 
 ## Modo demonstração
 
-O acesso rápido reutiliza duas contas persistidas e o mesmo JWT do login convencional, sem enviar senhas ao navegador. Participante Demo entra na Visão geral; Administrador Demo entra no backoffice completo em modo de consulta. A jornada guiada fica em `/demo`, com uma **Competição de Demonstração** exclusiva, acessível pelo menu da conta, pelo dashboard e pela área de resultados:
+O acesso rápido usa identidades demonstrativas persistidas e JWT assinado, sem enviar senhas ao navegador. Tokens de treino carregam a identidade da sessão isolada, imposta pelo backend. Participante Demo entra em Ao vivo com treino isolado por sessão: carteira, histórico e ranking próprios, partidas reais somente leitura e resultado oficial. Recarregar preserva o treino na mesma aba; outro acesso rápido cria uma sessão nova. A competição guiada compartilhada permanece acessível em `/demo`; Administrador Demo entra no backoffice completo em modo de consulta. A jornada guiada fica em `/demo`, com uma **Competição de Demonstração** exclusiva, acessível pelo menu da conta, pelo dashboard e pela área de resultados:
 
 1. Entre como **Participante Demo** e escolha um placar na partida disponível.
 2. Revise os pontos virtuais e confirme o palpite; ele permanece salvo após atualizar a página.
@@ -162,7 +162,7 @@ O provider Demo continua interno e simulado. A integração opcional PandaScore 
 
 Veja [arquitetura, permissões, reset, migrations e roteiro de teste da demonstração](docs/demo-flow.md).
 
-O [fluxo de mercados reais de previsão](docs/real-prediction-markets.md) separa contratos pré-jogo e LIVE em CS2, Valorant e LoL. A PandaScore fornece resultados esportivos; o ArenaPredict define mercados liquidáveis e multiplicadores virtuais internos entre 1,10× e 8,00×, com origem e versão congeladas no palpite. Placar indisponível não impede o contrato de vencedor da série quando o resultado final é suportado.
+O [fluxo de mercados reais de previsão](docs/real-prediction-markets.md) separa contratos pré-jogo e LIVE em CS2, Valorant e LoL. A PandaScore fornece resultados esportivos; o ArenaPredict define mercados liquidáveis e multiplicadores virtuais internos entre 1,10× e 8,00×, com origem e versão congeladas no palpite. No motor v2, placar necessário indisponível/antigo suspende a precificação ao vivo; histórico insuficiente admite referência equilibrada com confiança baixa. Não há superioridade preditiva comprovada.
 
 ## Integração esportiva real — eSports
 
@@ -190,8 +190,7 @@ O [procedimento operacional](docs/real-sports-operations.md) distingue conectivi
 Credenciais operacionais devem existir apenas no gerenciador de segredos ou no arquivo `.env` não versionado do ambiente. Nunca publique segredo JWT ou senha de banco padrão. Administrador Demo consulta os módulos administrativos por uma lista explícita de endpoints; e-mails de usuários e conteúdo privado de notificações ficam protegidos. Comandos genéricos de administração continuam bloqueados para Demo. Somente os comandos do sandbox podem iniciar, simular e resetar sua rodada.
 
 Participante Demo utiliza perfil, preferências, notificações, bolões demonstrativos e
-comunidade Demo persistidos. Palpites em eventos externos ou reais continuam bloqueados
-para essa identidade; contas pessoais conservam o fluxo normal. A comunidade identifica
+comunidade Demo persistidos. Na demonstração guiada, previsões normais em eventos externos continuam bloqueadas; o treino usa endpoints, carteira e histórico separados. Contas pessoais conservam o fluxo normal. A comunidade identifica
 posts Demo no banco e recusa IDs de posts reais em curtidas, comentários e denúncias Demo.
 Alterar senha da conta compartilhada é bloqueado. Nenhum banner global substitui a identidade
 esportiva: a identificação é contextual na conta, no evento, na competição e no post.

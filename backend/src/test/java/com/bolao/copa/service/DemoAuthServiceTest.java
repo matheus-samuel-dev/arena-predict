@@ -32,6 +32,7 @@ class DemoAuthServiceTest {
     @Mock UserRepository users;
     @Mock JwtService jwtService;
     @Mock PlayerProfileRepository playerProfiles;
+    @Mock com.bolao.copa.arena.service.LiveTrainingService training;
 
     private DemoAuthService service;
 
@@ -49,7 +50,7 @@ class DemoAuthServiceTest {
                 jwtService,
                 properties,
                 playerProfiles,
-                new DemoAccessPolicy(properties), org.mockito.Mockito.mock(com.bolao.copa.arena.service.LiveTrainingService.class)
+                new DemoAccessPolicy(properties), training
         );
     }
 
@@ -71,6 +72,25 @@ class DemoAuthServiceTest {
         assertThat(response.role()).isEqualTo(UserRole.PARTICIPANTE);
         assertThat(response.avatarUrl()).isEqualTo("/assets/avatars/jogador-demo.webp");
         assertThat(response.demoProfile()).isEqualTo(DemoProfile.PARTICIPANT);
+    }
+
+    @Test
+    void isolatedTrainingPreservesTheConfiguredPublicAvatar() {
+        var participant = user("portfolio-player@example.test", UserRole.PARTICIPANTE);
+        when(users.findByEmailIgnoreCase(participant.getEmail())).thenReturn(Optional.of(participant));
+        when(training.createSession()).thenReturn("isolated-session");
+        when(jwtService.generateTraining(participant, "isolated-session")).thenReturn("training-signed-jwt");
+        var profile = new PlayerProfile();
+        profile.setUser(participant);
+        profile.setAvatarUrl("/assets/avatars/jogador-demo.webp");
+        when(playerProfiles.findByUser(participant)).thenReturn(Optional.of(profile));
+
+        var response = service.access(new DemoAccessRequest(DemoProfile.PARTICIPANT, true));
+
+        assertThat(response.demoTraining()).isTrue();
+        assertThat(response.avatarUrl()).isEqualTo(profile.getAvatarUrl());
+        assertThat(response.token()).isEqualTo("training-signed-jwt");
+        verify(jwtService, never()).generate(participant);
     }
 
     @Test

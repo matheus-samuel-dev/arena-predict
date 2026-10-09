@@ -32,6 +32,29 @@ describe("disponibilidade de mercados retornada pelo servidor", () => {
     expect(isPredictionOpen(live)).toBe(true);
   });
 
+  it("distingue histórico, fallback e dados indisponíveis sem repetir a explicação técnica", () => {
+    const pricing = { available: true, probabilities: { HOME: .5, AWAY: .5 }, refundProbability: 0,
+      modelVersion: "arena-strength-series-v2", evidenceSource: "SYMMETRIC_PRIOR", confidence: "LOW" as const,
+      dataRevision: "official-snapshot", homeSamples: 2, awaySamples: 1, headToHeadSamples: 0,
+      limitations: ["INSUFFICIENT_INDEPENDENT_SERIES"], rewardPolicy: "virtual-inverse-capped-v1",
+      uncappedMultipliers: { HOME: 2, AWAY: 2 }, rewardLimitedOptions: [] };
+    const market = { ...openMarket, pricingMode: "INTERNAL_MODEL" as const, pricing,
+      pricingReason: "Detalhes técnicos completos do modelo interno." };
+    const { rerender } = render(<MarketList event={live} markets={[market, { ...market, id: 4 }]} onPredict={vi.fn()} />);
+    expect(screen.getAllByText("Histórico insuficiente para apontar um favorito. Referência equilibrada.")).toHaveLength(1);
+    screen.getAllByText(market.pricingReason).forEach(text => expect(text).not.toBeVisible());
+    fireEvent.click(screen.getAllByText("Entenda o mercado")[0]);
+    expect(screen.getAllByText(market.pricingReason)[0]).toBeVisible();
+
+    rerender(<MarketList event={live} markets={[{ ...market, pricing: { ...pricing, evidenceSource: "PANDASCORE_CONFIRMED_RESULTS" } }]} onPredict={vi.fn()} />);
+    expect(screen.getByText("Estimativa baseada nos resultados recentes das equipes.")).toBeVisible();
+    rerender(<MarketList event={live} markets={[{ ...market, pricingMode: "UNAVAILABLE", pricing: { ...pricing, available: false, confidence: "NONE" },
+      availability: { allowed: false, code: "PRICING_DATA_REQUIRED", label: "Aguardando dados para precificação", reason: "Aguarde uma atualização." } }]} onPredict={vi.fn()} />);
+    expect(screen.getByText("Aguardando dados atuais para calcular este mercado com segurança.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Acima de 2,5/ })).toBeDisabled();
+    expect(marketAvailabilityStatus({ ...market, availability: { allowed: false, code: "PRICING_DATA_REQUIRED", label: "Aguardando dados", reason: "Dados ausentes" } })).toBe("SUSPENDED");
+  });
+
   it("mantém a regra completa sob demanda e prioriza uma explicação curta", () => {
     const market = {
       ...openMarket,

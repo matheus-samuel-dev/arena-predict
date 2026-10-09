@@ -30,6 +30,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        APP_BUILD_REVISION: ${APP_BUILD_REVISION:-unknown}
     container_name: arenapredict-api
     restart: unless-stopped
     environment:
@@ -125,6 +127,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        APP_BUILD_REVISION: ${APP_BUILD_REVISION:-unknown}
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_APP_NAME: ${VITE_APP_NAME:-ArenaPredict}
         VITE_APP_SHORT_NAME: ${VITE_APP_SHORT_NAME:-Arena}

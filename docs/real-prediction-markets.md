@@ -10,9 +10,9 @@ A sincronização já criava contratos para partidas futuras, mas chamava `Marke
 
 | Modalidade | Pré-jogo BO3/BO5 | LIVE com placar da série | LIVE sem placar |
 |---|---|---|---|
-| CS2 | Vencedor, placar exato, total de mapas, handicap de mapas e cada equipe vence pelo menos um mapa | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa; somente resultados ainda incertos | Vencedor da série |
-| Valorant | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa; somente resultados ainda incertos | Vencedor da série |
-| LoL | Vencedor, placar exato e total de jogos | Vencedor, placar exato e total de jogos; somente resultados ainda incertos | Vencedor da série |
+| CS2 | Vencedor, placar exato, total de mapas, handicap de mapas e cada equipe vence pelo menos um mapa | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa; somente resultados ainda incertos | Contratos preservados, precificação suspensa |
+| Valorant | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa | Vencedor, placar exato, total, cada equipe vence pelo menos um mapa; somente resultados ainda incertos | Contratos preservados, precificação suspensa |
+| LoL | Vencedor, placar exato e total de jogos | Vencedor, placar exato e total de jogos; somente resultados ainda incertos | Contratos preservados, precificação suspensa |
 
 BO1 publica somente vencedor. Formato desconhecido ou diferente de BO1/3/5 não publica contratos nesta implementação. Partidas já encerradas não recebem mercados retroativos. Contratos anteriormente publicados são preservados, inclusive seus snapshots e palpites.
 
@@ -21,17 +21,17 @@ Primeiro/atual/próximo mapa, rounds, pistol, kills, torres, dragões, Barão e 
 ## Ciclo e segurança
 
 - PRE_MATCH_ONLY fecha no início e nunca reabre como LIVE. Contratos LIVE_ONLY têm identificadores próprios com sufixo `_LIVE`.
-- Um evento descoberto LIVE recebe apenas contratos LIVE liquidáveis. Ausência de placar não bloqueia o vencedor final da série quando identidade, formato e suporte a resultados estão confirmados.
+- Um evento descoberto LIVE recebe apenas contratos LIVE liquidáveis. O motor v2 exige placar atual confiável para precificar: identidade/formato e capacidade de liquidar no futuro não comprovam o estado atual da série.
 - Com placar confirmado, `SeriesOutcomeModel` enumera somente finais possíveis. Opções de placar impossíveis ficam inativas; mercados com resultado já determinado fecham. Não há palpites sobre respostas já conhecidas.
-- Perda do placar suspende contratos LIVE derivados; o vencedor continua disponível. Snapshot esportivo sem leitura há mais de cinco minutos suspende todos os contratos LIVE até a próxima leitura recente.
+- Perda do placar suspende a precificação LIVE, inclusive vencedor. Snapshot esportivo sem leitura há mais de cinco minutos suspende todos os contratos LIVE até a próxima leitura recente. Histórico ausente, com placar confiável, admite referência equilibrada e confiança baixa.
 - FINISHED bloqueia comandos e liquida pelo resultado oficial. Cancelamento devolve pontos; resultado incompleto/não padrão ou correção posterior seguem o fluxo de revisão existente.
 - Repetições do resultado preservam o marcador de processamento e a chave única de ledger. Multiplicador, origem e versão são congelados no palpite.
-- Demo usa seu próprio cenário e modelo existente. Conta Demo não ganha permissão para modificar ou registrar palpites em eventos externos; QA utiliza usuários comuns exclusivamente em banco isolado.
+- Demo guiado usa seu próprio cenário. O acesso rápido Participante Demo abre treino por sessão em `/api/training`: evento real somente leitura, carteira/histórico/ledger/ranking separados e resultado oficial. Não cria previsões normais nem permite simular resultados reais. QA utiliza contas próprias autorizadas, sem acessar contas de terceiros.
 - GET do evento publica somente contratos que saíram de DRAFT. Contratos encerrados/liquidados continuam visíveis como histórico, sem aceitar palpites.
 
 ## Multiplicadores virtuais
 
-`VirtualMultiplierService`, versão `arena-series-v1`, centraliza a curva dos contratos PandaScore: faixa **1,10× a 8,00×**. Uma referência por mapa/jogo restante de 50/50 produz probabilidades internas dos finais possíveis. É um prior equilibrado, não uma análise de força de equipes e não uma probabilidade oficial. Com placar real, a liderança da série altera a referência; sem placar, o vencedor usa 2,00× para ambos os participantes. A transformação limitada usa surpresa em bits e compressão racional, com 50% ancorado em 2,00×. Não usa odds de bookmaker, aleatoriedade ou fórmulas no frontend. NaN, Infinity e valores inválidos são rejeitados. Opções impossíveis não são aceitas, mesmo que a representação de coeficiente permaneça limitada.
+`VirtualMultiplierService`, versão `arena-strength-series-v2`, usa histórico oficial elegível e uma distribuição conjunta dos finais possíveis. Histórico suficiente permite força relativa Bradley–Terry; histórico insuficiente mantém prior de 50/50 por mapa/jogo. Probabilidade, confiança e recompensa são separados. A referência inversa à probabilidade tem limites de recompensa **1,10× a 8,00×**, sem recortar probabilidades. Não há odds de bookmaker, sorteio ou cálculo probabilístico no frontend. NaN, Infinity e valores inválidos são rejeitados; opções impossíveis não são aceitas. Consulte [modelo e limitações](probability-model-v2.md): não há superioridade preditiva ou calibração comercial comprovada.
 
 O modelo demonstrativo e os adapters de outras modalidades são preservados. Coeficientes existentes congelados nos palpites não são recalculados.
 

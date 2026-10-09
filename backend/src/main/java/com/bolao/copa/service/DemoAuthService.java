@@ -54,7 +54,7 @@ public class DemoAuthService {
             demoAccess.requireDemoParticipant(user);
             String session=training.createSession();
             return new AuthResponse(jwtService.generateTraining(user,session),user.getId(),"Jogador Demo",user.getEmail(),
-                    user.getRole().canonical(),null,request.profile(),true);
+                    user.getRole().canonical(),playerProfiles.findByUser(user).map(profile -> profile.getAvatarUrl()).orElse(null),request.profile(),true);
         }
 
         return new AuthResponse(
