@@ -19,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Source fixtures are explicit, isolated and rolled back; no live token or provider network involved. */
@@ -32,7 +31,7 @@ class ProbabilityPricingIntegrationTest {
     @Autowired ArenaCatalogService api;@Autowired MarketAvailabilityService availability;@Autowired PointLedgerRepository ledger;
     @Autowired PricingSnapshotCodec codec;
     private final String id=UUID.randomUUID().toString().substring(0,10);
-    @BeforeEach void resetSourceCache() { when(reader.read()).thenReturn(List.of());ReflectionTestUtils.invokeMethod(strength,"invalidate"); }
+    @BeforeEach void resetSourceCache() { when(reader.read()).thenReturn(List.of());strength.refresh(); }
     private SportsMatch snapshot(EventStatus status,int h,int a,boolean score) {
         var home=new SportsTeam("h-"+id,"Nome sem efeito A",null,null);var away=new SportsTeam("a-"+id,"Nome sem efeito B",null,null);
         return new SportsMatch(id,"Fixture de modelo",home,away,new SportsChampionship("c-"+id,"Modelo teste",null,"2026",null,null,null,null,null),
@@ -61,7 +60,7 @@ class ProbabilityPricingIntegrationTest {
         var result=commands.place(new PlacePredictionRequest(event.getId(),market.getId(),options.findByMarketAndKey(market,"HOME").orElseThrow().getId(),25,null,"frozen"),"frozen",user);
         var persisted=predictions.findById(result.id()).orElseThrow();String accepted=persisted.getPricingSnapshot();
         assertThat(persisted.getMultiplier()).isEqualByComparingTo("2.00");assertThat(codec.decode(accepted).probabilities().get("HOME")).isEqualTo(.5);
-        when(reader.read()).thenReturn(strongHistory());ReflectionTestUtils.invokeMethod(strength,"invalidate");
+        when(reader.read()).thenReturn(strongHistory());strength.refresh();
         apply(EventStatus.LIVE,1,0,true);var fresh=api.marketResponse(market);
         assertThat(fresh.pricing().evidenceSource()).isEqualTo("PANDASCORE_CONFIRMED_RESULTS");assertThat(fresh.pricing().homeSamples()).isEqualTo(10);
         assertThat(fresh.pricing().probabilities().get("HOME")).isGreaterThan(.9);
@@ -73,12 +72,13 @@ class ProbabilityPricingIntegrationTest {
     @Test void futureOrOldHistoryNeverRaisesConfidenceAndStableInputsHaveStablePrices() {
         var event=apply(EventStatus.LIVE,0,0,true);var market=winner(event);var old=strongHistory().stream().map(r->new BradleyTerryStrengthModel.Result(r.id(),r.sport(),r.home(),r.away(),2,0,3,
                 Instant.now().minusSeconds(40*86400),Instant.now().minusSeconds(35*86400),Instant.now().minusSeconds(35*86400),1)).toList();
-        when(reader.read()).thenReturn(old);ReflectionTestUtils.invokeMethod(strength,"invalidate");
+        when(reader.read()).thenReturn(old);strength.refresh();
         var before=api.marketResponse(market).pricing();assertThat(before.evidenceSource()).isEqualTo("SYMMETRIC_PRIOR");assertThat(before.homeSamples()).isZero();
         event.setLastSyncedAt(event.getLastSyncedAt().plusSeconds(1));
         var after=api.marketResponse(market).pricing();assertThat(after.probabilities()).isEqualTo(before.probabilities());assertThat(after.dataRevision()).isEqualTo(before.dataRevision());
+        verify(reader,times(2)).read(); // Only explicit refreshes; API pricing never opens another database transaction.
         var future=strongHistory().stream().map(r->new BradleyTerryStrengthModel.Result(r.id(),r.sport(),r.home(),r.away(),2,0,3,r.startsAt(),Instant.now().plusSeconds(3600),Instant.now().plusSeconds(3601),1)).toList();
-        when(reader.read()).thenReturn(future);ReflectionTestUtils.invokeMethod(strength,"invalidate");
+        when(reader.read()).thenReturn(future);strength.refresh();
         assertThat(api.marketResponse(market).pricing().homeSamples()).isZero();
     }
     @Test void missingScoreOrStaleSnapshotSuspendsPricingAndFreshStateRestoresIt() {
@@ -90,7 +90,8 @@ class ProbabilityPricingIntegrationTest {
     }
     @Test void unavailableHistoricalStorageFallsBackWithoutProviderCallOrFalseConfidence() {
         when(reader.read()).thenThrow(new DataAccessResourceFailureException("isolated fixture"));
+        strength.refresh();
         var event=apply(EventStatus.LIVE,0,0,true);var p=api.marketResponse(winner(event)).pricing();
-        assertThat(p.evidenceSource()).isEqualTo("SYMMETRIC_PRIOR");assertThat(p.confidence()).isEqualTo("LOW");assertThat(p.limitations()).contains("HISTORY_TEMPORARILY_UNAVAILABLE");
+        assertThat(p.evidenceSource()).isEqualTo("SYMMETRIC_PRIOR");assertThat(p.confidence()).isEqualTo("LOW");assertThat(p.limitations()).contains("HISTORY_NOT_READY");
     }
 }

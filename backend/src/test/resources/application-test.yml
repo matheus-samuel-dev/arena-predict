@@ -1,4 +1,6 @@
 sports:
+  pricing:
+    history-refresh-enabled: false
   sync:
     enabled: false
     scheduler-enabled: false

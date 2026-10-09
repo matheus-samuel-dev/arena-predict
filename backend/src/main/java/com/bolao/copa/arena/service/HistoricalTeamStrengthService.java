@@ -19,6 +19,7 @@ public class HistoricalTeamStrengthService {
     private final ConfirmedSeriesHistoryReader reader;
     private List<BradleyTerryStrengthModel.Result> cached=List.of();
     private Instant expires=Instant.EPOCH;
+    private boolean ready;
     private final Map<String,BradleyTerryStrengthModel> models=new LinkedHashMap<>(32,0.75f,true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String,BradleyTerryStrengthModel> entry) { return size()>64; }
     };
@@ -26,7 +27,7 @@ public class HistoricalTeamStrengthService {
     public synchronized Strength estimate(ArenaEvent event) {
         Instant now=Instant.now(),asOf=event.getLastSyncedAt()==null?now:event.getLastSyncedAt();
         try {
-            if(!now.isBefore(expires)) { cached=reader.read();expires=now.plusSeconds(30); }
+            if(!ready)return neutral("HISTORY_NOT_READY",asOf);
             String sport=event.getChampionship().getSport().getCode(),home=event.getHomeCompetitor().getExternalId(),away=event.getAwayCompetitor().getExternalId();
             if(home==null||away==null) return neutral("TEAM_IDENTITY_UNAVAILABLE",asOf);
             var eligible=cached.stream().filter(r->sport.equals(r.sport())&&!Objects.equals(r.id(),event.getExternalId())
@@ -44,6 +45,14 @@ public class HistoricalTeamStrengthService {
                     result.headToHeadSamples(),List.copyOf(limitations)),revision,asOf);
         } catch(DataAccessException failure) { return neutral("HISTORY_TEMPORARILY_UNAVAILABLE",asOf); }
     }
+    /** Runs outside visitor/provider command transactions: no REQUIRES_NEW pool starvation. */
+    public void refresh() {
+        List<BradleyTerryStrengthModel.Result> loaded;
+        try { loaded=reader.read(); }
+        catch(DataAccessException unavailable) { synchronized(this) { ready=false;expires=Instant.now().plusSeconds(30); }return; }
+        synchronized(this) { cached=List.copyOf(loaded);ready=true;expires=Instant.now().plusSeconds(30); }
+    }
+    public synchronized boolean refreshDue() { return !Instant.now().isBefore(expires); }
     private BradleyTerryStrengthModel fit(List<BradleyTerryStrengthModel.Result> rows,Instant asOf) {
         String key=revision(rows,asOf);
         return models.computeIfAbsent(key,k->new BradleyTerryStrengthModel(rows,asOf,PRIOR_PRECISION,HALF_LIFE_DAYS));
