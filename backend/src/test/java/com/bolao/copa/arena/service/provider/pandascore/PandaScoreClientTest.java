@@ -74,8 +74,28 @@ class PandaScoreClientTest {
         properties.setPageSize(1);
         properties.setMaxPages(2);
         server.expect(ExpectedCount.times(2), request -> { }).andRespond(withSuccess("[{\"id\":1}]", MediaType.APPLICATION_JSON));
-        assertThat(client.list("/csgo/teams", Map.of(), PandaScoreDtos.Team.class)).hasSize(2);
+        var failure = catchThrowableOfType(() -> client.list("/csgo/teams", Map.of(), PandaScoreDtos.Team.class),SportsProviderException.class);
+        assertThat(failure.getReason()).isEqualTo(Reason.INVALID_RESPONSE);
+        assertThat(failure.getMessage()).contains("Pagination incomplete");
         server.verify();
+    }
+
+    @Test
+    void totalHeaderProvesCompletionEvenOnAFullLastPage() {
+        properties.setPageSize(1);properties.setMaxPages(1);
+        server.expect(request -> { }).andRespond(withSuccess("[{\"id\":1}]",MediaType.APPLICATION_JSON).header("X-Total","1").header("X-Page","1"));
+        assertThat(client.list("/csgo/teams",Map.of(),PandaScoreDtos.Team.class)).hasSize(1);
+        server.verify();
+    }
+
+    @Test
+    void explicitPageCanResumeBeyondThePerRunCollectionLimit() {
+        properties.setPageSize(1);properties.setMaxPages(1);
+        server.expect(request -> assertThat(request.getURI().getQuery()).contains("page=4"))
+                .andRespond(withSuccess("[{\"id\":4}]",MediaType.APPLICATION_JSON).header("X-Total","5").header("X-Page","4"));
+        var result=client.page("/csgo/teams",Map.of(),4,PandaScoreDtos.Team.class);
+        assertThat(result.items().getFirst().id()).isEqualTo(4);
+        assertThat(result.hasNext()).isTrue();server.verify();
     }
 
     @Test

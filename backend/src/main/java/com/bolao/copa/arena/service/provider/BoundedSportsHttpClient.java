@@ -84,22 +84,41 @@ public class BoundedSportsHttpClient {
     public Long remainingRequests() { return remainingRequests; }
     public Integer lastHttpStatus() { return lastHttpStatus; }
 
+    public record Page<T>(List<T> items, boolean hasNext) { }
+    private Long responseTotal;
+    private Integer responsePage;
+
+    /** One quota-accounted page. No following remote Link URLs or unbounded collection. */
+    public synchronized <T> Page<T> page(String path, Map<String, String> query, int page, Class<T> itemType) {
+        if (page < 1 || page > 10000) throw new IllegalArgumentException("Invalid page");
+        var params = new java.util.LinkedHashMap<>(query);
+        params.put("per_page", Integer.toString(properties.getPageSize()));
+        params.put("page", Integer.toString(page));
+        JsonNode payload = payload(path, params);
+        if (!payload.isArray() || payload.size() > properties.getPageSize()
+                || (responsePage != null && responsePage != page)) throw invalidResponse();
+        if (responseTotal != null && payload.size() != Math.min(properties.getPageSize(), Math.max(0, responseTotal-(long)(page-1)*properties.getPageSize())))
+            throw invalidResponse();
+        List<T> items = new ArrayList<>();
+        for (JsonNode item : payload) {
+            if (!item.isObject()) throw invalidResponse();
+            try { items.add(json.treeToValue(item, itemType)); }
+            catch (IOException | IllegalArgumentException ex) { throw invalidResponse(); }
+        }
+        boolean next = responseTotal == null ? payload.size() == properties.getPageSize()
+                : (long) page * properties.getPageSize() < responseTotal;
+        return new Page<>(List.copyOf(items), next);
+    }
+
     public <T> List<T> list(String path, Map<String, String> query, Class<T> itemType) {
         List<T> items = new ArrayList<>();
         for (int page = 1; page <= properties.getMaxPages(); page++) {
-            var params = new java.util.LinkedHashMap<>(query);
-            params.put("per_page", Integer.toString(properties.getPageSize()));
-            params.put("page", Integer.toString(page));
-            JsonNode payload = payload(path, params);
-            if (!payload.isArray()) throw invalidResponse();
-            for (JsonNode item : payload) {
-                if (!item.isObject()) throw invalidResponse();
-                try { items.add(json.treeToValue(item, itemType)); }
-                catch (IOException | IllegalArgumentException ex) { throw invalidResponse(); }
-            }
-            if (payload.size() < properties.getPageSize()) break;
+            var result = page(path, query, page, itemType);
+            items.addAll(result.items());
+            if (!result.hasNext()) return List.copyOf(items);
             if (page == properties.getMaxPages()) {
                 log.warn("[SPORTS_SYNC] Sports provider pagination cap reached path={} maxPages={}; narrow the sync window or raise the configured cap", path, page);
+                throw new SportsProviderException(Reason.INVALID_RESPONSE, "Pagination incomplete; narrow the sync window", null);
             }
         }
         return List.copyOf(items);
@@ -115,6 +134,8 @@ public class BoundedSportsHttpClient {
     public synchronized JsonNode payload(String path, Map<String, String> query) {
         if (!configured()) throw new SportsProviderException(Reason.NOT_CONFIGURED, "Sports provider token is not configured", null);
         for (int attempt = 0; attempt <= properties.getMaxRetries(); attempt++) {
+            responseTotal = null;
+            responsePage = null;
             reserveRequest();
             try {
                 var request = http.method(properties.authentication()==SportsHttpSettings.Authentication.FORM ? org.springframework.http.HttpMethod.POST : org.springframework.http.HttpMethod.GET).uri(builder -> {
@@ -131,6 +152,13 @@ public class BoundedSportsHttpClient {
                             int status = response.getStatusCode().value();
                             lastHttpStatus = status;
                             accountHeaders(response.getHeaders());
+                            if (query.containsKey("per_page")) try {
+                                String total = response.getHeaders().getFirst("X-Total");
+                                String page = response.getHeaders().getFirst("X-Page");
+                                if (total != null) responseTotal = Long.valueOf(total);
+                                if (page != null) responsePage = Integer.valueOf(page);
+                                if (responseTotal != null && responseTotal < 0) throw invalidResponse();
+                            } catch (NumberFormatException invalidHeader) { throw invalidResponse(); }
                             if (status < 200 || status >= 300) throw new HttpFailure(status, response.getHeaders());
                             byte[] body = response.getBody().readNBytes(MAX_RESPONSE_BYTES + 1);
                             if (body.length > MAX_RESPONSE_BYTES) throw invalidResponse();

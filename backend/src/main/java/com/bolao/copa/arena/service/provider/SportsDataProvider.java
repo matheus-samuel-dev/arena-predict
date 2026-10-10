@@ -26,6 +26,11 @@ public interface SportsDataProvider {
     default List<SportsMatch> upcomingMatches(Instant from, Instant to) { return List.of(); }
     default List<SportsMatch> runningMatches() { return List.of(); }
     default List<SportsMatch> finishedMatches(Instant since) { return List.of(); }
+    default boolean supportsHistoricalBackfill() { return false; }
+    default HistoricalPage historicalPage(String sport, Instant from, Instant until, int page) {
+        throw new UnsupportedOperationException("Historical pagination is not supported");
+    }
+    record HistoricalPage(List<SportsMatch> matches, int received, boolean hasNext, String fingerprint) { }
     default Optional<SportsMatch> matchDetails(String externalId) { return Optional.empty(); }
     default List<SportsMatch> matchDetails(List<String> externalIds) {
         return externalIds.stream().map(this::matchDetails).flatMap(Optional::stream).toList();

@@ -18,6 +18,18 @@ describe("mercados virtuais reais",()=>{
     expect(screen.queryByText("Explorar todos (0)")).not.toBeInTheDocument();
     expect(screen.getByRole("link",{name:"Ver detalhes"})).toBeVisible();
   });
+  it("exibe e seleciona exatamente o multiplicador retornado, sem fallback visual 2,00",()=>{
+    const choose=vi.fn();
+    const event={...base,availableMarketCount:1,predictionAvailabilityLabel:"Aberto",markets:[{
+      id:9,name:"Vencedor da série",status:"OPEN",templateCode:"SERIES_WINNER_LIVE",timingMode:"LIVE_ONLY",
+      availability:{allowed:true,code:"OPEN",label:"Aberto",reason:"Pontos virtuais"},
+      options:[{id:91,key:"HOME",label:"Equipe A",multiplier:1.6,active:true},{id:92,key:"AWAY",label:"Equipe B",multiplier:2.67,active:true}]}]} as ArenaEvent;
+    render(<MemoryRouter><LiveEventPanel event={event} onPredict={choose} /></MemoryRouter>);
+    expect(screen.queryByRole("button",{name:"Equipe A 2,00×"})).not.toBeInTheDocument();
+    screen.getByRole("button",{name:"Equipe A 1,60×"}).click();
+    expect(choose).toHaveBeenCalledWith(expect.objectContaining({option:expect.objectContaining({multiplier:1.6})}));
+    expect(screen.getByRole("button",{name:"Equipe B 2,67×"})).toBeVisible();
+  });
   it("placar indisponível não esconde mercado LIVE publicado pelo backend",()=>{
     const event={...base,availableMarketCount:1,predictionAvailabilityLabel:"Aberto para palpites · 1 mercado",markets:[{
       id:1,name:"Vencedor da série",status:"OPEN",templateCode:"SERIES_WINNER_LIVE",timingMode:"LIVE_ONLY",
