@@ -60,6 +60,11 @@ app:
     history-initial-delay-ms: ${APP_DEMO_HISTORY_INITIAL_DELAY_MS:60000}
 
 sports:
+  history:
+    enabled: ${SPORTS_HISTORY_ENABLED:true}
+    days: ${SPORTS_HISTORY_DAYS:30}
+    interval-ms: ${SPORTS_HISTORY_INTERVAL_MS:30000}
+    sports: ${SPORTS_HISTORY_SPORTS:CS2}
   sync:
     enabled: ${SPORTS_SYNC_ENABLED:false}
     provider: ${SPORTS_SYNC_PROVIDER:PANDASCORE}

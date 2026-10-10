@@ -11,8 +11,9 @@ import org.springframework.stereotype.Service;
 public class MultiProviderSyncCoordinator {
     private final SportsProviderRegistry registry;
     private final Map<String,SportsSyncService> workers=new LinkedHashMap<>();
+    @org.springframework.beans.factory.annotation.Autowired
     public MultiProviderSyncCoordinator(SportsProviderRegistry registry,SportsSyncService primary,SportsSyncProperties properties,
-            SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events) {
+            SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events,SportsHistoryBackfillService history) {
         this.registry=registry;
         for(var provider:registry.providers()) {
             if(provider.providerId().equals("PANDASCORE")&&provider.providerId().equalsIgnoreCase(properties.provider())) workers.put(provider.providerId(),primary);
@@ -20,7 +21,7 @@ public class MultiProviderSyncCoordinator {
                 var panda=new SportsSyncProperties("PANDASCORE",properties.enabled(),properties.upcomingIntervalMs(),properties.runningIntervalMs(),
                         properties.finishedIntervalMs(),properties.trackedIntervalMs(),properties.nearStartMinutes(),properties.upcomingDays(),
                         properties.correctionWindowHours(),properties.trackedBatchSize(),properties.leaseMs(),properties.intervalMs(),properties.initialDelayMs());
-                workers.put(provider.providerId(),new SportsSyncService(List.of(provider),panda,state,catalog,matches,events));
+                workers.put(provider.providerId(),new SportsSyncService(List.of(provider),panda,state,catalog,matches,events,history));
             }
             else {
                 long interval=provider.pollingIntervalMs();
@@ -29,6 +30,10 @@ public class MultiProviderSyncCoordinator {
                 workers.put(provider.providerId(),new SportsSyncService(List.of(provider),settings,state,catalog,matches,events));
             }
         }
+    }
+    public MultiProviderSyncCoordinator(SportsProviderRegistry registry,SportsSyncService primary,SportsSyncProperties properties,
+            SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events) {
+        this(registry,primary,properties,state,catalog,matches,events,null);
     }
     public void scheduledSynchronize() { workers.values().forEach(SportsSyncService::scheduledSynchronize); }
     public SportsSyncService.Status defaultStatus() { return workers.get("PANDASCORE").status(); }

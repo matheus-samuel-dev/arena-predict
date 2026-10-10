@@ -12,6 +12,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class SportProbabilityModelTest {
+    @Test void totalMapsFormulaHoldsForKnownAndMapSpecificProbabilities() {
+        assertThat(probability(Strategy.TOTAL,2.5,"OVER",SeriesOutcomeModel.scores(3,0,0,.5,.5))).isCloseTo(.5,within(1e-12));
+        assertThat(probability(Strategy.TOTAL,2.5,"OVER",SeriesOutcomeModel.scores(3,1,0,.5,.5))).isCloseTo(.5,within(1e-12));
+        assertThat(probability(Strategy.TOTAL,2.5,"OVER",SeriesOutcomeModel.scores(3,1,1,.8,.8))).isEqualTo(1);
+        for(int i=0;i<=10;i++)for(int j=0;j<=10;j++) {
+            double p1=i/10.0,p2=j/10.0;
+            var outcomes=SeriesOutcomeModel.scores(3,0,0,p1,p2);
+            assertThat(probability(Strategy.TOTAL,2.5,"OVER",outcomes)).isCloseTo(p1*(1-p2)+(1-p1)*p2,within(1e-12));
+            assertThat(outcomes.stream().mapToDouble(SeriesOutcomeModel.Score::probability).sum()).isCloseTo(1,within(1e-12));
+        }
+    }
     private static final Instant NOW=Instant.parse("2026-10-09T12:00:00Z");
     private static Definition definition(Strategy strategy,Double line,String... keys) {
         return new Definition("test","test","test",strategy,"score",line==null?null:BigDecimal.valueOf(line),MarketTimingMode.LIVE_ONLY,

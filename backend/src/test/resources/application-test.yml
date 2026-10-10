@@ -1,4 +1,6 @@
 sports:
+  history:
+    enabled: false
   pricing:
     history-refresh-enabled: false
   sync:

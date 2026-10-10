@@ -75,6 +75,23 @@ public class PandaScoreSportsDataProvider implements EsportsDataProvider {
         return gameMatches("/matches/past", Map.of("range[end_at]", since + "," + clock.instant(), "sort", "-end_at,id"));
     }
 
+    @Override public boolean supportsHistoricalBackfill() { return true; }
+
+    @Override public HistoricalPage historicalPage(String sport, Instant from, Instant until, int page) {
+        var game = java.util.Arrays.stream(PandaScoreGame.values()).filter(g -> g.sportCode().equals(sport)).findFirst().orElseThrow();
+        if (!supportedSports().contains(sport) || !from.isBefore(until) || until.isAfter(clock.instant()))
+            throw new IllegalArgumentException("Invalid historical window");
+        var source = client.page("/" + game.path() + "/matches/past",
+                Map.of("filter[status]", "finished", "range[end_at]", from + "," + until, "sort", "end_at,id"), page, PandaScoreDtos.Match.class);
+        Map<String,SportsMatch> unique = new LinkedHashMap<>();
+        source.items().forEach(row -> mapped(row).filter(m -> sport.equals(m.sportCode())).ifPresent(m -> unique.put(m.externalId(), m)));
+        String ids = source.items().stream().map(row -> String.valueOf(row.id())).toList().toString();
+        String fingerprint;
+        try { fingerprint = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(ids.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
+        catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+        return new HistoricalPage(List.copyOf(unique.values()), source.items().size(), source.hasNext(), fingerprint);
+    }
+
     @Override public Optional<SportsMatch> matchDetails(String externalId) {
         validateId(externalId);
         try {

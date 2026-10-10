@@ -30,16 +30,26 @@ public class SportsSyncService {
     private final ArenaEventRepository events;
     private final Clock clock;
     private final Instant startedAt;
+    private final SportsHistoryBackfillService history;
 
     @Autowired
     public SportsSyncService(List<SportsDataProvider> providers,SportsSyncProperties properties,
+            SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events,SportsHistoryBackfillService history) {
+        this(providers,properties,state,catalog,matches,events,Clock.systemUTC(),history);
+    }
+    public SportsSyncService(List<SportsDataProvider> providers,SportsSyncProperties properties,
             SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events) {
-        this(providers,properties,state,catalog,matches,events,Clock.systemUTC());
+        this(providers,properties,state,catalog,matches,events,Clock.systemUTC(),null);
     }
     SportsSyncService(List<SportsDataProvider> providers,SportsSyncProperties properties,
             SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events,Clock clock) {
+        this(providers,properties,state,catalog,matches,events,clock,null);
+    }
+    SportsSyncService(List<SportsDataProvider> providers,SportsSyncProperties properties,
+            SportsSyncStateStore state,SportsCatalogSyncService catalog,SportsMatchSyncService matches,ArenaEventRepository events,Clock clock,SportsHistoryBackfillService history) {
         this.properties=properties; this.state=state; this.catalog=catalog; this.matches=matches; this.events=events; this.clock=clock;
         this.startedAt=clock.instant();
+        this.history=history;
         this.provider=providers.stream().filter(p -> !p.demo() && p.providerId().equalsIgnoreCase(properties.provider()))
                 .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown sports.sync.provider"));
     }
@@ -71,6 +81,7 @@ public class SportsSyncService {
                     () -> request(run,() -> provider.upcomingMatches(now,now.plus(properties.upcomingDays(),ChronoUnit.DAYS))));
             feed(Feed.FINISHED,properties.finishedIntervalMs(),now,run,
                     () -> request(run,() -> provider.finishedMatches(now.minus(properties.correctionWindowHours(),ChronoUnit.HOURS))));
+            historicalFeed(now,run);
         } catch (SportsProviderException ex) {
             result=ex.getReason()==SportsProviderException.Reason.RATE_LIMITED?"RATE_LIMITED":"UNAVAILABLE";
             message=safeMessage(ex); error=ex.getReason().name();
@@ -94,7 +105,7 @@ public class SportsSyncService {
             } finally { state.release(id,owner); }
         }
     }
-    private List<SportsMatch> request(Run run,Supplier<List<SportsMatch>> fetch) {
+    private <T> T request(Run run,Supplier<T> fetch) {
         if (!run.attempted) {
             run.startedAt=clock.instant();
             log.info("[SPORTS_SYNC] Started provider={}",provider.providerId());
@@ -110,6 +121,20 @@ public class SportsSyncService {
         if (snapshots==null) { state.checkedWithoutRequest(provider.providerId(),feed,now); return; }
         run.received+=snapshots.size();
         log.info("[SPORTS_SYNC] Feed={} received={}",feed,snapshots.size());
+        persist(snapshots,run);
+        state.completed(provider.providerId(),feed,clock.instant());
+    }
+    private void historicalFeed(Instant now,Run run) {
+        if(history==null)return;
+        var window=history.nextWindow(provider,now);
+        if(window==null)return;
+        try {
+            var batch=request(run,()->history.fetch(provider,window,now));
+            run.received+=batch.received();
+            history.completed(window,batch,clock.instant());
+        } catch(RuntimeException failure) { history.failed(window,failure);throw failure; }
+    }
+    private void persist(List<SportsMatch> snapshots,Run run) {
         var refs=catalog.synchronize(provider.providerId(),snapshots);
         Set<String> existing=snapshots.isEmpty()?Set.of():new HashSet<>(events.findExistingExternalIds(provider.providerId(),
                 snapshots.stream().map(SportsMatch::externalId).toList()));
@@ -125,7 +150,6 @@ public class SportsSyncService {
             }
         }
         if (failed) throw new IllegalStateException("One or more sports match transactions failed");
-        state.completed(provider.providerId(),feed,clock.instant());
     }
     public Status status() {
         var saved=snapshot();
@@ -147,7 +171,8 @@ public class SportsSyncService {
         return new Status(provider.providerName(),properties.enabled(),provider.available(),status,saved.lastAttemptAt(),saved.lastSuccessAt(),
                 retry,provider.remainingRequests(),message,events.countByExternalProviderAndResultReviewRequiredTrue(provider.providerId()),
                 provider.supportedSports(),saved.schedulerTickAt(),nextSyncAt(saved,retry),saved.runCompletedAt(),saved.received(),saved.inserted(),
-                saved.updated(),saved.skipped(),saved.failed(),saved.durationMs(),saved.lastHttpStatus(),saved.lastErrorReason());
+                saved.updated(),saved.skipped(),saved.failed(),saved.durationMs(),saved.lastHttpStatus(),saved.lastErrorReason(),
+                history==null?List.of():history.progress(provider.providerId()));
     }
     public Summary summary() {
         var status=status();
@@ -177,7 +202,8 @@ public class SportsSyncService {
     public record Status(String provider,boolean enabled,boolean configured,String status,Instant lastAttemptAt,
             Instant lastSuccessAt,Instant nextAllowedRequestAt,Long requestsRemaining,String message,long reviewRequiredCount,
             List<String> supportedSports,Instant lastSchedulerTickAt,Instant nextSyncAt,Instant lastRunCompletedAt,
-            int receivedCount,int insertedCount,int updatedCount,int skippedCount,int failedCount,Long durationMs,Integer lastHttpStatus,String lastErrorReason) { }
+            int receivedCount,int insertedCount,int updatedCount,int skippedCount,int failedCount,Long durationMs,Integer lastHttpStatus,String lastErrorReason,
+            List<SportsHistoryStateStore.Progress> historyBackfill) { }
     private static final class Run {
         boolean attempted; Instant startedAt; int received;
         final Set<String> inserted=new HashSet<>(),updated=new HashSet<>(),skipped=new HashSet<>(),failed=new HashSet<>();

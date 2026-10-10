@@ -1,0 +1,17 @@
+# Histórico oficial para precificação v2
+
+A coleta recente e a janela estatística são diferentes: `correction-window-hours=72` acompanha resultados/correções recentes, enquanto o modelo considera 30 dias. Sem bootstrap histórico, a aplicação só acumula o período desde sua ativação. O prior 50/50 permanece correto quando faltam cinco séries elegíveis de cada equipe ou o grafo é desconectado.
+
+`SportsHistoryBackfillService` usa o mesmo provider, orçamento HTTP e lease de sincronização. Por padrão coleta CS2, uma página por tick, em janelas fechadas de um dia entre 30 dias atrás e a cobertura recente. Cursor/data/página/progresso ficam em `arena_sports_history_backfill`; falha/restart retoma a página sem marcar uma lista truncada como completa. `X-Total`/`X-Page` são verificados; sem headers, uma página curta comprova o fim. Repetição integral de IDs entre páginas é erro de protocolo. Não são seguidas URLs arbitrárias do header Link.
+
+Configuração server-side, sem outra credencial: `SPORTS_HISTORY_ENABLED=true`, `SPORTS_HISTORY_DAYS=30`, `SPORTS_HISTORY_INTERVAL_MS=30000`, `SPORTS_HISTORY_SPORTS=CS2`. A rotina só roda quando a integração está habilitada/configurada. O alvo inicial é persistido: não recua indefinidamente a cada tick. Após concluí-lo, os feeds recentes mantêm os novos resultados. Mudanças de período exigem planejamento operacional, não alteração cosmética de preços.
+
+Os resultados antigos ficam em `arena_sports_results_history`, com IDs externos estáveis, formato, placar, campeonato, início/término e horário de observação. Não criam eventos operacionais, mercados retroativos, palpites ou recompensas. Upsert por provider/ID e fingerprint preserva o horário de conhecimento quando nada muda; uma correção muda esse horário. O cursor avança somente após o commit do arquivo. Crash antes do avanço apenas repete um upsert idempotente.
+
+São aceitos somente finais BO1/3/5 coerentes com vencedor, participantes, datas e janela. Dados incompletos, forfeits/não padrão ou término desconhecido não viram estatísticas inventadas. O reader mescla arquivo e eventos processados; qualquer evento operacional com o mesmo ID prevalece, inclusive pendências de revisão. Não há dupla contagem nem uso do arquivo para contornar a proteção de resultados. A leitura é limitada a 10.000 resultados, evitando o corte global anterior de 2.000 ao completar o mês.
+
+Bradley–Terry, regularização, mínimo de cinco, janela 30d, distribuição conjunta e recompensa virtual não foram substituídos. Palpites aceitos conservam seus preços. Histórico passa pelo corte de término e observação anterior ao snapshot; nenhum resultado futuro alimenta a previsão.
+
+Em BO3 0–0, P(três mapas)=p1(1−p2)+(1−p1)p2; com p constante, 2p(1−p). Em 1–0, é a chance de o perdedor vencer o próximo mapa; em 1–1, o total já está determinado e fecha. Próximo de p=0,5, o total varia em segunda ordem: multiplicadores ainda podem arredondar a 2,00 mesmo com pequena diferença de força. Não forçar diferenças.
+
+A avaliação cronológica é retrospectiva, com finais anteriores aos alvos e hipótese de probabilidades iguais nos mapas sem estatística específica. Sem elencos históricos/mapas verificáveis ou avaliação prospectiva suficiente, não anunciar acurácia ou odds oficiais. A coleta não depende de requisições de visitantes. Não usa token real na CI; integração PostgreSQL cobre retomada, rollback, idempotência e isolamento.
