@@ -182,6 +182,34 @@ public class ArenaCatalogService {
     public List<EventResponse> liveEvents() {
         return eventResponses(events.findByStatusOrderByStartsAtAsc(EventStatus.LIVE));
     }
+    /** Apply dashboard limits in SQL, before loading markets or calculating any prices. */
+    @Transactional(readOnly = true)
+    public List<EventResponse> upcomingEvents() {
+        return eventResponses(events.findUpcomingForDashboard(
+                List.of(EventStatus.SCHEDULED, EventStatus.OPEN_FOR_PREDICTIONS), org.springframework.data.domain.PageRequest.of(0, 8)));
+    }
+    @Transactional(readOnly = true)
+    public List<EventResponse> scheduledEvents() {
+        return eventResponses(events.findUpcomingForDashboard(
+                List.of(EventStatus.SCHEDULED), org.springframework.data.domain.PageRequest.of(0, 8)));
+    }
+    @Transactional(readOnly = true)
+    public List<EventResponse> featuredEvents() {
+        return eventResponses(events.findFeaturedForDashboard(
+                List.of(EventStatus.SCHEDULED, EventStatus.OPEN_FOR_PREDICTIONS, EventStatus.LIVE),
+                EventStatus.LIVE, org.springframework.data.domain.PageRequest.of(0, 6)));
+    }
+    /** Preserve the availability rules while avoiding complete event/market DTOs for an admin count. */
+    @Transactional(readOnly = true)
+    public long availableMarketCount() {
+        var candidates = markets.findDashboardCandidates(MarketStatus.OPEN,
+                List.of(EventStatus.SCHEDULED, EventStatus.OPEN_FOR_PREDICTIONS, EventStatus.LIVE));
+        if (candidates.isEmpty()) return 0;
+        var byMarket = options.findForMarkets(candidates).stream()
+                .collect(java.util.stream.Collectors.groupingBy(option -> option.getMarket().getId()));
+        return candidates.stream().filter(market -> availability.withOptions(market,
+                byMarket.getOrDefault(market.getId(), List.of())).allowed()).count();
+    }
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<EventResponse> eventPage(EventStatus status,String sportCode,Boolean featured,
             String search,String source,Long championshipId,Instant from,Instant to,int page,int size) {

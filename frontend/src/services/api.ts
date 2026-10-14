@@ -152,6 +152,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   let timedOut = false;
   const abortFromCaller = () => controller.abort();
   options.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  if (options.signal?.aborted) controller.abort();
   const timeout = window.setTimeout(() => {
     timedOut = true;
     controller.abort();
@@ -164,6 +165,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (options.idempotencyKey) headers.set("Idempotency-Key", options.idempotencyKey);
 
   try {
+    if (controller.signal.aborted) throw new ApiError("Solicitação cancelada.", 0, "REQUEST_CANCELLED");
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers,
@@ -362,8 +364,8 @@ export const authApi = {
 function trainingPath() { return sessionStorage.read()?.demoTraining ? "/training" : ""; }
 
 export const dashboardApi = {
-  async get() {
-    const result = await request<DashboardData>(`${trainingPath()}/dashboard`);
+  async get(signal?: AbortSignal) {
+    const result = await request<DashboardData>(`${trainingPath()}/dashboard`, { signal });
     return {
       ...result,
       featuredEvents: result.featuredEvents?.map(normalizeEvent),

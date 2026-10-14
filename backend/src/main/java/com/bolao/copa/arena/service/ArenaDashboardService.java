@@ -58,16 +58,9 @@ public class ArenaDashboardService {
         StreakStats streaks = streaks(mine);
         List<RankingRow> ranking = pools.ranking(user, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null);
         Integer position = ranking.stream().filter(RankingRow::currentUser).map(RankingRow::position).findFirst().orElse(null);
-        List<EventResponse> allEvents = catalog.listEvents(null, null, null);
-        List<EventResponse> featured = allEvents.stream()
-                .filter(EventResponse::featured)
-                .filter(event -> event.status() == EventStatus.OPEN_FOR_PREDICTIONS
-                        || event.status() == EventStatus.SCHEDULED
-                        || event.status() == EventStatus.LIVE)
-                .limit(6)
-                .toList();
+        List<EventResponse> featured = catalog.featuredEvents();
         List<EventResponse> live = catalog.liveEvents();
-        List<EventResponse> upcoming = allEvents.stream().filter(e -> e.status() == EventStatus.OPEN_FOR_PREDICTIONS || e.status() == EventStatus.SCHEDULED).limit(8).toList();
+        List<EventResponse> upcoming = catalog.upcomingEvents();
         return new DashboardResponse(user.getName(), playerProgress.level(), playerProgress.title(),
                 playerProgress.xp(), playerProgress.nextLevelXp(), wallet.balance(), position, active, finished, won,
                 accuracy, streaks.current(), streaks.best(), notifications.unread(user), featured, live, upcoming,
@@ -81,8 +74,8 @@ public class ArenaDashboardService {
         long pointsMoved = ledger.totalAbsoluteMovement();
         return new AdminDashboardResponse(users.count(), eventRepository.countByStatus(EventStatus.LIVE),
                 eventRepository.countByStatus(EventStatus.SCHEDULED) + eventRepository.countByStatus(EventStatus.OPEN_FOR_PREDICTIONS),
-                predictions.countByStatus(PredictionStatus.ACTIVE), catalog.listEvents(null, null, null).stream().mapToLong(EventResponse::availableMarketCount).sum(),
-                poolRepository.findAll().stream().filter(pool -> pool.getStatus() == PoolStatus.OPEN || pool.getStatus() == PoolStatus.IN_PROGRESS).count(),
+                predictions.countByStatus(PredictionStatus.ACTIVE), catalog.availableMarketCount(),
+                poolRepository.countByStatusIn(List.of(PoolStatus.OPEN, PoolStatus.IN_PROGRESS)),
                 pointsMoved, eventRepository.countAwaitingMarketSettlement(EventStatus.FINISHED, MarketStatus.SETTLED), demoMode);
     }
     private PlayerProgress playerProgress(long lifetimeEarned) {

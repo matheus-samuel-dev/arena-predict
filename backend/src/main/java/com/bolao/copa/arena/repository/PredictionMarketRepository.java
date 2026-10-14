@@ -24,6 +24,10 @@ public interface PredictionMarketRepository extends JpaRepository<PredictionMark
     List<PredictionMarket> findByEventInOrderByEventIdAscIdAsc(Collection<ArenaEvent> events);
     Optional<PredictionMarket> findByEventAndCode(ArenaEvent event, String code);
     long countByStatus(MarketStatus status);
+    @EntityGraph(attributePaths = {"event", "event.championship", "event.championship.sport", "event.homeCompetitor", "event.awayCompetitor"})
+    @Query("select m from PredictionMarket m where m.status = :status and m.event.demoArchived = false and m.event.status in :eventStatuses")
+    List<PredictionMarket> findDashboardCandidates(@Param("status") MarketStatus status,
+            @Param("eventStatuses") Collection<com.bolao.copa.arena.domain.ArenaEnums.EventStatus> eventStatuses);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select market from PredictionMarket market join fetch market.event where market.id = :id")
     Optional<PredictionMarket> findByIdForUpdate(@Param("id") Long id);

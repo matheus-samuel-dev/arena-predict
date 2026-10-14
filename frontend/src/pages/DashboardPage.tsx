@@ -65,7 +65,7 @@ export function localDashboardLevelProgress(data: ReturnType<typeof normalizeDas
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { data, loading, error, reload, refresh } = useApiResource<LooseDashboard>(() => dashboardApi.get(), []);
+  const { data, loading, error, reload, refresh } = useApiResource<LooseDashboard>((signal) => dashboardApi.get(signal), []);
   useVisibleRefresh(refresh);
   const [draft, setDraft] = useState<PredictionDraft | null>(null);
 

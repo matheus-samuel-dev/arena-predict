@@ -20,6 +20,10 @@ public class HistoricalTeamStrengthService {
     private List<BradleyTerryStrengthModel.Result> cached=List.of();
     private Instant expires=Instant.EPOCH;
     private boolean ready;
+    private record SnapshotKey(String provider, String event, String sport, String home, String away, Integer bestOf, Instant asOf) { }
+    private final Map<SnapshotKey,Strength> estimates = new LinkedHashMap<>(128, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<SnapshotKey,Strength> entry) { return size() > 512; }
+    };
     private final Map<String,BradleyTerryStrengthModel> models=new LinkedHashMap<>(32,0.75f,true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String,BradleyTerryStrengthModel> entry) { return size()>64; }
     };
@@ -30,19 +34,26 @@ public class HistoricalTeamStrengthService {
             if(!ready)return neutral("HISTORY_NOT_READY",asOf);
             String sport=event.getChampionship().getSport().getCode(),home=event.getHomeCompetitor().getExternalId(),away=event.getAwayCompetitor().getExternalId();
             if(home==null||away==null) return neutral("TEAM_IDENTITY_UNAVAILABLE",asOf);
+            // All markets and visitors can reuse evidence for the same confirmed snapshot.
+            // Score/market probabilities still run through their existing validation and model.
+            SnapshotKey key = event.getLastSyncedAt() == null ? null : new SnapshotKey(
+                    event.getExternalProvider(), event.getExternalId(), sport, home, away, event.getBestOf(), asOf);
+            if (key != null && estimates.containsKey(key)) return estimates.get(key);
             var eligible=cached.stream().filter(r->sport.equals(r.sport())&&!Objects.equals(r.id(),event.getExternalId())
                     && BradleyTerryStrengthModel.valid(r)&&!r.finishedAt().isAfter(asOf)&&!r.confirmedAt().isAfter(asOf)
                     && !r.finishedAt().isBefore(asOf.minus(WINDOW_DAYS,ChronoUnit.DAYS))).toList();
             var sameFormat=eligible.stream().filter(r->Objects.equals(r.bestOf(),event.getBestOf())).toList();
-            var chosen=fit(sameFormat,asOf);var result=chosen.estimate(home,away,MINIMUM_SERIES);
             String revision=revision(sameFormat,asOf);
+            var chosen=fit(sameFormat,asOf,revision);var result=chosen.estimate(home,away,MINIMUM_SERIES);
             var limitations=new ArrayList<>(result.limitations());
             if("SYMMETRIC_PRIOR".equals(result.source())) {
-                chosen=fit(eligible,asOf);result=chosen.estimate(home,away,MINIMUM_SERIES);revision=revision(eligible,asOf);
+                revision=revision(eligible,asOf);chosen=fit(eligible,asOf,revision);result=chosen.estimate(home,away,MINIMUM_SERIES);
                 limitations=new ArrayList<>(result.limitations());limitations.add("FORMAT_POOLED");
             }
-            return new Strength(new BradleyTerryStrengthModel.Estimate(result.mapProbability(),result.source(),result.confidence(),result.homeSamples(),result.awaySamples(),
+            Strength strength = new Strength(new BradleyTerryStrengthModel.Estimate(result.mapProbability(),result.source(),result.confidence(),result.homeSamples(),result.awaySamples(),
                     result.headToHeadSamples(),List.copyOf(limitations)),revision,asOf);
+            if (key != null) estimates.put(key, strength);
+            return strength;
         } catch(DataAccessException failure) { return neutral("HISTORY_TEMPORARILY_UNAVAILABLE",asOf); }
     }
     /** Runs outside visitor/provider command transactions: no REQUIRES_NEW pool starvation. */
@@ -50,11 +61,13 @@ public class HistoricalTeamStrengthService {
         List<BradleyTerryStrengthModel.Result> loaded;
         try { loaded=reader.read(); }
         catch(DataAccessException unavailable) { synchronized(this) { ready=false;expires=Instant.now().plusSeconds(30); }return; }
-        synchronized(this) { cached=List.copyOf(loaded);ready=true;expires=Instant.now().plusSeconds(30); }
+        synchronized(this) {
+            if (!ready || !cached.equals(loaded)) estimates.clear();
+            cached=List.copyOf(loaded);ready=true;expires=Instant.now().plusSeconds(30);
+        }
     }
     public synchronized boolean refreshDue() { return !Instant.now().isBefore(expires); }
-    private BradleyTerryStrengthModel fit(List<BradleyTerryStrengthModel.Result> rows,Instant asOf) {
-        String key=revision(rows,asOf);
+    private BradleyTerryStrengthModel fit(List<BradleyTerryStrengthModel.Result> rows,Instant asOf,String key) {
         return models.computeIfAbsent(key,k->new BradleyTerryStrengthModel(rows,asOf,PRIOR_PRECISION,HALF_LIFE_DAYS));
     }
     public static Strength neutral(String reason,Instant asOf) { return new Strength(BradleyTerryStrengthModel.Estimate.neutral(reason),"symmetric-prior-v1",asOf); }

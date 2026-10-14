@@ -50,6 +50,14 @@ public interface ArenaEventRepository extends JpaRepository<ArenaEvent, Long>,or
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     List<ArenaEvent> findByStatusOrderByStartsAtAsc(EventStatus status);
     @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
+    @Query("select e from ArenaEvent e where e.demoArchived = false and e.status in :statuses order by e.startsAt, e.id")
+    List<ArenaEvent> findUpcomingForDashboard(@Param("statuses") Collection<EventStatus> statuses, Pageable pageable);
+    @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
+    @Query("select e from ArenaEvent e where e.demoArchived = false and e.featured = true and e.status in :statuses " +
+            "order by case when e.status = :live then 0 else 1 end, e.startsAt, e.id")
+    List<ArenaEvent> findFeaturedForDashboard(@Param("statuses") Collection<EventStatus> statuses,
+                                            @Param("live") EventStatus live, Pageable pageable);
+    @EntityGraph(attributePaths = {"championship", "championship.sport", "homeCompetitor", "awayCompetitor"})
     List<ArenaEvent> findTop12ByStartsAtAfterAndStatusInOrderByStartsAtAsc(Instant startsAt, Collection<EventStatus> statuses);
     boolean existsByChampionship(Championship championship);
     boolean existsByHomeCompetitorOrAwayCompetitor(Competitor homeCompetitor, Competitor awayCompetitor);

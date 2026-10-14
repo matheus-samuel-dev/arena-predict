@@ -6,6 +6,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface ArenaPoolRepository extends JpaRepository<ArenaPool, Long> {
+    long countByStatusIn(Collection<com.bolao.copa.arena.domain.ArenaEnums.PoolStatus> statuses);
     @Override @EntityGraph(attributePaths = {"sport", "championship", "owner"}) List<ArenaPool> findAll();
     @Override @EntityGraph(attributePaths = {"sport", "championship", "owner"}) Page<ArenaPool> findAll(Pageable pageable);
     @EntityGraph(attributePaths = {"sport", "championship", "owner"})

@@ -16,7 +16,7 @@ public class LiveTrainingDashboardService {
     public DashboardResponse dashboard() {
         var predictions=training.predictions();var rank=training.ranking(null).getFirst();
         var live=catalog.liveEvents();
-        var upcoming=catalog.listEvents(EventStatus.SCHEDULED,null,null).stream().limit(8).toList();
+        var upcoming=catalog.scheduledEvents();
         long active=predictions.stream().filter(p->p.status()==PredictionStatus.ACTIVE).count();
         return new DashboardResponse("Jogador Demo — este treino",1,"Treino isolado",0,0,training.wallet().balance(),1,
                 active,rank.totalPredictions(),rank.correctPredictions(),rank.accuracy(),(int)rank.streak(),training.bestStreak(),0,
