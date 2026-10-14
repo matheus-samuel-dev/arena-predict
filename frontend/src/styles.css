@@ -1434,6 +1434,12 @@ select:focus {
   margin-top: 7px;
   color: var(--muted);
   font-size: 9.5px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4;
+  overflow-wrap: break-word;
 }
 
 .featured-event__teams {
@@ -1571,6 +1577,36 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Give the competition its own row instead of squeezing it between badges. */
+.event-card__head:has(.event-card__competition) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.event-card__head > .event-card__competition { display: contents; }
+.event-card__competition > .sport-label { grid-column: 1; grid-row: 1; justify-self: start; }
+.event-card__head > .status { grid-column: 2; grid-row: 1; justify-self: end; }
+.event-card__head .event-card__competition > strong {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+.event-card__competition > small {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .event-card__head strong {

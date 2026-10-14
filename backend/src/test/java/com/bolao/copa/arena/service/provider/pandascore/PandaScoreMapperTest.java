@@ -18,6 +18,17 @@ class PandaScoreMapperTest {
     private final PandaScoreMapper mapper = new PandaScoreMapper();
 
     @Test
+    void yearOnlySeriesKeepsLeagueIdentityAndEdition() throws Exception {
+        var source = fixture("upcoming-matches.json");
+        source.set("league", json.readTree("{\"id\":1,\"name\":\"Thunderpick World Championship\"}"));
+        source.set("serie", json.readTree("{\"id\":2,\"full_name\":\"2026\",\"year\":2026}"));
+        var championship = map(source, true).championship();
+        assertThat(championship.name()).isEqualTo("Thunderpick World Championship · 2026");
+        assertThat(championship.seriesName()).isEqualTo("2026");
+        assertThat(championship.leagueName()).isEqualTo("Thunderpick World Championship");
+    }
+
+    @Test
     void mapsUpcomingFixtureAndUtcWithoutInventingAScore() throws Exception {
         SportsMatch match = map(fixture("upcoming-matches.json"), true);
         assertThat(match.externalId()).isEqualTo("900001");

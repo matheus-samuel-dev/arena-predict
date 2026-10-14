@@ -23,6 +23,38 @@ class DashboardCatalogIntegrationTest {
     @Autowired ArenaEventRepository events;
     @SpyBean PredictionMarketRepository markets;
     @Autowired MarketOptionRepository options;
+    @Autowired ChampionshipRepository championships;
+
+    @Test
+    void legacyYearOnlyChampionshipUsesLeagueIdentityInBothApiRepresentations() {
+        var championship = new Championship();
+        championship.setSport(events.findAll().getFirst().getChampionship().getSport());
+        championship.setSlug("championship-name-regression");
+        championship.setExternalProvider("PANDASCORE");
+        championship.setExternalId("championship-name-regression");
+        championship.setName("2026");
+        championship.setLeagueName("Thunderpick World Championship");
+        championship.setSeriesName("2026");
+        championships.saveAndFlush(championship);
+        var event = new ArenaEvent();
+        event.setChampionship(championship);
+        event.setTitle("Championship name regression");
+        event.setExternalKey("championship-name-regression");
+        event.setExternalProvider("PANDASCORE");
+        event.setExternalId("championship-name-regression");
+        event.setStartsAt(Instant.now().plusSeconds(3600));
+        event.setPredictionClosesAt(event.getStartsAt());
+        events.saveAndFlush(event);
+        assertThat(catalog.eventResponse(event).championship()).isEqualTo("Thunderpick World Championship · 2026");
+        assertThat(catalog.championshipResponse(championship).name()).isEqualTo("Thunderpick World Championship · 2026");
+        // Reading the corrected display name does not rewrite historical/provider data.
+        assertThat(championship.getName()).isEqualTo("2026");
+        var manual = new Championship();
+        manual.setSport(championship.getSport());
+        manual.setName("2026");
+        manual.setLeagueName("Manual league");
+        assertThat(catalog.championshipResponse(manual).name()).isEqualTo("2026");
+    }
 
     private List<ArenaEvent> fixtures() {
         var existing = events.findAll().getFirst();
