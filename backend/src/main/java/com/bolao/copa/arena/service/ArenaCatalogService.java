@@ -6,6 +6,7 @@ import static com.bolao.copa.arena.service.EventDataOwnership.requireManualEvent
 import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
+import com.bolao.copa.arena.service.provider.ChampionshipNames;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.*;
@@ -473,9 +474,15 @@ public class ArenaCatalogService {
         if (value == null) return null;
         return new SportResponse(value.getId(), value.getCode(), value.getName(), value.getCategory(), value.getIcon(), value.isActive(), value.getDisplayOrder());
     }
+    private static String championshipDisplayName(Championship value) {
+        return "PANDASCORE".equals(value.getExternalProvider())
+                ? ChampionshipNames.resolve(value.getName(), value.getLeagueName(), value.getSeriesName())
+                : value.getName();
+    }
+
     public ChampionshipResponse championshipResponse(Championship value) {
         if (value == null) return null;
-        return new ChampionshipResponse(value.getId(), value.getSport().getId(), value.getSport().getCode(), value.getName(),
+        return new ChampionshipResponse(value.getId(), value.getSport().getId(), value.getSport().getCode(), championshipDisplayName(value),
                 value.getSlug(), value.getSeason(), value.getStatus(), value.getImageUrl(), value.getStartsAt(), value.getEndsAt(),
                 value.getExternalProvider(), value.getExternalId(), value.getLeagueName(), value.getSeriesName(), value.isDemoManaged());
     }
@@ -499,7 +506,7 @@ public class ArenaCatalogService {
         boolean staleScore=value.getExternalProvider()!=null && value.getStatus()==EventStatus.LIVE
                 && (value.getLastSyncedAt()==null || value.getLastSyncedAt().isBefore(Instant.now().minusSeconds(300)));
         List<MarketResponse> eventMarkets=entities.stream().filter(m->m.getStatus()!=MarketStatus.DRAFT).map(m -> marketResponse(m,byMarket.getOrDefault(m.getId(),List.of()))).toList();
-        return new EventResponse(value.getId(), value.getExternalKey(), value.getChampionship().getId(), value.getChampionship().getName(),
+        return new EventResponse(value.getId(), value.getExternalKey(), value.getChampionship().getId(), championshipDisplayName(value.getChampionship()),
                 sportResponse(value.getChampionship().getSport()), value.getTitle(), value.getStage(), value.getVenue(), value.getBroadcast(),
                 value.getImageUrl(), competitorSummary(value.getHomeCompetitor()), competitorSummary(value.getAwayCompetitor()), value.getStartsAt(),
                 value.getPredictionClosesAt(), value.getStatus(), value.getFormat(), value.getBestOf(), staleScore?null:value.getHomeScore(), staleScore?null:value.getAwayScore(),

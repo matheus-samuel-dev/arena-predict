@@ -1,6 +1,7 @@
 package com.bolao.copa.arena.service.provider.pandascore;
 
 import com.bolao.copa.arena.domain.ArenaEnums.EventStatus;
+import com.bolao.copa.arena.service.provider.ChampionshipNames;
 import com.bolao.copa.arena.service.provider.SportsChampionship;
 import com.bolao.copa.arena.service.provider.SportsMatch;
 import com.bolao.copa.arena.service.provider.SportsTeam;
@@ -75,7 +76,8 @@ public class PandaScoreMapper {
         String leagueName = league == null ? null : clean(league.name());
         String seriesName = series == null ? null : first(series.fullName(), series.name());
         String season = series == null ? null : first(series.season(), series.year() == null ? null : series.year().toString());
-        return new SportsChampionship(tournament.id().toString(), first(seriesName, leagueName, tournament.name()),
+        return new SportsChampionship(tournament.id().toString(),
+                ChampionshipNames.resolve(tournament.name(), leagueName, seriesName),
                 clean(tournament.slug()), season, league == null ? null : safeLogo(league.imageUrl()),
                 leagueName, seriesName, tournament.beginAt(), tournament.endAt());
     }

@@ -108,15 +108,16 @@ export function EventCard({
   const predictionOpen = isPredictionOpen(event);
   const demoReadOnly = predictionReadOnly(event);
   const primaryMarket = predictionOpen && !demoReadOnly ? event.markets?.find(isMarketOpen) : undefined;
+  const competition = championshipName(event.championship || event.championshipName);
+  const detail = eventCompetitionDetail(event, competition, multiParticipant);
 
   return (
     <article className={`event-card ${compact ? "event-card--compact" : ""}`}>
       <header className="event-card__head">
-        <div>
+        <div className="event-card__competition">
           <SportBadge label={sportName(event.sport || event.sportName)} />
-          <strong>{championshipName(event.championship || event.championshipName)}</strong>
-          {multiParticipant && event.title && <small>{event.title}</small>}
-          {event.phase && !/^demonstra(?:ção|cao)$/i.test(String(event.phase)) && <small>{enumLabel(event.phase)}</small>}
+          <strong title={competition}>{competition}</strong>
+          {detail && <small title={detail}>{detail}</small>}
         </div>
         <StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} label={eventStatusLabel(event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status)} />
       </header>
@@ -185,6 +186,9 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
   const showScore = ["LIVE", "AO_VIVO", "FINISHED", "ENCERRADO"].includes(event.status);
   const score = showScore ? eventScore(event) : null;
   const format = eventFormatLabel(event);
+  const competition = championshipName(event.championship || event.championshipName);
+  const detail = eventCompetitionDetail(event, competition, multiParticipant);
+  const competitionLabel = [competition, detail].filter(Boolean).join(" · ");
   return (
     <article className="featured-event">
       <div className="featured-event__ambient" />
@@ -192,7 +196,7 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
         <SportBadge label={sportName(event.sport || event.sportName)} plain />
         <StatusBadge status={event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status} label={eventStatusLabel(event.status === "OPEN_FOR_PREDICTIONS" ? "SCHEDULED" : event.status)} />
       </header>
-      <div className="featured-event__league">{championshipName(event.championship || event.championshipName)}{multiParticipant && event.title ? ` · ${event.title}` : event.phase ? ` · ${enumLabel(event.phase)}` : ""}</div>
+      <div className="featured-event__league" title={competitionLabel}>{competitionLabel}</div>
       {multiParticipant ? <ParticipantList event={event} compact limit={4} /> : <div className="featured-event__teams">
         <div><TeamLogo name={home.name || home.code} code={home.code} logoUrl={home.logoUrl || home.imageUrl} size="lg" /><strong>{home.shortName || home.name || home.code}</strong></div>
         <b className={score ? "featured-event__score" : undefined} aria-label={score ? `Placar ${score[0]} a ${score[1]}` : "versus"}>{score ? `${score[0]} : ${score[1]}` : "×"}</b>
@@ -207,6 +211,13 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
       </footer>
     </article>
   );
+}
+
+function eventCompetitionDetail(event: ArenaEvent, competition: string, multiParticipant: boolean) {
+  const detail = multiParticipant && event.title ? event.title : event.phase;
+  if (!detail || /^demonstra(?:ção|cao)$/i.test(detail)) return undefined;
+  const normalize = (text: string) => text.toLocaleLowerCase("pt-BR").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return normalize(competition).endsWith(normalize(detail)) ? undefined : enumLabel(detail);
 }
 
 export function MarketList({
