@@ -43,6 +43,7 @@ app:
   demo:
     enabled: ${APP_DEMO_ENABLED:false}
     controlled-enabled: ${APP_DEMO_CONTROLLED_ENABLED:true}
+    portfolio-seed-enabled: ${APP_DEMO_PORTFOLIO_SEED_ENABLED:false}
     round-window-hours: ${APP_DEMO_ROUND_WINDOW_HOURS:24}
     live-timeout-minutes: ${APP_DEMO_LIVE_TIMEOUT_MINUTES:15}
     maintenance-ms: ${APP_DEMO_MAINTENANCE_MS:60000}

@@ -10,6 +10,8 @@ Usar results como placar **da série**, games.position/status como mapa/jogo em 
 
 ## Isolamento do treino
 
+Atualização de apresentação em 16/10/2026: o acesso rápido Participante Demo abre o cenário persistido completo em `/app`. O treino privado continua disponível pelo botão **Entrar no treino ao vivo** em `/demo`. Cada entrada explícita nesse treino cria uma sessão própria; não se copiam carteira, histórico ou conquistas do cenário compartilhado para essas tabelas. Veja [o seed de portfólio](demo-portfolio-seed.md).
+
 Novo contexto opcional de treino no acesso rápido Participante, com sessão aleatória assinada pelo JWT e persistida. Conta normal/auth existente permanece intacta. Sessão, saldo, lançamentos e previsões usam tabelas próprias e FKs de leitura para evento/mercado/opção reais. Nenhum treino entra em arena_predictions, point_wallets, point_ledger ou projeções normais de ranking.
 
 Token e sessão de treino duram 24h; o navegador conserva o token somente na aba. Novo acesso rápido inicia outro treino. Fechar a aba/logout encerra o acesso local; os registros anteriores ficam persistidos e a liquidação oficial pode ocorrer depois, sem expor o histórico a outro visitante. Para histórico permanente, usar uma conta normal. Não há exclusão automática de registros. Capacidade serializada no banco: 30 novas sessões/minuto, 1.000 sessões ativas, 100.000 sessões retidas e 100 palpites/sessão. Saturação de criação retorna 429/Retry-After; saldo insuficiente e regra inválida usam 422; chave conflitante usa 409.
