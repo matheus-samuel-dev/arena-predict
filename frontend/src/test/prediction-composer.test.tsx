@@ -46,7 +46,7 @@ describe("confirmação do palpite", () => {
   it.each(["digitado", "rápido"])("preserva o valor %s quando o saldo é atualizado", (mode) => {
     const {rerender}=render(<PredictionComposer draft={draft} onClose={vi.fn()} />);
     if(mode === "digitado") fireEvent.change(screen.getByRole("spinbutton"),{target:{value:"30"}});
-    else fireEvent.click(screen.getByRole("button",{name:"50 pts",exact:true}));
+    else fireEvent.click(screen.getByRole("button",{name:"50 pts"}));
     walletState.balance=2000;
     rerender(<PredictionComposer draft={draft} onClose={vi.fn()} />);
     expect(screen.getByRole("spinbutton")).toHaveValue(mode === "digitado" ? 30 : 50);
