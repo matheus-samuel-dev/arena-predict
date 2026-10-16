@@ -112,7 +112,7 @@ public class ArenaDashboardService {
     private List<PerformancePoint> performance(List<ArenaPrediction> predictions) {
         List<ArenaPrediction> settled = predictions.stream()
                 .filter(value -> value.getStatus() == PredictionStatus.WON || value.getStatus() == PredictionStatus.LOST)
-                .sorted(Comparator.comparing(ArenaPrediction::getPlacedAt))
+                .sorted(Comparator.comparing(this::resolutionTime).thenComparing(ArenaPrediction::getId))
                 .toList();
         int from = Math.max(0, settled.size() - 12);
         long wins = settled.subList(0, from).stream().filter(value -> value.getStatus() == PredictionStatus.WON).count();

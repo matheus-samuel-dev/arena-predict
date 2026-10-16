@@ -24,6 +24,21 @@ class DashboardCatalogIntegrationTest {
     @SpyBean PredictionMarketRepository markets;
     @Autowired MarketOptionRepository options;
     @Autowired ChampionshipRepository championships;
+    @Autowired ArenaPredictionRepository predictions;
+    @Autowired ArenaDashboardService dashboards;
+    @Autowired com.bolao.copa.repository.UserRepository users;
+
+    @Test
+    void performanceUsesTheChronologyOfResultsRatherThanSubmissionOrder() {
+        var player = users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        var settled = predictions.findByUserOrderByPlacedAtDesc(player).stream()
+                .filter(p -> p.getStatus() == PredictionStatus.WON || p.getStatus() == PredictionStatus.LOST).toList();
+        var now = Instant.now();
+        settled.get(0).setResolvedAt(now.minusSeconds(7200));
+        settled.get(1).setResolvedAt(now.minusSeconds(3600));
+        predictions.flush();
+        assertThat(dashboards.dashboard(player).performance().stream().map(point -> point.date()).toList()).isSorted();
+    }
 
     @Test
     void legacyYearOnlyChampionshipUsesLeagueIdentityInBothApiRepresentations() {
