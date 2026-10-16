@@ -10,6 +10,23 @@ function market(id: number, category: string): PredictionMarket {
 describe("hierarquia de mercados", () => {
   afterEach(cleanup);
 
+  it("abre uma categoria utilizável e mantém categorias encerradas consultáveis", () => {
+    const closed = {...market(1,"Série"),status:"CLOSED",availability:{allowed:false,code:"CLOSED",label:"Encerrado",reason:"Pré-jogo encerrado"}};
+    render(<CategorizedMarkets event={{id:22,status:"LIVE",markets:[closed,market(2,"Totais")] } as ArenaEvent} onPredict={vi.fn()}/>);
+    expect(screen.getByRole("region",{name:"Mercados: Totais"})).toBeVisible();
+    expect(screen.getByRole("button",{name:/Opção 2/})).toBeEnabled();
+    fireEvent.click(screen.getByRole("button",{name:"Série 1"}));
+    expect(screen.getByRole("button",{name:/Opção 1/})).toBeDisabled();
+  });
+
+  it("prioriza o mercado aberto dentro da categoria sem reabrir o pré-jogo", () => {
+    const closed = {...market(1,"Série"),status:"CLOSED",availability:{allowed:false,code:"CLOSED",label:"Encerrado",reason:"Pré-jogo encerrado"}};
+    render(<CategorizedMarkets event={{id:22,status:"LIVE",markets:[closed,market(2,"Série")] } as ArenaEvent} onPredict={vi.fn()}/>);
+    expect(screen.getAllByRole("heading",{level:3}).map(heading=>heading.textContent)).toEqual(["Mercado 2","Mercado 1"]);
+    expect(screen.getByRole("button",{name:/Opção 1/})).toBeDisabled();
+    expect(screen.getByRole("button",{name:/Opção 2/})).toBeEnabled();
+  });
+
   it("renderiza somente a categoria selecionada e mantém a seleção ligada ao mercado correto", () => {
     const markets = [market(1, "Série"), market(2, "Série"), market(3, "Rounds"), market(4, "Pistol")];
     const event = { id: 22, status: "LIVE", markets, availableMarketCount: 4, predictionAvailabilityLabel: "Aberto para palpites" } as ArenaEvent;
