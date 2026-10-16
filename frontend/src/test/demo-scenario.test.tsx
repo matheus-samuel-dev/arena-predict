@@ -48,9 +48,10 @@ describe("jornada Demo integrada", () => {
     await waitFor(() => expect(mocks.scenario).toHaveBeenCalledTimes(2));
   });
 
-  it("permite trocar da rodada compartilhada para treino isolado sem simular ou resetar",async()=>{
-    renderDemo();await ready();fireEvent.click(screen.getByRole("button",{name:"Entrar no treino ao vivo"}));
-    await waitFor(()=>expect(mocks.demoLogin).toHaveBeenCalledWith("PARTICIPANT",true));
+  it("leva diretamente aos eventos ao vivo sem trocar sessão, simular ou resetar",async()=>{
+    renderDemo();await ready();
+    expect(screen.getByRole("link",{name:"Fazer palpite ao vivo"})).toHaveAttribute("href","/live");
+    expect(mocks.demoLogin).not.toHaveBeenCalled();
     expect(mocks.start).not.toHaveBeenCalled();expect(mocks.result).not.toHaveBeenCalled();expect(mocks.reset).not.toHaveBeenCalled();
   });
 
@@ -181,7 +182,7 @@ describe("jornada Demo integrada", () => {
     render(<MemoryRouter><EventCard event={event} onPredict={choose} /><MarketList event={event} markets={event.markets!} onPredict={choose} /><PredictionComposer draft={{ event, market: event.markets![0], option: event.markets![0].options[0] }} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByRole("button", { name: /FURIA 2 × 1 NAVI/ })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Confirmar palpite" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Fazer um palpite Demo" }).every((link) => link.getAttribute("href") === "/demo")).toBe(true);
+    expect(screen.queryByRole("link", { name: "Fazer um palpite Demo" })).not.toBeInTheDocument();
     expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.listPools).not.toHaveBeenCalled();
     expect(choose).not.toHaveBeenCalled();
   });

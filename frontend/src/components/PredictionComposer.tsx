@@ -3,8 +3,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { championshipName, dateTime, eventTeams, getWalletBalance, multiplier, points } from "../app/format";
 import { useAppData } from "../contexts/AppDataContext";
 import { useToast } from "../contexts/ToastContext";
-import { createIdempotencyKey, poolsApi, predictionsApi, sessionStorage } from "../services/api";
-import { predictionReadOnly } from "../app/predictionAccess";
+import { createIdempotencyKey, poolsApi, predictionsApi, privateTrainingApi, sessionStorage } from "../services/api";
+import { predictionReadOnly, usesPrivateTraining } from "../app/predictionAccess";
 import type { ArenaEvent, Pool, Prediction, PredictionDraft } from "../types";
 import { eventParticipantViews, isMultiParticipantEvent, marketDisplayName } from "./EventCard";
 import { Button, Modal } from "./UI";
@@ -66,11 +66,13 @@ export function PredictionComposer({
   const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
   const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
   const demoRestricted = Boolean((currentEvent || draft?.event) && predictionReadOnly((currentEvent || draft?.event)!)) && !demoScenario;
-  const training = Boolean(sessionStorage.read()?.demoTraining);
+  const privateTraining = Boolean(draft && usesPrivateTraining(draft.event));
+  const training = privateTraining || Boolean(sessionStorage.read()?.demoTraining);
   const selectionAllowed = !demoRestricted && currentMarket?.availability?.allowed === true && Boolean(currentOption) && currentOption?.active !== false;
-  const { wallet, refreshWallet, refreshNotifications } = useAppData();
+  const { wallet, refreshWallet, refreshNotifications, trainingWallet, trainingWalletError, refreshTrainingWallet } = useAppData();
   const { notify } = useToast();
-  const balance = getWalletBalance(wallet);
+  const balance = getWalletBalance(privateTraining ? trainingWallet : wallet);
+  const walletReady = !privateTraining || Boolean(trainingWallet && !trainingWalletError);
   const minimumPoints = resolveMarketMinimumPoints(currentMarket?.minimumPoints);
   const maximumSelectable = Math.min(Math.max(0, balance), MAXIMUM_STAKE_POINTS);
   const rawCoefficient = Number(currentOption?.multiplier || 0);
@@ -122,8 +124,8 @@ export function PredictionComposer({
   }, [selectionKey, balance, minimumPoints, maximumSelectable, confirmed]);
 
   const validation = useMemo(
-    () => validatePredictionStake(stake, minimumPoints, balance),
-    [stake, balance, minimumPoints],
+    () => walletReady ? validatePredictionStake(stake, minimumPoints, balance) : null,
+    [stake, balance, minimumPoints, walletReady],
   );
 
   function closeComposer() {
@@ -138,12 +140,13 @@ export function PredictionComposer({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!draft || validation || submittingRef.current || !selectionAllowed) return;
+    if (!draft || validation || submittingRef.current || !selectionAllowed || !walletReady) return;
     submittingRef.current = true;
     setSubmitting(true);
     setSubmitError("");
     try {
-      const created = await predictionsApi.create({
+      const create = privateTraining ? privateTrainingApi.create : predictionsApi.create;
+      const created = await create({
         eventId: draft.event.id,
         marketId: draft.market.id,
         optionId: draft.option.id,
@@ -155,7 +158,7 @@ export function PredictionComposer({
         idempotencyKey: idempotencyKey.current,
       });
       setConfirmed(created);
-      await Promise.allSettled([refreshWallet(), refreshNotifications()]);
+      await Promise.allSettled([privateTraining ? refreshTrainingWallet() : refreshWallet(), refreshNotifications()]);
       notify("Palpite confirmado e pontos debitados com segurança.", "success");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível confirmar o palpite.";
@@ -182,7 +185,8 @@ export function PredictionComposer({
             <div><small>{marketDisplayName(draft.market)}</small><strong>{draft.option.label || draft.option.name}</strong></div>
             <b title="Multiplicador">{multiplier(coefficient)}</b>
           </div>
-          <p className="prediction-multiplier-note">{training ? "Palpite de demonstração — pontos exclusivamente virtuais. Carteira e histórico exclusivos deste treino." : "Multiplicador registrado junto ao seu palpite."}</p>
+          <p className="prediction-multiplier-note">{training ? "Ambiente de demonstração · pontos virtuais. Este palpite usa sua carteira privada de treino." : "Multiplicador registrado junto ao seu palpite."}</p>
+          {privateTraining && !walletReady && <p role="alert">{trainingWalletError || "Carregando sua carteira de treino…"}{trainingWalletError && <Button type="button" variant="quiet" onClick={() => void refreshTrainingWallet().catch(() => undefined)}>Tentar novamente</Button>}</p>}
           <label className="stake-field" htmlFor="prediction-stake">
             <span>Pontos virtuais</span>
             <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
@@ -212,7 +216,7 @@ export function PredictionComposer({
           <div className="virtual-disclaimer"><ShieldCheck size={16} /> Pontos sem valor financeiro. Nenhum dinheiro real é utilizado.</div>
           <div className="modal-actions">
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancelar</Button>
-            <Button type="submit" loading={submitting} disabled={Boolean(validation) || !selectionAllowed}>Confirmar palpite</Button>
+            <Button type="submit" loading={submitting} disabled={Boolean(validation) || !selectionAllowed || !walletReady}>Confirmar palpite</Button>
           </div>
         </form>
       )}
@@ -228,6 +232,7 @@ export function PredictionComposer({
             <div><dt>Multiplicador</dt><dd>{multiplier(confirmed.multiplier ?? coefficient)}</dd></div>
             <div><dt>Potencial</dt><dd>{points(confirmed.potentialPoints ?? potential)} pts</dd></div>
             <div><dt>Confirmado em</dt><dd>{dateTime(confirmed.placedAt || confirmed.createdAt || new Date().toISOString(), true)}</dd></div>
+            {privateTraining && <div><dt>Saldo do treino</dt><dd>{points(balance)} pts</dd></div>}
           </dl>
           <div className="prediction-success__actions">
             <Button variant="secondary" onClick={closeComposer}>Continuar na Arena</Button>

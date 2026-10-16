@@ -7,15 +7,14 @@ import type { ArenaEvent } from "../types";
 
 afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.useRealTimers();});
 describe("acesso funcional sem enfraquecer autorização",()=>{
-  it("oferece CTA para rodada separada e esclarece participação real",()=>{
+  it("explica uma restrição legítima sem desviar o usuário para ativar outro modo",()=>{
     render(<MemoryRouter><DemoPredictionAccess event={{id:1,demo:false,externalProvider:"PANDASCORE"} as ArenaEvent}/></MemoryRouter>);
-    expect(screen.getByRole("link",{name:"Fazer um palpite Demo"})).toHaveAttribute("href","/demo");
-    expect(screen.getByText(/Entrar no treino ao vivo/)).toBeInTheDocument();
-    expect(screen.getByText(/carteira e histórico isolados/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText(/mercados ao vivo de CS2/)).toBeInTheDocument();
   });
   it("não chama um evento demonstrativo de real",()=>{
     render(<MemoryRouter><DemoPredictionAccess event={{id:1,demo:true,demoManaged:true} as ArenaEvent}/></MemoryRouter>);
-    expect(screen.getByText(/trocar de perfil/)).toBeInTheDocument();
+    expect(screen.getByText(/Outros perfis têm acesso somente de leitura/)).toBeInTheDocument();
     expect(screen.queryByText(/eventos reais/)).not.toBeInTheDocument();
   });
   it("recupera cadastro com resposta perdida por login sem repetir escrita",async()=>{

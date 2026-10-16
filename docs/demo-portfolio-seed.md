@@ -1,6 +1,6 @@
 # Cenário demonstrativo para portfólio
 
-O acesso rápido **Participante Demo** abre `/app` usando a identidade demonstrativa persistida, com carteira, histórico, ranking, competições e progressão. Esse cenário é compartilhado e não representa uma conta privada. O botão **Entrar no treino ao vivo**, já disponível em `/demo`, continua criando uma sessão privada com carteira/histórico separados e referências somente de leitura às partidas reais.
+O acesso rápido **Participante Demo** abre `/app` usando a identidade demonstrativa persistida, com carteira, histórico, ranking, competições e progressão. Esse cenário é compartilhado e não representa uma conta privada. Na mesma experiência, os palpites em partidas reais elegíveis utilizam automaticamente a capacidade privada de treino, com carteira/histórico separados e referências somente de leitura às partidas reais. Não é necessário trocar de modo ou passar por `/demo`. Veja [o fluxo direto](direct-demo-predictions.md).
 
 ## Execução controlada
 

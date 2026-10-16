@@ -38,7 +38,7 @@ describe("mercados virtuais reais",()=>{
       options:[{id:1,key:"HOME",label:"Equipe A",multiplier:2,active:true},{id:2,key:"AWAY",label:"Equipe B",multiplier:2,active:true}]}]} as ArenaEvent;
     render(<MemoryRouter><LiveEventPanel event={event} onPredict={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText("Placar ao vivo indisponível pelo provedor.")).toBeVisible();
-    expect(screen.getByRole("link",{name:"Explorar opções (1)"})).toBeVisible();
+    expect(screen.getByRole("link",{name:"Fazer palpite"})).toHaveAttribute("href","/events/901");
     expect(screen.getByRole("button",{name:"Equipe A 2,00×"})).toBeEnabled();
     expect(screen.getByText(/Multiplicadores internos ArenaPredict/)).toBeInTheDocument();
   });

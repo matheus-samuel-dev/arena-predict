@@ -268,7 +268,7 @@ export function AppShell() {
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountButtonRef = useRef<HTMLButtonElement>(null);
-  const { user, logout } = useAuth();
+  const { user, session, logout } = useAuth();
   const { wallet, walletError, notifications, notificationsError, unreadCount, markNotificationRead } = useAppData();
   const { notify } = useToast();
 
@@ -431,7 +431,7 @@ export function AppShell() {
         <div className="sidebar__foot">
           <NavLink className="points-card" to="/points">
             <span className="points-card__icon"><Zap size={17} /></span>
-            <span><small>Saldo virtual</small><strong>{walletError ? "Falha ao carregar" : `${points(balance)} pts`}</strong></span>
+            <span><small>{user?.demoProfile === "PARTICIPANT" && !session?.demoTraining ? "Saldo do cenário Demo" : "Saldo virtual"}</small><strong>{walletError ? "Falha ao carregar" : `${points(balance)} pts`}</strong></span>
             <ChevronRight size={16} className="points-card__arrow" aria-hidden="true" />
           </NavLink>
           <div className="safe-note"><ShieldCheck size={15} /><span>Pontos sem valor financeiro</span></div>

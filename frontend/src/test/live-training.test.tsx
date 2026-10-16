@@ -22,12 +22,13 @@ describe("treino ao vivo com contratos e carteira separados",()=>{
     expect(fetchMock.mock.calls.map(c=>String(c[0]))).toEqual([expect.stringContaining("/auth/demo"),expect.stringContaining("/training/wallet"),expect.stringContaining("/training/predictions"),expect.stringContaining("/training/predictions")]);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({profile:"PARTICIPANT",training:true});
   });
-  it("permite selecionar mercado real LIVE no treino e preserva bloqueio fora desse modo",()=>{
+  it("permite selecionar mercado real LIVE no treino e no acesso Demo direto",()=>{
     sessionStorage.save(session);expect(predictionReadOnly(live)).toBe(false);
     render(<MemoryRouter><LiveEventPanel event={live} onPredict={vi.fn()} /></MemoryRouter>);
     expect(screen.getByRole("button",{name:/Equipe A 1,50/})).toBeEnabled();
     expect(predictionReadOnly({...live,demo:true,externalProvider:undefined})).toBe(true);
-    sessionStorage.save({...session,demoTraining:false});expect(predictionReadOnly(live)).toBe(true);
+    sessionStorage.save({...session,demoTraining:false});expect(predictionReadOnly(live)).toBe(false);
+    expect(predictionReadOnly({...live,status:"FINISHED"})).toBe(true);
   });
   it("não apresenta score ausente ou velho como zero ou atual e recupera snapshot novo",()=>{
     expect(eventScore({...live,homeScore:null,awayScore:null})).toBeNull();

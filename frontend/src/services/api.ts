@@ -403,6 +403,16 @@ export const demoApi = {
 export const predictionsApi = {
   list: (filters: { status?: string; page?: number; size?: number } = {}) =>
     request<Prediction[] | PageResponse<Prediction>>(`${trainingPath()}/predictions${query(filters)}`),
+  async history(filters: { status?: string; page?: number; size?: number } = {}): Promise<{predictions: Prediction[]; trainingError?: string}> {
+    const existing = asList(await predictionsApi.list(filters));
+    if (!privateTrainingApi.available() || !privateTrainingApi.hasSession()) return { predictions: existing };
+    try {
+      const personal = (await privateTrainingApi.predictions()).filter(item => !filters.status || item.status === filters.status);
+      return { predictions: [...personal, ...existing].sort((a, b) => Date.parse(b.placedAt || b.createdAt || "") - Date.parse(a.placedAt || a.createdAt || "")) };
+    } catch (reason) {
+      return { predictions: existing, trainingError: reason instanceof Error ? reason.message : "Histórico de treino indisponível." };
+    }
+  },
   create: (payload: {
     eventId: number | string;
     marketId: number | string;
@@ -422,6 +432,51 @@ export const predictionsApi = {
       timeoutMs: 30_000,
     }),
   cancel: (id: number | string) => request<Prediction>(`/predictions/${id}/cancel`, { method: "POST" }),
+};
+
+// A capability confined to this tab owns the existing backend training rows.
+// It survives a quick-access re-login but is never used by a normal/admin account.
+const PRIVATE_TRAINING_KEY = `${brand.storageNamespace}:private-training`;
+let pendingPrivateTraining: Promise<string> | null = null;
+
+async function privateTrainingToken() {
+  if (!privateTrainingApi.available()) throw new ApiError("Este palpite requer acesso de Participante Demo.", 403);
+  const stored = window.sessionStorage.getItem(PRIVATE_TRAINING_KEY);
+  if (stored) return stored;
+  if (!pendingPrivateTraining) {
+    pendingPrivateTraining = authApi.demo("PARTICIPANT", true).then(session => {
+      if (!session.demoTraining || !session.token) throw new ApiError("Não foi possível preparar a carteira demonstrativa.", 502);
+      window.sessionStorage.setItem(PRIVATE_TRAINING_KEY, session.token);
+      return session.token;
+    }).finally(() => { pendingPrivateTraining = null; });
+  }
+  return pendingPrivateTraining;
+}
+
+async function trainingRequest<T>(path: string, options: RequestOptions = {}) {
+  const mainToken = readStoredSession()?.token;
+  const token = await privateTrainingToken();
+  if (readStoredSession()?.token !== mainToken || !privateTrainingApi.available())
+    throw new ApiError("Solicitação cancelada após troca de conta.", 0, "REQUEST_CANCELLED");
+  // Expiration/failure of this secondary capability must not log out the main profile.
+  return request<T>(`/training${path}`, { ...options, auth: false, headers: { Authorization: `Bearer ${token}` } });
+}
+
+export const privateTrainingApi = {
+  available: () => {
+    const session = readStoredSession();
+    return session?.demoProfile === "PARTICIPANT" && !session.demoTraining;
+  },
+  hasSession: () => Boolean(window.sessionStorage.getItem(PRIVATE_TRAINING_KEY)),
+  wallet: () => trainingRequest<Wallet>("/wallet"),
+  transactions: () => trainingRequest<WalletTransaction[]>("/wallet/transactions"),
+  async predictions() {
+    const values = await trainingRequest<Prediction[]>("/predictions");
+    return values.map(value => ({ ...value, id: `training:${value.id}`, privateTraining: true, canCancel: false }));
+  },
+  create: (payload: Parameters<typeof predictionsApi.create>[0]) => trainingRequest<Prediction>("/predictions", {
+    method: "POST", body: payload, idempotencyKey: payload.idempotencyKey, timeoutMs: 30_000,
+  }),
 };
 
 export const walletApi = {
