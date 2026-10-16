@@ -26,4 +26,5 @@ public class ArenaPoolMember {
     public boolean isModerator() { return moderator; }
     public void setModerator(boolean moderator) { this.moderator = moderator; }
     public Instant getJoinedAt() { return joinedAt; }
+    public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
 }
