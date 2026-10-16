@@ -6,7 +6,7 @@ import { enumLabel } from "../app/presentation";
 import { eventFormatLabel, eventScore, eventScoreScope, eventSourceLabel, isExternalEvent } from "../app/sportsData";
 import { predictionReadOnly } from "../app/predictionAccess";
 import { EventDataSource } from "../components/EventDataSource";
-import { EventCard, isMultiParticipantEvent, MarketList, ParticipantList, SportBadge } from "../components/EventCard";
+import { EventCard, isMarketOpen, isMultiParticipantEvent, MarketList, ParticipantList, SportBadge } from "../components/EventCard";
 import { TeamLogo } from "../components/TeamLogo";
 import { PredictionComposer } from "../components/PredictionComposer";
 import { SportsSyncSummary } from "../components/SportsSyncSummary";
@@ -217,7 +217,7 @@ export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPred
   const multiParticipant = isMultiParticipantEvent(event);
   const score = eventScore(event);
   const format = eventFormatLabel(event);
-  const previewMarkets = [...(event.markets || [])].sort((left, right) => Number(Boolean(right.availability?.allowed)) - Number(Boolean(left.availability?.allowed))).slice(0, 2);
+  const previewMarkets = prioritizeOpenMarkets(event.markets || []).slice(0, 2);
   return (
     <article className="surface live-event-panel">
       <header><div><SportBadge label={sportName(event.sport || event.sportName)} /><strong>{multiParticipant ? event.title || enumLabel(event.format) : championshipName(event.championship || event.championshipName)}</strong>{multiParticipant && <small>{championshipName(event.championship || event.championshipName)}</small>}</div><span className="live-pulse"><i /> {event.liveClock || event.clock || event.period || "Ao vivo"}</span></header>
@@ -286,12 +286,17 @@ export function groupEventMarkets(markets: PredictionMarket[]) {
 export function CategorizedMarkets({ event, onPredict }: { event: ArenaEvent; onPredict: (draft: PredictionDraft) => void }) {
   const groups = groupEventMarkets(event.markets || []);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const selected = groups.find((group) => group.name === selectedCategory) || groups[0];
+  const selected = groups.find((group) => group.name === selectedCategory)
+    || groups.find((group) => group.markets.some(isMarketOpen)) || groups[0];
   return <section className="event-markets" aria-label="Mercados por categoria">
     <div className="market-availability-summary" aria-live="polite"><strong>{event.predictionAvailabilityLabel || "Consulte os estados dos mercados"}</strong><span>{event.availableMarketCount ?? 0} mercados abertos · pontos exclusivamente virtuais</span></div>
     <div className="market-category-filters" role="group" aria-label="Selecionar categoria de mercado">
       {groups.map((group) => <button type="button" key={group.name} aria-pressed={selected?.name === group.name} aria-controls="selected-market-category" onClick={() => setSelectedCategory(group.name)}>{group.name}<span>{group.markets.length}</span></button>)}
     </div>
-    {selected && <div id="selected-market-category" role="region" aria-label={`Mercados: ${selected.name}`}><MarketList event={event} markets={selected.markets} onPredict={onPredict} /></div>}
+    {selected && <div id="selected-market-category" role="region" aria-label={`Mercados: ${selected.name}`}><MarketList event={event} markets={prioritizeOpenMarkets(selected.markets)} onPredict={onPredict} /></div>}
   </section>;
+}
+
+function prioritizeOpenMarkets(markets: PredictionMarket[]) {
+  return [...markets].sort((left, right) => Number(isMarketOpen(right)) - Number(isMarketOpen(left)));
 }
