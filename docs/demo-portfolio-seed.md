@@ -33,7 +33,9 @@ Previsões históricas recebem `placedAt` antes de avaliar a progressão. Isso i
 
 `resolvedAt` representa o instante fictício do resultado demonstrativo. O ledger e a auditoria registram quando o backend realmente processou a importação. Portanto, recompensas históricas importadas podem aparecer no extrato no dia do seed: não se fabrica uma data passada de processamento da carteira. As curvas existentes continuam derivadas de previsões persistidas.
 
-O perfil principal já havia desbloqueado as cinco conquistas disponíveis antes desta preparação. Não se removem conquistas ou recompensas válidas para produzir artificialmente um estado bloqueado. Metas adicionais exigem definições explicitamente aprovadas e isolamento do cenário Demo.
+O perfil principal já havia desbloqueado as cinco conquistas disponíveis antes desta preparação. Elas são preservadas. Conforme autorização do proprietário, o seed também cadastra três metas futuras exclusivamente Demo: 50 palpites válidos (450 pontos), 30 vitórias (600) e 100 palpites válidos (1.000). Usam as regras existentes `PREDICTION_COUNT` e `WON_COUNT`, sem desbloqueio ou crédito direto. O progresso vem do histórico; atingir a meta em um comando futuro aciona a recompensa idempotente normal.
+
+A migration aditiva V20 marca essas definições com `demo_only`. Tanto a consulta quanto a avaliação de recompensas filtram o escopo no backend para participantes do catálogo Demo. Contas normais não recebem nem visualizam essas metas. A criação por código estável ocorre mesmo se o recibo do histórico já existir, sem repetir previsões ou alterar as cinco conquistas anteriores.
 
 As datas dos novos retrospectos são fixadas na primeira execução e não são reescritas a cada reinício. Os desafios mantêm suas janelas reais; após a virada do dia, atividade de ontem não deve aparecer como atividade de hoje. Não se recriam palpites diariamente para fingir usuários ativos.
 

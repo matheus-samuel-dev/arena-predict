@@ -43,24 +43,28 @@ public class DemoPortfolioSeedService {
     private final ProgressionService progression;
     private final AdminAuditService audit;
     private final EntityManager entityManager;
+    private final AchievementDefinitionRepository achievements;
 
     public DemoPortfolioSeedService(DemoScenarioStore store, AdminOperationKeyRepository receipts, UserRepository users,
             ArenaEventRepository events, EventParticipantRepository participants, ArenaPredictionRepository predictions,
             MarketOptionRepository options, MarketTemplateService templates, ArenaPredictionService commands,
             AdminEventResultService results, ArenaPoolRepository pools, ProgressionService progression, AdminAuditService audit,
-            EntityManager entityManager, ArenaPoolRankingService competitions, ArenaPoolMemberRepository members) {
+            EntityManager entityManager, ArenaPoolRankingService competitions, ArenaPoolMemberRepository members,
+            AchievementDefinitionRepository achievements) {
         this.store=store; this.receipts=receipts; this.users=users; this.events=events; this.participants=participants;
         this.predictions=predictions; this.options=options; this.templates=templates; this.commands=commands;
         this.results=results; this.pools=pools; this.progression=progression; this.audit=audit;
         this.entityManager=entityManager;
         this.competitions=competitions;
         this.members=members;
+        this.achievements=achievements;
     }
 
     @Transactional
     public void seed() {
         // Reuse the durable Demo mutex. No process-local lock or official-event mutation.
         if (store.lock().generation() == 0) throw new IllegalStateException("Inicialize o cenário Demo antes do portfólio.");
+        ensureFutureAchievements();
         if (receipts.findByOperationAndIdempotencyKey(OPERATION, VERSION).isPresent()) return;
         List<User> people = DemoParticipantCatalog.participants().stream().map(person ->
                 users.findByEmailIgnoreCase(person.email()).filter(user -> user.getRole().canonical() == UserRole.PARTICIPANTE)
@@ -76,6 +80,26 @@ public class DemoPortfolioSeedService {
         audit.record("DEMO_PORTFOLIO_SEEDED", "DEMO", VERSION,
                 "24 participantes; seis retrospectos multiesportivos; dois eventos abertos. Pontos virtuais calculados pelo domínio.");
         log.info("[DEMO_SEED] version={} participants={} historyEvents=6 pendingEvents=2 status=success", VERSION, people.size());
+    }
+
+    private void ensureFutureAchievements() {
+        futureAchievement("DEMO_FIFTY_PREDICTIONS", "Próximo passo · Demo", "Registre 50 palpites válidos na demonstração.",
+                AchievementRule.PREDICTION_COUNT, 50, 450, "RARE");
+        futureAchievement("DEMO_THIRTY_WINS", "Precisão em evolução · Demo", "Conquiste 30 palpites vencedores na demonstração.",
+                AchievementRule.WON_COUNT, 30, 600, "EPIC");
+        futureAchievement("DEMO_HUNDRED_PREDICTIONS", "Jornada de analista · Demo", "Registre 100 palpites válidos na demonstração.",
+                AchievementRule.PREDICTION_COUNT, 100, 1000, "EPIC");
+    }
+
+    private void futureAchievement(String code, String name, String description, AchievementRule rule,
+            int target, int reward, String rarity) {
+        achievements.findByCode(code).orElseGet(() -> {
+            var definition = new AchievementDefinition();
+            definition.setCode(code); definition.setName(name); definition.setDescription(description);
+            definition.setRule(rule); definition.setTarget(target); definition.setPointsReward(reward);
+            definition.setRarity(rarity); definition.setDemoOnly(true);
+            return achievements.save(definition);
+        });
     }
 
     private ArenaPool createPool(List<User> people, Instant now) {
