@@ -38,6 +38,8 @@ public class DemoPortfolioSeedService {
     private final ArenaPredictionService commands;
     private final AdminEventResultService results;
     private final ArenaPoolRepository pools;
+    private final ArenaPoolRankingService competitions;
+    private final ArenaPoolMemberRepository members;
     private final ProgressionService progression;
     private final AdminAuditService audit;
     private final EntityManager entityManager;
@@ -46,11 +48,13 @@ public class DemoPortfolioSeedService {
             ArenaEventRepository events, EventParticipantRepository participants, ArenaPredictionRepository predictions,
             MarketOptionRepository options, MarketTemplateService templates, ArenaPredictionService commands,
             AdminEventResultService results, ArenaPoolRepository pools, ProgressionService progression, AdminAuditService audit,
-            EntityManager entityManager) {
+            EntityManager entityManager, ArenaPoolRankingService competitions, ArenaPoolMemberRepository members) {
         this.store=store; this.receipts=receipts; this.users=users; this.events=events; this.participants=participants;
         this.predictions=predictions; this.options=options; this.templates=templates; this.commands=commands;
         this.results=results; this.pools=pools; this.progression=progression; this.audit=audit;
         this.entityManager=entityManager;
+        this.competitions=competitions;
+        this.members=members;
     }
 
     @Transactional
@@ -62,8 +66,9 @@ public class DemoPortfolioSeedService {
                 users.findByEmailIgnoreCase(person.email()).filter(user -> user.getRole().canonical() == UserRole.PARTICIPANTE)
                         .orElseThrow(() -> new IllegalStateException("O catálogo demonstrativo precisa estar completo."))).toList();
         Instant now = Instant.now();
+        ArenaPool portfolioPool = createPool(people, now);
         int index = 0;
-        for (var fixture : DemoPortfolioFixtures.HISTORY) seedHistory(fixture, people, now, index++);
+        for (var fixture : DemoPortfolioFixtures.HISTORY) seedHistory(fixture, people, now, index++, portfolioPool);
         seedPending("demo-football-open", "WINNER", people, now);
         seedPending("demo-cs2-open", "SERIES_WINNER", people, now);
         people.forEach(progression::refresh);
@@ -73,17 +78,23 @@ public class DemoPortfolioSeedService {
         log.info("[DEMO_SEED] version={} participants={} historyEvents=6 pendingEvents=2 status=success", VERSION, people.size());
     }
 
-    private void seedHistory(DemoPortfolioFixtures.Fixture fixture, List<User> people, Instant now, int fixtureIndex) {
+    private ArenaPool createPool(List<User> people, Instant now) {
+        var created = competitions.create(new PoolRequest("Bolão de Demonstração", "Histórico multiesportivo do cenário Demo, com pontos exclusivamente virtuais.",
+                null, null, true, 100, 0, "Pontuação derivada dos palpites demonstrativos vinculados ao bolão. Sem prêmio financeiro.",
+                now.minus(Duration.ofDays(45)), now.plus(Duration.ofDays(30))), people.getFirst());
+        for (User person : people) competitions.joinPublic(created.id(), person);
+        ArenaPool pool = pools.findById(created.id()).orElseThrow();
+        // Only memberships of the pool created by this fixture are dated before its historical predictions.
+        members.findByPool(pool).forEach(member -> member.setJoinedAt(now.minus(Duration.ofDays(45))));
+        return pool;
+    }
+
+    private void seedHistory(DemoPortfolioFixtures.Fixture fixture, List<User> people, Instant now, int fixtureIndex, ArenaPool portfolioPool) {
         ArenaEvent event = createEvent(fixture.source(), "history", now);
         Set<String> codes = fixture.selections().stream().map(DemoPortfolioFixtures.Selection::template).collect(Collectors.toSet());
         var markets = templates.generateDemoSeed(event.getId(), codes);
         Instant resolved = now.minus(Duration.ofDays(fixture.daysAgo()));
-        ArenaPool pool = "demo-football-open".equals(fixture.source())
-                ? pools.findByInviteCodeIgnoreCase("AMIGOS26").orElseThrow() : null;
-        // The social competition must have the exact internal championship, never a provider catalog.
-        if (pool != null && (!Objects.equals(pool.getChampionship().getId(), event.getChampionship().getId())
-                || !DemoParticipantCatalog.contains(pool.getOwner().getEmail())))
-            throw new IllegalStateException("Bolão fora do escopo demonstrativo.");
+        ArenaPool pool = portfolioPool;
         List<Long> created = new ArrayList<>();
         for (int marketIndex = 0; marketIndex < fixture.selections().size(); marketIndex++) {
             var selection = fixture.selections().get(marketIndex);

@@ -56,6 +56,9 @@ class DemoPortfolioSeedIntegrationTest {
     @Test
     void persistsVariedHistoryThroughSettlementAndReconcilesEveryWalletWithoutDuplicateReplay() {
         long beforePredictions = predictions.count(), beforeLedger = ledger.count();
+        var legacyPool = pools.findByInviteCodeIgnoreCase("AMIGOS26").orElseThrow();
+        var legacyOwner = users.findByEmailIgnoreCase("marina.costa@arenapredict.com").orElseThrow();
+        legacyPool.setOwner(legacyOwner); pools.saveAndFlush(legacyPool);
         seed.seed(); em.flush();
         var created = portfolioPredictions();
         assertThat(created).hasSize(456);
@@ -89,13 +92,16 @@ class DemoPortfolioSeedIntegrationTest {
             assertThat(challenge.expiresAt()).isAfter(Instant.now());
             if (challenge.completed()) assertThat(challenge.progress()).isGreaterThanOrEqualTo(challenge.target());
         }
-        var social = pools.findByInviteCodeIgnoreCase("AMIGOS26").orElseThrow();
+        var social = pools.findAll().stream().filter(p -> "Bolão de Demonstração".equals(p.getName())).findFirst().orElseThrow();
         assertThat(rankings.poolRanking(social.getId(), player).stream().filter(r -> r.points() > 0)).isNotEmpty();
+        assertThat(pools.findById(legacyPool.getId()).orElseThrow().getOwner().getId()).isEqualTo(legacyOwner.getId());
         long afterLedger = ledger.count();
+        long afterPools = pools.count();
         assertThat(afterLedger).isGreaterThan(beforeLedger);
         seed.seed(); em.flush();
         assertThat(predictions.count()).isEqualTo(beforePredictions + 456);
         assertThat(ledger.count()).isEqualTo(afterLedger);
+        assertThat(pools.count()).isEqualTo(afterPools);
     }
 
     @Test

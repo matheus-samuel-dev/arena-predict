@@ -24,7 +24,7 @@ O reset existente da rodada guiada permanece restrito àquela competição: canc
 - Seis retrospectos explicitamente Demo: futebol (29 dias), basquete (20), tênis (13), LoL (8), Valorant (4) e CS2 (2).
 - Usa **10 templates existentes**, com 17 combinações evento/mercado: vencedor, totais, escanteios e resultados exatos aplicáveis à modalidade. Nenhum contrato novo.
 - Cada perfil recebe 17 previsões históricas e duas pendentes: **456 novas previsões**, sendo 408 liquidadas e 48 ativas. Os resultados e seleções são fixtures determinísticas.
-- O futebol aproveita o bolão social existente; a liga agrega os palpites elegíveis conforme suas datas de inscrição e temporada, sem ignorar as regras de elegibilidade.
+- Um bolão próprio do Jogador Demo reúne o novo histórico multiesportivo, usando criação e adesão do domínio. Os bolões legados mantêm seus proprietários; a liga existente agrega os palpites elegíveis conforme as datas de inscrição e temporada, sem ignorar as regras de elegibilidade.
 - Pontos são debitados por `ArenaPredictionService` / `PointWalletService`; resultados passam por `AdminEventResultService` e `MarketSettlementEngine`; conquistas/desafios por `ProgressionService`.
 
 ## Datas e honestidade dos dados
