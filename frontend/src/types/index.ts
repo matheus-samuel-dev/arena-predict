@@ -210,6 +210,7 @@ export type PredictionStatus =
   | "REEMBOLSADO";
 
 export interface Prediction {
+  privateTraining?: boolean;
   multiplierOrigin?: "ADMIN_DEFINED" | "INTERNAL_MODEL" | "PROVIDER";
   multiplierModelVersion?: string | null;
   eventStatus?: string;

@@ -230,7 +230,7 @@ export function LiveEventPanel({ event, onPredict }: { event: ArenaEvent; onPred
       <EventDataSource event={event} demoLabel="Demonstração" />
       {event.statistics && <div className="live-stats">{Object.entries(event.statistics).slice(0, 4).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}
       {previewMarkets.length ? <MarketList event={event} markets={previewMarkets} onPredict={onPredict} /> : <StatusBadge status="closed" label={event.predictionAvailabilityLabel || "Mercados ainda não publicados"} />}
-      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={predictionReadOnly(event) ? "/demo" : `/events/${event.id}`}>{predictionReadOnly(event) ? "Fazer um palpite Demo" : event.availableMarketCount ? `Explorar opções (${event.availableMarketCount})` : "Ver detalhes"}</Link></footer>
+      <footer className="live-event-panel__markets"><span>{event.predictionAvailabilityLabel || "Consulte a disponibilidade nos mercados"}</span><Link to={`/events/${event.id}`}>{event.availableMarketCount && !predictionReadOnly(event) ? "Fazer palpite" : "Ver detalhes"}</Link></footer>
     </article>
   );
 }

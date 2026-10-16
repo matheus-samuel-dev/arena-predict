@@ -173,7 +173,7 @@ export function EventCard({
 
       <footer className="event-card__foot">
         <span className={predictionOpen ? "event-availability event-availability--open" : "event-availability"}><Clock3 size={14} /> {event.predictionAvailabilityLabel || "Mercados ainda não publicados"}</span>
-        <Link to={demoReadOnly ? "/demo" : `/events/${event.id}`}>{demoReadOnly ? "Fazer um palpite Demo" : predictionOpen ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={15} /></Link>
+        <Link to={`/events/${event.id}`}>{predictionOpen && !demoReadOnly ? "Fazer palpite" : "Ver detalhes"} <ChevronRight size={15} /></Link>
       </footer>
       {event.featured && <span className="featured-corner" title="Evento em destaque"><Sparkles size={13} /></span>}
     </article>
@@ -207,7 +207,7 @@ export function FeaturedEventCard({ event }: { event: ArenaEvent }) {
       <EventDataSource event={event} />
       <footer>
         <span><MapPin size={14} /> {event.venue || dateTime(event.startsAt)}</span>
-        <Link to={`/events/${event.id}`}>{isPredictionOpen(event) && !predictionReadOnly(event) ? "Explorar opções" : "Ver detalhes"} <ChevronRight size={16} /></Link>
+        <Link to={`/events/${event.id}`}>{isPredictionOpen(event) && !predictionReadOnly(event) ? "Fazer palpite" : "Ver detalhes"} <ChevronRight size={16} /></Link>
       </footer>
     </article>
   );
@@ -243,7 +243,7 @@ export function MarketList({
           <section className="surface market-block" key={market.id}>
             <div className="market-block__head">
               <div><h3>{marketDisplayName(market)}</h3><p>{marketPrimarySummary(market)}</p></div>
-              <StatusBadge status={marketAvailabilityStatus(market)} label={market.availability?.label || "Aguardando publicação"} tooltip={marketAvailabilityTooltip(market)} />
+              <StatusBadge status={demoReadOnly && !disabled ? "closed" : marketAvailabilityStatus(market)} label={demoReadOnly && !disabled ? "Somente leitura nesta sessão" : market.availability?.label || "Aguardando publicação"} tooltip={marketAvailabilityTooltip(market)} />
             </div>
             <div className="market-block__options">
               {market.options?.map((option) => (

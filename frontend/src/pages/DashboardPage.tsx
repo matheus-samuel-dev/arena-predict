@@ -23,7 +23,8 @@ import { EmptyState, ErrorState, PageHeader, PageSkeleton, Progress, SectionHead
 import { useAuth } from "../contexts/AuthContext";
 import { useApiResource } from "../hooks/useApiResource";
 import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
-import { dashboardApi, sessionStorage } from "../services/api";
+import { dashboardApi } from "../services/api";
+import { TrainingNotice } from "../components/TrainingNotice";
 import type { ArenaEvent, DashboardData, PredictionDraft } from "../types";
 
 type LooseDashboard = DashboardData & {
@@ -106,7 +107,7 @@ export function DashboardPage() {
         actions={<div className="button-row"><Link className="button button--secondary button--md" to="/events"><Target size={17} /> Explorar eventos</Link>{user?.demoProfile && <Link className="button button--quiet button--md" to="/demo">Testar uma rodada</Link>}</div>}
       />
 
-      {user?.demoProfile && !sessionStorage.read()?.demoTraining && <p className="demo-shared-notice" role="note">Demonstração compartilhada: histórico e pontos virtuais de exemplo. Para treinar com uma carteira privada, use “Entrar no treino ao vivo” em Testar uma rodada.</p>}
+      {user?.demoProfile && <TrainingNotice />}
 
       <section className="player-strip surface">
         <div className="player-strip__identity">

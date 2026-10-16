@@ -74,6 +74,31 @@ class LiveTrainingIntegrationTest {
             http.perform(post(path).header("Authorization","Bearer "+first).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
         assertThat(normalPredictions.count()).isEqualTo(normalCount);assertThat(event.isDemo()).isFalse();assertThat(event.getStatus()).isEqualTo(EventStatus.LIVE);
     }
+    @Test void directDemoFlowUsesTrainingCapabilityWithoutReplacingOrDebitingTheShowcase() throws Exception {
+        var event=apply(EventStatus.LIVE,0,0,true);
+        var auth=http.perform(post("/api/auth/demo").contentType(MediaType.APPLICATION_JSON).content("{\"profile\":\"PARTICIPANT\"}"))
+                .andExpect(status().isOk()).andReturn();
+        String shared=json.readTree(auth.getResponse().getContentAsString()).get("token").asText();
+        var player=users.findByEmailIgnoreCase("jogador@arenapredict.com").orElseThrow();
+        long sharedBalance=wallets.wallet(player).balance(), sharedPredictions=normalPredictions.count();
+        String privateToken=enter(); var request=request(event,"HOME","direct-demo");
+        // A UI hint or shared login cannot substitute for the signed training capability.
+        http.perform(post("/api/training/predictions").header("Authorization","Bearer "+shared)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isForbidden());
+        http.perform(post("/api/predictions").header("Authorization","Bearer "+shared)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isForbidden());
+        place(privateToken,new PlacePredictionRequest(event.getId(),request.marketId(),request.optionId(),25,null,"old-quote",
+                request.expectedMultiplier().add(new java.math.BigDecimal("0.01"))),409);
+        var created=place(privateToken,request,201);
+        http.perform(get("/api/training/predictions").header("Authorization","Bearer "+privateToken))
+                .andExpect(jsonPath("$[0].id").value(created.get("id").asLong()));
+        http.perform(get("/api/wallet").header("Authorization","Bearer "+shared)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(sharedBalance));
+        http.perform(get("/api/training/wallet").header("Authorization","Bearer "+privateToken))
+                .andExpect(jsonPath("$.balance").value(4975));
+        assertThat(normalPredictions.count()).isEqualTo(sharedPredictions);
+        assertThat(events.findById(event.getId()).orElseThrow().isDemo()).isFalse();
+    }
     @Test void officialResultPaysExactlyOnceAndLeavesNormalWalletAndHistoryUntouched() throws Exception {
         var event=apply(EventStatus.LIVE,0,0,true);String winner=enter(),loser=enter();
         var regular=RegularTestUsers.freshParticipant(users);normalCommands.place(request(event,"HOME","normal"),"normal",regular);

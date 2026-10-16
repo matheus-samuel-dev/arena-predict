@@ -112,8 +112,7 @@ function RankingLine({ row }: { row: RankingRow }) {
 
 export function StatisticsPage() {
   const { data, loading, error, reload } = useApiResource(async () => {
-    const predictions = asList(await predictionsApi.list({ size: 200 }));
-    return { predictions };
+    return predictionsApi.history({ size: 200 });
   }, []);
   if (loading) return <PageSkeleton cards={4} />;
   if (error || !data) return <ErrorState message={error || "Estatísticas indisponíveis."} onRetry={() => reload().catch(() => undefined)} />;
@@ -127,6 +126,7 @@ export function StatisticsPage() {
   return (
     <>
       <PageHeader eyebrow="ANÁLISE PESSOAL" title="Estatísticas" description="Entenda seus padrões, especialidades e evolução sem números decorativos." />
+      {data.trainingError && <p className="field-error" role="alert">As estatísticas exibidas consideram o histórico de exemplo. O histórico de treino não pôde ser consultado: {data.trainingError}</p>}
       <section className="metric-grid">
         {[
           { label: "Precisão geral", value: percentage(accuracy), detail: `${won.length} de ${settled.length} resultados`, icon: Gauge, tone: "green" },

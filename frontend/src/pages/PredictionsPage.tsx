@@ -7,7 +7,7 @@ import { useToast } from "../contexts/ToastContext";
 import { TrainingNotice } from "../components/TrainingNotice";
 import { useAppData } from "../contexts/AppDataContext";
 import { useApiResource } from "../hooks/useApiResource";
-import { asList, predictionsApi, walletApi } from "../services/api";
+import { asList, predictionsApi, privateTrainingApi, walletApi } from "../services/api";
 import type { Prediction, WalletTransaction } from "../types";
 
 const predictionFilters = [
@@ -44,10 +44,10 @@ export function PredictionsPage() {
   const [cancelling, setCancelling] = useState(false);
   const { notify } = useToast();
   const { refreshWallet, refreshNotifications } = useAppData();
-  const { data, loading, error, reload } = useApiResource(async () => asList(await predictionsApi.list({ size: 50 })), []);
+  const { data, loading, error, reload } = useApiResource(() => predictionsApi.history({ size: 50 }), []);
 
   const predictions = useMemo(() => {
-    return (data || []).filter((item) => predictionMatchesFilter(item.status, filter, item.eventStatus));
+    return (data?.predictions || []).filter((item) => predictionMatchesFilter(item.status, filter, item.eventStatus));
   }, [data, filter]);
 
   async function cancelPrediction() {
@@ -68,7 +68,7 @@ export function PredictionsPage() {
   if (loading) return <PageSkeleton cards={4} />;
   if (error) return <ErrorState message={error} onRetry={() => reload().catch(() => undefined)} />;
 
-  const all = data || [];
+  const all = data?.predictions || [];
   const active = all.filter((item) => ["ACTIVE", "ATIVO", "PENDING", "PENDENTE"].includes(String(item.status).toUpperCase())).length;
   const won = all.filter((item) => ["WON", "VENCEDOR"].includes(String(item.status).toUpperCase())).length;
   const used = all.reduce((sum, item) => sum + Number(item.stakePoints ?? item.points ?? 0), 0);
@@ -79,6 +79,7 @@ export function PredictionsPage() {
       <PageHeader eyebrow="MINHA ATIVIDADE" title="Meus palpites" description="Acompanhe cada leitura, resultado e recompensa em pontos virtuais." actions={<Link className="button button--primary button--md" to="/events"><Target size={17} /> Novo palpite</Link>} />
 
       <TrainingNotice />
+      {data?.trainingError && <p className="field-error" role="alert">O histórico de exemplo continua disponível. Não foi possível consultar seus palpites de treino: {data.trainingError} <Button variant="quiet" onClick={() => void reload().catch(() => undefined)}>Tentar novamente</Button></p>}
       <section className="metric-grid">
         {[
           { label: "Palpites ativos", value: active, icon: Clock3, tone: "violet" },
@@ -97,7 +98,7 @@ export function PredictionsPage() {
           {predictions.map((prediction) => (
             <article className="surface prediction-history__row" key={prediction.id}>
               <span className={`prediction-state-icon prediction-state-icon--${String(prediction.status).toLowerCase()}`}>{["WON", "VENCEDOR"].includes(String(prediction.status).toUpperCase()) ? <CheckCircle2 size={21} /> : ["LOST", "PERDEDOR"].includes(String(prediction.status).toUpperCase()) ? <XCircle size={21} /> : ["REFUNDED", "REEMBOLSADO"].includes(String(prediction.status).toUpperCase()) ? <RotateCcw size={21} /> : ["CANCELLED", "CANCELADO"].includes(String(prediction.status).toUpperCase()) ? <Ban size={21} /> : <Target size={21} />}</span>
-              <div className="prediction-history__event"><small>{prediction.marketName || "Mercado de previsão"}{prediction.demo ? " · Demonstração" : ""}</small><Link to={`/events/${prediction.eventId}`}><strong>{prediction.eventTitle || `Evento #${prediction.eventId}`}</strong></Link><span>{prediction.optionLabel || prediction.optionName || "Opção selecionada"}</span></div>
+              <div className="prediction-history__event"><small>{prediction.marketName || "Mercado de previsão"}{prediction.privateTraining ? " · Demonstração · sua sessão" : prediction.demo ? " · Demonstração" : ""}</small><Link to={`/events/${prediction.eventId}`}><strong>{prediction.eventTitle || `Evento #${prediction.eventId}`}</strong></Link><span>{prediction.optionLabel || prediction.optionName || "Opção selecionada"}</span></div>
               <div className="prediction-history__numbers"><small>Pontos</small><strong>{points(prediction.stakePoints ?? prediction.points)} pts</strong></div>
               <div className="prediction-history__numbers"><small>Coeficiente</small><strong>{multiplier(prediction.multiplier)}</strong></div>
               <div className="prediction-history__numbers"><small>Potencial</small><strong>{points(prediction.potentialPoints || 0)} pts</strong></div>
@@ -121,10 +122,14 @@ export function PredictionsPage() {
 }
 
 export function PointsPage() {
+  const hasPrivateWallet = privateTrainingApi.available();
+  const [personal, setPersonal] = useState(hasPrivateWallet);
   const { data, loading, error, reload } = useApiResource(async () => {
-    const [wallet, transactions] = await Promise.all([walletApi.get(), walletApi.transactions()]);
+    const [wallet, transactions] = await Promise.all(personal
+      ? [privateTrainingApi.wallet(), privateTrainingApi.transactions()]
+      : [walletApi.get(), walletApi.transactions()]);
     return { wallet, transactions: asList(transactions) };
-  }, []);
+  }, [personal]);
   if (loading) return <PageSkeleton cards={3} />;
   if (error || !data) return <ErrorState message={error || "Carteira indisponível."} onRetry={() => reload().catch(() => undefined)} />;
   const balance = Number(data.wallet.balancePoints ?? data.wallet.availablePoints ?? data.wallet.balance ?? 0);
@@ -132,6 +137,7 @@ export function PointsPage() {
   return (
     <>
       <PageHeader eyebrow="ECONOMIA VIRTUAL" title="Seus pontos" description="Saldo, recompensas e todas as movimentações da sua experiência na Arena." />
+      {hasPrivateWallet && <div className="filter-tabs" role="group" aria-label="Escolher carteira demonstrativa"><button type="button" aria-pressed={personal} className={personal ? "active" : ""} onClick={() => setPersonal(true)}>Minha carteira de treino</button><button type="button" aria-pressed={!personal} className={!personal ? "active" : ""} onClick={() => setPersonal(false)}>Histórico do cenário Demo</button></div>}
       <section className="points-hero">
         <div className="points-hero__glow" />
         <span><Coins size={25} /></span><div><small>Saldo disponível</small><strong>{points(balance)} <em>pts</em></strong><p>{data.wallet.virtualPointsNotice || "Pontos exclusivamente virtuais, sem depósito, saque ou conversão financeira."}</p></div>

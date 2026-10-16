@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { asList, notificationsApi, walletApi } from "../services/api";
+import { asList, notificationsApi, privateTrainingApi, walletApi } from "../services/api";
 import type { Notification, Wallet } from "../types";
 import { useAuth } from "./AuthContext";
 
@@ -11,6 +11,9 @@ interface AppDataContextValue {
   notificationsError: string | null;
   unreadCount: number;
   refreshWallet: () => Promise<void>;
+  trainingWallet: Wallet | null;
+  trainingWalletError: string | null;
+  refreshTrainingWallet: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
   markNotificationRead: (id: number | string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -23,6 +26,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const sessionToken = session?.token ?? null;
   const activeSessionToken = useRef(sessionToken);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [trainingWallet, setTrainingWallet] = useState<Wallet | null>(null);
+  const [trainingWalletError, setTrainingWalletError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
@@ -32,10 +37,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     activeSessionToken.current = sessionToken;
     // Clear the previous identity before painting another account's screen.
     setWallet(null);
+    setTrainingWallet(null);
+    setTrainingWalletError(null);
     setNotifications([]);
     setWalletError(null);
     setNotificationsError(null);
     setLoading(Boolean(sessionToken));
+  }, [sessionToken]);
+
+  const refreshTrainingWallet = useCallback(async () => {
+    if (!sessionToken || !privateTrainingApi.available()) return;
+    try {
+      const next = await privateTrainingApi.wallet();
+      if (activeSessionToken.current !== sessionToken) return;
+      setTrainingWallet(next);
+      setTrainingWalletError(null);
+    } catch (reason) {
+      if (activeSessionToken.current === sessionToken)
+        setTrainingWalletError(reason instanceof Error ? reason.message : "Não foi possível carregar a carteira de treino.");
+      throw reason;
+    }
   }, [sessionToken]);
 
   const refreshWallet = useCallback(async () => {
@@ -69,6 +90,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     if (!sessionToken) return undefined;
+    void refreshTrainingWallet().catch(() => undefined);
     Promise.allSettled([walletApi.get(), notificationsApi.list()])
       .then(([walletResult, notificationResult]) => {
         if (!active || activeSessionToken.current !== sessionToken) return;
@@ -81,7 +103,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [sessionToken]);
+  }, [sessionToken, refreshTrainingWallet]);
 
   const markNotificationRead = useCallback(async (id: number | string) => {
     const token = activeSessionToken.current;
@@ -108,11 +130,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       notificationsError,
       unreadCount: notifications.filter((item) => !item.read && !item.readAt).length,
       refreshWallet,
+      trainingWallet,
+      trainingWalletError,
+      refreshTrainingWallet,
       refreshNotifications,
       markNotificationRead,
       markAllNotificationsRead,
     }),
-    [wallet, notifications, loading, walletError, notificationsError, refreshWallet, refreshNotifications, markNotificationRead, markAllNotificationsRead],
+    [wallet, notifications, loading, walletError, notificationsError, refreshWallet, trainingWallet, trainingWalletError, refreshTrainingWallet, refreshNotifications, markNotificationRead, markAllNotificationsRead],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
