@@ -43,6 +43,14 @@ const draft = {
 } as unknown as PredictionDraft;
 
 describe("confirmação do palpite", () => {
+  it.each(["digitado", "rápido"])("preserva o valor %s quando o saldo é atualizado", (mode) => {
+    const {rerender}=render(<PredictionComposer draft={draft} onClose={vi.fn()} />);
+    if(mode === "digitado") fireEvent.change(screen.getByRole("spinbutton"),{target:{value:"30"}});
+    else fireEvent.click(screen.getByRole("button",{name:"50 pts",exact:true}));
+    walletState.balance=2000;
+    rerender(<PredictionComposer draft={draft} onClose={vi.fn()} />);
+    expect(screen.getByRole("spinbutton")).toHaveValue(mode === "digitado" ? 30 : 50);
+  });
   it.each([[1000,1.001,1001],[75,1.85,138],[20000,1.999,39980]])("calcula %s pontos com multiplicador %s sem erro binário de arredondamento", (stake, coefficient, expected) => {
     expect(calculatePotentialPoints(stake,coefficient)).toBe(expected);
   });

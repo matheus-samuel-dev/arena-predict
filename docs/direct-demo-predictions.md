@@ -13,6 +13,7 @@ A preparação do portfólio mudou o acesso rápido de `demoLogin(PARTICIPANT, t
 - A seleção continua respeitando a disponibilidade e a atividade de cada opção. O servidor revalida evento, horário, mercado, multiplicador, saldo, limite e idempotência. Nenhuma permissão foi ampliada e nenhum código de produção backend foi modificado.
 - Os botões usam “Fazer palpite” e preservam o ID do evento no link. Não direcionam a seleção para uma ativação manual.
 - O detalhe prioriza uma categoria com mercado aberto e apresenta os utilizáveis antes dos encerrados dentro dela. Categorias e mercados encerrados continuam consultáveis, sem alteração de estado. A seleção manual de categoria é preservada.
+- A sugestão inicial de pontos deixa de ser reaplicada após uma edição ou seleção rápida do usuário. Atualizar o saldo não pode trocar silenciosamente a quantidade escolhida; a validação continua bloqueando valores que ficaram inelegíveis.
 
 ## Dados e isolamento
 

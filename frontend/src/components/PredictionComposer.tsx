@@ -63,6 +63,7 @@ export function PredictionComposer({
   const [poolsError, setPoolsError] = useState("");
   const idempotencyKey = useRef(createIdempotencyKey());
   const selectionKey = draft ? `${draft.event.id}:${draft.market.id}:${draft.option.id}` : "";
+  const editedStakeSelection = useRef<string | null>(null);
   const currentMarket = currentEvent !== undefined ? currentEvent?.markets?.find((market) => market.id === draft?.market.id) : draft?.market;
   const currentOption = currentEvent !== undefined ? currentMarket?.options.find((option) => option.id === draft?.option.id) : draft?.option;
   const demoRestricted = Boolean((currentEvent || draft?.event) && predictionReadOnly((currentEvent || draft?.event)!)) && !demoScenario;
@@ -84,6 +85,7 @@ export function PredictionComposer({
     : `${home.name || home.shortName} × ${away.name || away.shortName}`;
 
   useEffect(() => {
+    if (!draft) editedStakeSelection.current = null;
     if (draft) {
       setConfirmed(null);
       setPoolId("");
@@ -118,10 +120,15 @@ export function PredictionComposer({
   }, [draft?.event.id, training, demoScenario, demoRestricted]);
 
   useEffect(() => {
-    if (draft && !confirmed) {
+    if (draft && !confirmed && editedStakeSelection.current !== selectionKey) {
       setStake(Math.min(Math.max(minimumPoints, Math.floor(balance * 0.05)), Math.max(maximumSelectable, minimumPoints)));
     }
   }, [selectionKey, balance, minimumPoints, maximumSelectable, confirmed]);
+
+  function chooseStake(value: number) {
+    editedStakeSelection.current = selectionKey;
+    setStake(value);
+  }
 
   const validation = useMemo(
     () => walletReady ? validatePredictionStake(stake, minimumPoints, balance) : null,
@@ -189,7 +196,7 @@ export function PredictionComposer({
           {privateTraining && !walletReady && <p role="alert">{trainingWalletError || "Carregando sua carteira de treino…"}{trainingWalletError && <Button type="button" variant="quiet" onClick={() => void refreshTrainingWallet().catch(() => undefined)}>Tentar novamente</Button>}</p>}
           <label className="stake-field" htmlFor="prediction-stake">
             <span>Pontos virtuais</span>
-            <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => setStake(Number(event.target.value))} /><em>pts</em></div>
+            <div><Coins size={18} /><input id="prediction-stake" aria-describedby="prediction-stake-help prediction-stake-error" aria-invalid={Boolean(validation)} disabled={submitting} type="number" min={minimumPoints} step="1" max={Math.max(maximumSelectable, minimumPoints)} value={stake} onChange={(event) => chooseStake(Number(event.target.value))} /><em>pts</em></div>
             <small>Mínimo do mercado: <strong>{points(minimumPoints)} pts</strong></small>
             <small>Máximo por palpite: <strong>{points(MAXIMUM_STAKE_POINTS)} pts</strong></small>
             <small id="prediction-stake-help">Saldo disponível: <strong>{points(balance)} pts</strong></small>
@@ -202,8 +209,8 @@ export function PredictionComposer({
             {!poolsLoading && !poolsError && availablePools.length === 0 && <small>Entre em um bolão compatível para pontuar no ranking do grupo.</small>}
           </label>}
           <div className="quick-stakes" aria-label="Valores rápidos">
-            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => setStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={submitting || balance < value || value > MAXIMUM_STAKE_POINTS}>{points(value)} pts</button>)}
-            <button type="button" onClick={() => setStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={submitting || balance < minimumPoints}>25%</button>
+            {quickStakeOptions(minimumPoints).map((value) => <button type="button" key={value} onClick={() => chooseStake(Math.min(value, balance, MAXIMUM_STAKE_POINTS))} disabled={submitting || balance < value || value > MAXIMUM_STAKE_POINTS}>{points(value)} pts</button>)}
+            <button type="button" onClick={() => chooseStake(Math.min(balance, MAXIMUM_STAKE_POINTS, Math.max(minimumPoints, Math.floor(balance * 0.25))))} disabled={submitting || balance < minimumPoints}>25%</button>
           </div>
           <div id="prediction-stake-error">{validation && <p className="field-error" role="alert">{validation}</p>}</div>
           {!selectionAllowed && <p className="field-error" role="alert">{currentOption?.active === false ? "Esta opção está temporariamente suspensa." : !currentOption ? "A seleção não aparece na leitura atual. Atualize o evento e escolha uma opção." : currentMarket?.availability?.reason || currentMarket?.availability?.label || "Atualize os mercados para conferir a disponibilidade."}</p>}
