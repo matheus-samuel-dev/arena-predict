@@ -113,7 +113,7 @@ export function LoginPage() {
     setFormError(null);
     setErrorField(null);
     try {
-      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT", profile !== "admin");
+      const authenticated = await demoLogin(profile === "admin" ? "ADMIN" : "PARTICIPANT");
       notify(`Acesso demonstrativo como ${profile === "admin" ? "administrador" : "participante"} iniciado.`, "success");
       navigate(authenticated.demoTraining ? "/live" : postLoginDestination(authenticated.role, "/app", authenticated.demoProfile), { replace: true });
     } catch (error) {

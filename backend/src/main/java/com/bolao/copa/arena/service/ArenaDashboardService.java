@@ -8,6 +8,7 @@ import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
 import com.bolao.copa.repository.UserRepository;
+import com.bolao.copa.security.DemoAccessPolicy;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class ArenaDashboardService {
     private final UserRepository users;
     private final ProgressionService progression;
     private final boolean demoMode;
+    private final DemoAccessPolicy demoAccess;
 
     public ArenaDashboardService(PointWalletService walletService, ArenaPredictionRepository predictions,
                                  ArenaCatalogService catalog, ArenaPoolRankingService pools,
@@ -36,9 +38,10 @@ public class ArenaDashboardService {
                                  PredictionMarketRepository marketRepository, ArenaPoolRepository poolRepository,
                                  PointLedgerRepository ledger, UserRepository users, ProgressionService progression,
                                  ArenaPredictionService predictionService,
-                                 @Value("${app.demo.enabled:false}") boolean demoMode) {
+                                 @Value("${app.demo.enabled:false}") boolean demoMode, DemoAccessPolicy demoAccess) {
         this.walletService = walletService; this.predictions = predictions; this.catalog = catalog; this.pools = pools;
         this.predictionService = predictionService;
+        this.demoAccess = demoAccess;
         this.notifications = notifications; this.eventRepository = eventRepository; this.marketRepository = marketRepository;
         this.poolRepository = poolRepository; this.ledger = ledger; this.users = users; this.progression = progression; this.demoMode = demoMode;
     }
@@ -56,7 +59,8 @@ public class ArenaDashboardService {
         long won = mine.stream().filter(p -> p.getStatus() == PredictionStatus.WON).count();
         double accuracy = finished == 0 ? 0 : Math.round(won * 10_000.0 / finished) / 100.0;
         StreakStats streaks = streaks(mine);
-        List<RankingRow> ranking = pools.ranking(user, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null);
+        List<RankingRow> ranking = pools.ranking(user, RankingPeriod.WEEKLY, RankingScope.GLOBAL, null,
+                demoAccess.isDemoAccount(user) ? "DEMO" : "ALL");
         Integer position = ranking.stream().filter(RankingRow::currentUser).map(RankingRow::position).findFirst().orElse(null);
         List<EventResponse> featured = catalog.featuredEvents();
         List<EventResponse> live = catalog.liveEvents();

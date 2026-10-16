@@ -32,12 +32,29 @@ public class MarketTemplateService {
     /** Shared generation used by catalog initialization and provider synchronization. */
     @Transactional
     public List<PredictionMarket> generate(Long eventId) {
+        return generate(eventId, Set.of());
+    }
+
+    /** Fixtures reuse published contracts rather than introducing parallel market definitions. */
+    @Transactional
+    public List<PredictionMarket> generateDemoSeed(Long eventId, Set<String> templateCodes) {
+        ArenaEvent event = events.findById(eventId).orElseThrow();
+        if (!event.isDemo() || event.getExternalProvider() != null || templateCodes.isEmpty())
+            throw new ArenaProblem.RuleViolation("Templates do seed exigem um evento demonstrativo interno.");
+        List<PredictionMarket> result = generate(eventId, templateCodes);
+        if (result.size() != templateCodes.size())
+            throw new ArenaProblem.RuleViolation("O cenário solicitou um mercado não suportado pela modalidade.");
+        return result;
+    }
+
+    private List<PredictionMarket> generate(Long eventId, Set<String> templateCodes) {
         ArenaEvent event = events.findByIdForUpdate(eventId).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         if (event.getStatus()==EventStatus.FINISHED || event.getStatus()==EventStatus.CANCELLED)
             throw new ArenaProblem.RuleViolation("Eventos encerrados não recebem novos mercados.");
         List<PredictionMarket> result = new ArrayList<>();
         List<PredictionMarket> published = markets.findByEventOrderByIdAsc(event);
         for (var definition : definitions.definitions(event,participants.findByEventOrderByDisplayOrderAsc(event))) {
+            if (!templateCodes.isEmpty() && !templateCodes.contains(definition.code())) continue;
             var sameTemplate = published.stream().filter(m -> definition.code().equals(m.getTemplateCode())).findFirst();
             if (sameTemplate.isPresent()) { refreshOptions(sameTemplate.get()); result.add(sameTemplate.get()); continue; }
             String code = "AUTO_" + definition.code();

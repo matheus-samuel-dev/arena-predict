@@ -71,7 +71,19 @@ public class ArenaPredictionService {
         return placeInternal(request, headerKey, user, true);
     }
 
+    /** Historical Demo fixtures must carry their activity date before progression is evaluated. */
+    @Transactional
+    public PredictionResponse placeDemoSeed(PlacePredictionRequest request, String headerKey, User user, Instant placedAt) {
+        if (placedAt == null || placedAt.isAfter(Instant.now()))
+            throw new ArenaProblem.RuleViolation("A data do histórico demonstrativo deve estar no passado.");
+        return placeInternal(request, headerKey, user, true, placedAt);
+    }
+
     private PredictionResponse placeInternal(PlacePredictionRequest request, String headerKey, User user, boolean seed) {
+        return placeInternal(request, headerKey, user, seed, null);
+    }
+
+    private PredictionResponse placeInternal(PlacePredictionRequest request, String headerKey, User user, boolean seed, Instant placedAt) {
         ArenaEvent event = events.findByIdForUpdate(request.eventId()).orElseThrow(() -> new ArenaProblem.NotFound("Evento não encontrado."));
         if (seed) {
             if (!event.isDemo() || event.getExternalProvider() != null || event.isDemoArchived()
@@ -124,6 +136,7 @@ public class ArenaPredictionService {
         prediction.setPotentialPoints(confirmedMultiplier.multiply(java.math.BigDecimal.valueOf(request.stakePoints()))
                 .setScale(0, RoundingMode.DOWN).intValueExact());
         prediction.setStatus(PredictionStatus.ACTIVE);
+        if (placedAt != null) prediction.setPlacedAt(placedAt);
         prediction.setIdempotencyKey(key);
         try {
             prediction = predictions.saveAndFlush(prediction);

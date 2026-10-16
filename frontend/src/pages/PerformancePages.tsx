@@ -14,7 +14,7 @@ export function RankingsPage() {
   const [period, setPeriod] = useState("WEEKLY");
   const [scope, setScope] = useState("GLOBAL");
   const [sport, setSport] = useState("");
-  const [source, setSource] = useState("ALL");
+  const [source, setSource] = useState(sessionStorage.read()?.demoProfile ? "DEMO" : "ALL");
   const [participantQuery, setParticipantQuery] = useState("");
   const { data, loading, error, reload, refresh } = useApiResource(async () => {
     const [rankingResponse, sportsResponse] = await Promise.all([

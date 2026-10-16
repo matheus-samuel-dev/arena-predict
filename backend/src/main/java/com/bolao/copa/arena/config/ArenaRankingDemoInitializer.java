@@ -209,7 +209,7 @@ public class ArenaRankingDemoInitializer {
             ArenaPrediction prediction = predictionRepository.findByIdempotencyKey(persistedKey).orElse(null);
             if (prediction == null && created) {
                 var response = predictionService.placeDemoSeed(new PlacePredictionRequest(event.getId(), market.getId(),
-                        selected.getId(), stake, null, clientKey), clientKey, participant);
+                        selected.getId(), stake, null, clientKey), clientKey, participant, resolvedAt.minus(Duration.ofHours(3)));
                 prediction = predictionRepository.findById(response.id()).orElseThrow();
             } else if (prediction == null) {
                 prediction = backfillSettledPrediction(participant, event, market, selected, stake, persistedKey,

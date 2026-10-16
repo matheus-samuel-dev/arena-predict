@@ -375,8 +375,13 @@ public class ArenaDemoInitializer {
                 || market.getStatus() != MarketStatus.OPEN
                 || !Instant.now().isBefore(event.getPredictionClosesAt())) return;
         MarketOption option = options.findByMarketAndKey(market, optionKey).orElseThrow();
-        predictions.placeDemoSeed(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
-                pool == null ? null : pool.getId(), key), key, user);
+        var request = new PlacePredictionRequest(event.getId(), market.getId(), option.getId(), points,
+                pool == null ? null : pool.getId(), key);
+        if ("seed-historical".equals(key) || "seed-cancelled-refund".equals(key)) {
+            predictions.placeDemoSeed(request, key, user, Instant.now().minus(Duration.ofDays(90)));
+        } else {
+            predictions.placeDemoSeed(request, key, user);
+        }
     }
     private void seedNotifications(User user) {
         if (!notificationRepository.findTop100ByUserOrderByCreatedAtDesc(user).isEmpty()) return;

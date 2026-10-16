@@ -93,7 +93,7 @@ public class DemoScenarioFactory {
             MarketOption option = options.findByMarketAndKey(market, i == 1 ? "HOME" : "AWAY").orElseThrow();
             wallets.ensureWallet(user);
             predictions.placeDemoSeed(new PlacePredictionRequest(event.getId(), market.getId(), option.getId(),
-                    market.getMinimumPoints(), null, "controlled-history-" + user.getId()), null, user);
+                    market.getMinimumPoints(), null, "controlled-history-" + user.getId()), null, user, Instant.now().minus(Duration.ofDays(3)));
         }
         event.setStartsAt(Instant.now().minus(Duration.ofHours(2)));
         event.setPredictionClosesAt(event.getStartsAt().minusSeconds(60));
