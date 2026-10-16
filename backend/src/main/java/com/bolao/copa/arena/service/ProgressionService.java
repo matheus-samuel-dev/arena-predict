@@ -6,6 +6,8 @@ import com.bolao.copa.arena.domain.*;
 import com.bolao.copa.arena.domain.ArenaEnums.*;
 import com.bolao.copa.arena.repository.*;
 import com.bolao.copa.entity.User;
+import com.bolao.copa.entity.UserRole;
+import com.bolao.copa.config.DemoParticipantCatalog;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class ProgressionService {
                 .collect(java.util.stream.Collectors.toMap(
                         state -> state.getAchievement().getId(), state -> state));
         return achievementDefinitions.findByActiveTrueOrderByIdAsc().stream()
+                .filter(definition -> availableTo(definition, user))
                 .map(definition -> achievementResponse(definition, metrics, states.get(definition.getId())))
                 .toList();
     }
@@ -80,7 +83,8 @@ public class ProgressionService {
         // preserving one consistent lock order across every caller.
         wallets.lockParticipant(user);
         Metrics achievementMetrics = metrics(user, null, null);
-        achievementDefinitions.findByActiveTrueOrderByIdAsc()
+        achievementDefinitions.findByActiveTrueOrderByIdAsc().stream()
+                .filter(definition -> availableTo(definition, user))
                 .forEach(definition -> evaluateAchievement(user, definition, achievementMetrics));
 
         Instant now = Instant.now();
@@ -88,6 +92,11 @@ public class ProgressionService {
                 .filter(definition -> !now.isBefore(definition.getStartsAt()) && now.isBefore(definition.getExpiresAt()))
                 .forEach(definition -> evaluateChallenge(user, definition,
                         metrics(user, definition.getStartsAt(), definition.getExpiresAt())));
+    }
+
+    private boolean availableTo(AchievementDefinition definition, User user) {
+        return !definition.isDemoOnly() || (user.getRole().canonical() == UserRole.PARTICIPANTE
+                && DemoParticipantCatalog.contains(user.getEmail()));
     }
 
     private AchievementResponse evaluateAchievement(User user, AchievementDefinition definition, Metrics metrics) {

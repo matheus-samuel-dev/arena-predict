@@ -15,6 +15,7 @@ public class AchievementDefinition {
     @Column(nullable = false) private int target;
     @Column(nullable = false) private int pointsReward;
     @Column(nullable = false) private boolean active = true;
+    @Column(nullable = false) private boolean demoOnly;
 
     public Long getId() { return id; }
     public String getCode() { return code; } public void setCode(String code) { this.code = code; }
@@ -25,4 +26,5 @@ public class AchievementDefinition {
     public int getTarget() { return target; } public void setTarget(int target) { this.target = target; }
     public int getPointsReward() { return pointsReward; } public void setPointsReward(int pointsReward) { this.pointsReward = pointsReward; }
     public boolean isActive() { return active; } public void setActive(boolean active) { this.active = active; }
+    public boolean isDemoOnly() { return demoOnly; } public void setDemoOnly(boolean demoOnly) { this.demoOnly = demoOnly; }
 }

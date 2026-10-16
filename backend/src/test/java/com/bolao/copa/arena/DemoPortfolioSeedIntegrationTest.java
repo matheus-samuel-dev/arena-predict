@@ -52,6 +52,39 @@ class DemoPortfolioSeedIntegrationTest {
     @Autowired ProgressionService progression;
     @Autowired JdbcTemplate db;
     @Autowired EntityManager em;
+    @Autowired AchievementDefinitionRepository achievementDefinitions;
+
+    @Test
+    void futureDemoGoalsUseExistingProgressionAndNeverGrantOrExposeGoalsToRegularAccounts() {
+        seed.seed(); em.flush();
+        User player = player();
+        var goals = progression.achievements(player).stream().filter(a -> a.code().startsWith("DEMO_")).toList();
+        assertThat(goals).hasSize(3).allSatisfy(goal -> {
+            assertThat(goal.unlocked()).isFalse();
+            assertThat(goal.unlockedAt()).isNull();
+            assertThat(goal.progress()).isPositive().isLessThan(goal.target());
+        });
+        long balance = wallets.wallet(player).balance();
+        long definitions = achievementDefinitions.count();
+        seed.seed(); progression.refresh(player); em.flush();
+        assertThat(achievementDefinitions.count()).isEqualTo(definitions);
+        assertThat(wallets.wallet(player).balance()).isEqualTo(balance);
+
+        // A later genuine threshold crossing uses the same reward command, exactly once.
+        var goal = achievementDefinitions.findByCode("DEMO_FIFTY_PREDICTIONS").orElseThrow();
+        goal.setTarget(goals.stream().filter(a -> a.code().equals(goal.getCode())).findFirst().orElseThrow().progress());
+        progression.refresh(player); progression.refresh(player); em.flush();
+        assertThat(wallets.wallet(player).balance()).isEqualTo(balance + goal.getPointsReward());
+        assertThat(progression.achievements(player).stream().filter(a -> a.code().equals(goal.getCode())).findFirst().orElseThrow().unlocked()).isTrue();
+
+        User regular = RegularTestUsers.freshParticipant(users);
+        long regularBalance = wallets.wallet(regular).balance();
+        goal.setTarget(1); // Demo-only definitions must not even create progress state for normal accounts.
+        progression.refresh(regular); em.flush();
+        assertThat(progression.achievements(regular)).noneMatch(a -> a.code().startsWith("DEMO_"));
+        assertThat(wallets.wallet(regular).balance()).isEqualTo(regularBalance);
+        assertThat(db.queryForObject("select count(*) from arena_user_achievements ua join arena_achievement_definitions a on a.id=ua.achievement_id where ua.user_id=? and a.demo_only=true", Long.class, regular.getId())).isZero();
+    }
 
     @Test
     void persistsVariedHistoryThroughSettlementAndReconcilesEveryWalletWithoutDuplicateReplay() {
